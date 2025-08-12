@@ -5,6 +5,7 @@ using PlanWriter.Application.Interfaces;
 using PlanWriter.Application.Services;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces;
+using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 using Assert = Xunit.Assert;
 
@@ -40,7 +41,7 @@ namespace PlanWriter.Tests.Services;
 
             _repositoryMock.Verify(r => r.GetByIdAsync(dto.ProjectId), Times.Once);
             _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Project>()), Times.Never);
-            _repositoryMock.Verify(r => r.AddProgressEntryAsync(It.IsAny<ProjectProgressEntry>()), Times.Never);
+            _repositoryMock.Verify(r => r.AddProgressEntryAsync(It.IsAny<ProjectProgress>()), Times.Never);
         }
 
         [Fact(DisplayName = "Deve atualizar o projeto e salvar o progresso quando válido")]
@@ -76,7 +77,7 @@ namespace PlanWriter.Tests.Services;
                 p.CurrentWordCount == dto.TotalWordsWritten
             )), Times.Once);
 
-            _repositoryMock.Verify(r => r.AddProgressEntryAsync(It.Is<ProjectProgressEntry>(entry =>
+            _repositoryMock.Verify(r => r.AddProgressEntryAsync(It.Is<ProjectProgress>(entry =>
                 entry.ProjectId == projectId &&
                 entry.TotalWordsWritten == dto.TotalWordsWritten &&
                 entry.RemainingWords == (project.TotalWordsGoal - dto.TotalWordsWritten) &&

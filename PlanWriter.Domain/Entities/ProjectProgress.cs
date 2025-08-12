@@ -2,7 +2,7 @@
 
 namespace PlanWriter.Domain.Entities;
 
-    public class ProjectProgressEntry
+    public class ProjectProgress
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -17,7 +17,7 @@ namespace PlanWriter.Domain.Entities;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime Date { get; set; } = DateTime.UtcNow;
-        public int TimeSpentInMinutes{ get; set; }       
-            
+        public int TimeSpentInMinutes{ get; set; }
+        public int WordsWritten { get; set; }
     }
 

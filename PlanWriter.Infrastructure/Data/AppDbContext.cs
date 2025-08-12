@@ -9,12 +9,16 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Project> Projects { get; set; }
-    public DbSet<ProjectProgressEntry> ProjectProgressEntries { get; set; }
-    
+    public DbSet<ProjectProgress> ProjectProgresses { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Se tiver configurações personalizadas, adicione aqui
+        modelBuilder.Entity<Project>()
+            .HasMany(p => p.ProgressEntries)
+            .WithOne(pp => pp.Project)
+            .HasForeignKey(pp => pp.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
