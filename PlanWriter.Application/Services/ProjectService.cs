@@ -10,7 +10,8 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Interfaces.Repositories;
-
+using AddProjectProgressDto = PlanWriter.Application.DTO.AddProjectProgressDto;
+using CreateProjectDto = PlanWriter.Application.DTO.CreateProjectDto;
 
 namespace PlanWriter.Application.Services
 {
@@ -23,7 +24,7 @@ namespace PlanWriter.Application.Services
             _projectRepo = projectRepo;
             _progressRepo = progressRepo;
         }
-        private string GetUserId(ClaimsPrincipal user) =>
+        public string GetUserId(ClaimsPrincipal user) =>
             user.FindFirst(ClaimTypes.NameIdentifier)?.Value 
             ?? throw new UnauthorizedAccessException();
 
@@ -103,78 +104,39 @@ namespace PlanWriter.Application.Services
             };
 
             project.CurrentWordCount += dto.WordsWritten;
-            _progressRepo. .ProjectProgresses.Add(progress);
-
-            await _context.SaveChangesAsync();
+            
+            await _progressRepo.AddProgressAsync(progress);
         }
 
         public async Task<IEnumerable<ProgressHistoryDto>> GetProgressHistoryAsync(Guid projectId, ClaimsPrincipal user)
         {
             var userId = GetUserId(user);
-            return await _context.ProjectProgresses
-                .Where(p => p.ProjectId == projectId && p.Project.UserId == userId)
-                .OrderBy(p => p.Date)
+            var history = await _progressRepo.GetProgressHistoryAsync(projectId, userId);
+
+            return history
                 .Select(p => new ProgressHistoryDto
                 {
                     Date = p.Date,
                     WordsWritten = p.WordsWritten
                 })
-                .ToListAsync();
+                .OrderBy(p => p.Date)
+                .ToList();
         }
 
-        public async Task SetGoalAsync(Guid projectId, SetGoalDto dto, ClaimsPrincipal user)
+        public async Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline)
         {
-            var userId = GetUserId(user);
-            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
-            if (project == null) throw new KeyNotFoundException("Project not found");
-
-            project.WordCountGoal = dto.WordCountGoal;
-            project.Deadline = dto.Deadline;
-            await _context.SaveChangesAsync();
+            return await _projectRepo.SetGoalAsync(projectId, userId, wordCountGoal, deadline);
         }
-
-        public async Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, ClaimsPrincipal user)
+        public async Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId)
         {
-            var userId = GetUserId(user);
-            var progressList = await _context.ProjectProgresses
-                .Where(p => p.ProjectId == projectId && p.Project.UserId == userId)
-                .ToListAsync();
-
-            if (!progressList.Any())
-                return new ProjectStatisticsDto();
-
-            var totalWords = progressList.Sum(p => p.WordsWritten);
-            var avgWords = progressList
-                .GroupBy(p => p.Date.Date)
-                .Average(g => g.Sum(x => x.WordsWritten));
-
-            var mostProductive = progressList
-                .GroupBy(p => p.Date.Date)
-                .OrderByDescending(g => g.Sum(x => x.WordsWritten))
-                .First().Key;
-
-            var project = await _context.Projects.FirstAsync(p => p.Id == projectId);
-            double? completion = project.WordCountGoal.HasValue
-                ? (double)totalWords / project.WordCountGoal.Value * 100
-                : null;
-
-            return new ProjectStatisticsDto
-            {
-                TotalWordsWritten = totalWords,
-                AverageWordsPerDay = Math.Round(avgWords, 2),
-                MostProductiveDay = mostProductive,
-                CompletionPercentage = completion
-            };
+            return await _projectRepo.GetStatisticsAsync(projectId, userId);
         }
 
-        public async Task DeleteProjectAsync(Guid id, ClaimsPrincipal user)
+        public async Task<bool> DeleteProjectAsync(Guid projectId, string userId)
         {
-            var userId = GetUserId(user);
-            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-            if (project == null) throw new KeyNotFoundException("Project not found");
-
-            _context.Projects.Remove(project);
-            await _context.SaveChangesAsync();
+            return await _projectRepo.DeleteProjectAsync(projectId, userId);
         }
+
+        
     }
 }

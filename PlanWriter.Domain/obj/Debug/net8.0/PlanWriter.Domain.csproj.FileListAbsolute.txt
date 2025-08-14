@@ -20,3 +20,4 @@ C:\Repos\PlanWriter\PlanWriter.Domain\obj\Debug\net8.0\PlanWriter.Domain.dll
 C:\Repos\PlanWriter\PlanWriter.Domain\obj\Debug\net8.0\refint\PlanWriter.Domain.dll
 C:\Repos\PlanWriter\PlanWriter.Domain\obj\Debug\net8.0\PlanWriter.Domain.pdb
 C:\Repos\PlanWriter\PlanWriter.Domain\obj\Debug\net8.0\ref\PlanWriter.Domain.dll
+C:\Repos\PlanWriter\PlanWriter.Domain\obj\Debug\net8.0\PlanWriter.Domain.sourcelink.json

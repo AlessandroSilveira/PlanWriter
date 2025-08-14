@@ -424,3 +424,4 @@ C:\Repos\PlanWriter\PlanWriter.API\obj\Debug\net8.0\refint\PlanWriter.API.dll
 C:\Repos\PlanWriter\PlanWriter.API\obj\Debug\net8.0\PlanWriter.API.pdb
 C:\Repos\PlanWriter\PlanWriter.API\obj\Debug\net8.0\PlanWriter.API.genruntimeconfig.cache
 C:\Repos\PlanWriter\PlanWriter.API\obj\Debug\net8.0\ref\PlanWriter.API.dll
+C:\Repos\PlanWriter\PlanWriter.API\obj\Debug\net8.0\PlanWriter.API.sourcelink.json

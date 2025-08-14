@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PlanWriter.Application.DTOs;
-using PlanWriter.Application.Services;
-using System.Threading.Tasks;
-using PlanWriter.Application.DTO;
 using PlanWriter.Application.Interfaces;
+using PlanWriter.Domain.Dtos;
+using AddProjectProgressDto = PlanWriter.Application.DTO.AddProjectProgressDto;
+using CreateProjectDto = PlanWriter.Application.DTO.CreateProjectDto;
 
 namespace PlanWriter.Api.Controllers
 {
@@ -17,7 +16,7 @@ namespace PlanWriter.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
         {
-            await projectService.CreateProjectAsync(dto);
+            await projectService.CreateProjectAsync(dto, User);
             return Ok(new { Message = "Project created successfully." });
         }
         
@@ -28,7 +27,7 @@ namespace PlanWriter.Api.Controllers
         [HttpPost("progress")]
         public async Task<IActionResult> AddProgress([FromBody] AddProjectProgressDto dto)
         {
-            await projectService.AddProgressAsync(dto);
+            await projectService.AddProgressAsync(dto, User);
             return Ok(new { message = "Progress added successfully." });
         }
         
@@ -42,14 +41,15 @@ namespace PlanWriter.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var project = await projectService.GetProjectByIdAsync(id);
+            var project = await projectService.GetProjectByIdAsync(id, User);
             return Ok(project);   
         }
     
         [HttpPost("{id}/goal")]
         public async Task<IActionResult> SetGoal(Guid id, [FromBody] SetGoalDto dto)
         {
-            await projectService.SetGoalAsync(id, dto, User);
+            var userId = projectService.GetUserId(User);
+            await projectService.SetGoalAsync(id, userId, dto.WordCountGoal, dto.Deadline);
             return Ok(new { message = "Goal set successfully." });
         }
     
@@ -63,13 +63,15 @@ namespace PlanWriter.Api.Controllers
         [HttpGet("{id}/stats")]
         public async Task<IActionResult> GetStats(Guid id)
         {
-            var stats = await projectService.GetStatisticsAsync(id, User);
+            var userId = projectService.GetUserId(User);
+            var stats = await projectService.GetStatisticsAsync(id, userId);
             return Ok(stats);   
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await projectService.DeleteProjectAsync(id, User);
+            var userId = projectService.GetUserId(User);
+            await projectService.DeleteProjectAsync(id, userId);
             return Ok(new { message = "Project deleted successfully." });   
         }
     }

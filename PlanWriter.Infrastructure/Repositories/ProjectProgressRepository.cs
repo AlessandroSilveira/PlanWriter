@@ -20,5 +20,27 @@ namespace PlanWriter.Infrastructure.Repositories
                 .OrderBy(p => p.Date)
                 .ToListAsync();
         }
+        
+        public async Task<ProjectProgress> AddProgressAsync(ProjectProgress progress)
+        {
+            progress.Id = Guid.NewGuid();
+            if (progress.Date == default)
+                progress.Date = DateTime.UtcNow;
+
+            await _dbSet.AddAsync(progress);
+            await _context.SaveChangesAsync();
+
+            return progress;
+        }
+        
+        public async Task<IEnumerable<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, string userId)
+        {
+            return await _dbSet
+                .Include(pp => pp.Project)
+                .Where(pp => pp.ProjectId == projectId && pp.Project.UserId == userId)
+                .OrderBy(pp => pp.Date)
+                .ToListAsync();
+        }
+
     }
 }

@@ -28,3 +28,4 @@ C:\Repos\PlanWriter\PlanWriter.Application\obj\Debug\net8.0\PlanWriter.Applicati
 C:\Repos\PlanWriter\PlanWriter.Application\obj\Debug\net8.0\refint\PlanWriter.Application.dll
 C:\Repos\PlanWriter\PlanWriter.Application\obj\Debug\net8.0\PlanWriter.Application.pdb
 C:\Repos\PlanWriter\PlanWriter.Application\obj\Debug\net8.0\ref\PlanWriter.Application.dll
+C:\Repos\PlanWriter\PlanWriter.Application\obj\Debug\net8.0\PlanWriter.Application.sourcelink.json

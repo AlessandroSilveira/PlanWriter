@@ -7,6 +7,7 @@ using PlanWriter.Application.Interfaces;
 using PlanWriter.Application.Services;
 using PlanWriter.Application.Validators;
 using PlanWriter.Domain.Interfaces;
+using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.Data;
 using PlanWriter.Infrastructure.Repositories;
 
@@ -81,6 +82,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository>();
 
 builder.Services.AddControllers();
 

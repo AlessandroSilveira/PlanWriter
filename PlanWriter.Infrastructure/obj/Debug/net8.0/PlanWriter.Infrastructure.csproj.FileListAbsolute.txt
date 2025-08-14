@@ -32,3 +32,4 @@ C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\refint\PlanWriter
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.pdb
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.genruntimeconfig.cache
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\ref\PlanWriter.Infrastructure.dll
+C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.sourcelink.json

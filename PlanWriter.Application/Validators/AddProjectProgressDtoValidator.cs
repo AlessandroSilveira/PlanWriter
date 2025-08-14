@@ -13,8 +13,8 @@ namespace PlanWriter.Application.Validators
                 .NotEmpty().WithMessage("Project ID is required.")
                 .NotEqual(Guid.Empty).WithMessage("Project ID cannot be empty GUID.");
 
-            RuleFor(x => x.TotalWordsWritten)
-                .GreaterThanOrEqualTo(0).WithMessage("Total words written must be zero or greater.");
+            // RuleFor(x => x.TotalWordsWritten)
+            //     .GreaterThanOrEqualTo(0).WithMessage("Total words written must be zero or greater.");
         }
     }
 }
