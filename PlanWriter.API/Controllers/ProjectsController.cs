@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos;
 using AddProjectProgressDto = PlanWriter.Application.DTO.AddProjectProgressDto;
@@ -8,7 +9,8 @@ namespace PlanWriter.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ProjectController(IProjectService projectService) : ControllerBase
+    [Authorize]
+    public class ProjectsController(IProjectService projectService) : ControllerBase
     {
         /// <summary>
         /// Create a new project
@@ -52,13 +54,7 @@ namespace PlanWriter.Api.Controllers
             await projectService.SetGoalAsync(id, userId, dto.WordCountGoal, dto.Deadline);
             return Ok(new { message = "Goal set successfully." });
         }
-    
-        [HttpPost("{id}/progress")]
-        public async Task<IActionResult> GetProgressHistory(Guid id)
-        {
-            var history = await projectService.GetProgressHistoryAsync(id, User);
-            return Ok(history);   
-        }
+        
     
         [HttpGet("{id}/stats")]
         public async Task<IActionResult> GetStats(Guid id)
@@ -74,5 +70,18 @@ namespace PlanWriter.Api.Controllers
             await projectService.DeleteProjectAsync(id, userId);
             return Ok(new { message = "Project deleted successfully." });   
         }
+        
+        [HttpDelete("/progress/{progressId}")]
+        public async Task<IActionResult> DeleteProgress(Guid progressId)
+        {
+            var userId = projectService.GetUserId(User);
+
+            var result = await projectService.DeleteProgressAsync(progressId, userId);
+            if (!result)
+                return NotFound(new { message = "Progress not found or not authorized." });
+
+            return NoContent();
+        }
+        
     }
 }

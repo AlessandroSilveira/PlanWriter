@@ -41,6 +41,31 @@ namespace PlanWriter.Infrastructure.Repositories
                 .OrderBy(pp => pp.Date)
                 .ToListAsync();
         }
+        public async Task<ProjectProgress> GetByIdAsync(Guid id, string userId)
+        {
+            return await _dbSet
+                .Include(p => p.Project)
+                .FirstOrDefaultAsync(p => p.Id == id && p.Project.UserId == userId);
+        }
+        
+        public async Task<ProjectProgress> GetLastProgressBeforeAsync(Guid projectId, DateTime date)
+        {
+            return await _dbSet
+                .Where(p => p.ProjectId == projectId && p.Date < date)
+                .OrderByDescending(p => p.Date)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> DeleteAsync(Guid id, string userId)
+        {
+            var progress = await GetByIdAsync(id, userId);
+            if (progress == null)
+                return false;
+
+            _dbSet.Remove(progress);
+            await _context.SaveChangesAsync();
+            return true;
+        }
 
     }
 }

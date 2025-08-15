@@ -6,7 +6,7 @@ using PlanWriter.Domain.Entities;
 
 namespace PlanWriter.Domain.Interfaces.Repositories
 {
-    public interface IProjectRepository
+    public interface IProjectRepository: IRepository<Project>
     {
         Task<Project> CreateAsync(Project project);
         Task<IEnumerable<Project>> GetUserProjectsAsync(string userId);
@@ -15,6 +15,6 @@ namespace PlanWriter.Domain.Interfaces.Repositories
         Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline = null);
         Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId);
         Task<bool> DeleteProjectAsync(Guid projectId, string userId);
-
+        
     }
 }

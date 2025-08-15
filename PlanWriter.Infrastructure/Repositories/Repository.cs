@@ -35,5 +35,11 @@ namespace PlanWriter.Infrastructure.Repositories
         public virtual void Remove(T entity) => _dbSet.Remove(entity);
 
         public virtual async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
+        
+        public virtual async Task UpdateAsync(T entity)
+        {
+            _dbSet.Update(entity);
+            await _context.SaveChangesAsync();
+        }
     }
 }

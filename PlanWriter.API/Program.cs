@@ -87,6 +87,18 @@ builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository
 
 builder.Services.AddControllers();
 
+// Adicionar CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 app.UseSwagger();
@@ -95,7 +107,7 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseCors("AllowFrontend");
 
 app.MapControllers();
 

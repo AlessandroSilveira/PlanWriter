@@ -136,6 +136,33 @@ namespace PlanWriter.Application.Services
         {
             return await _projectRepo.DeleteProjectAsync(projectId, userId);
         }
+        public async Task<bool> DeleteProgressAsync(Guid progressId, string userId)
+        {
+            // Buscar progresso
+            var progress = await _progressRepo.GetByIdAsync(progressId, userId);
+            if (progress == null)
+                return false;
+
+            var projectId = progress.ProjectId;
+            var date = progress.Date;
+
+            // Excluir progresso
+            var deleted = await _progressRepo.DeleteAsync(progressId, userId);
+            if (!deleted) return false;
+
+            // Buscar último progresso anterior
+            var lastProgress = await _progressRepo.GetLastProgressBeforeAsync(projectId, date);
+
+            // Atualizar projeto
+            var project = await _projectRepo.GetUserProjectByIdAsync(projectId, userId);
+            if (project != null)
+            {
+                project.CurrentWordCount = lastProgress?.WordsWritten ?? 0;
+                await _projectRepo.UpdateAsync(project); // ✅ agora existe
+            }
+
+            return true;
+        }
 
         
     }
