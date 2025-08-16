@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "GndZPNn4bko=",
+  "dgSpecHash": "+k6ChgIpLms=",
   "success": true,
-  "projectFilePath": "C:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj",
+  "projectFilePath": "c:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\alesi\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\alesi\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

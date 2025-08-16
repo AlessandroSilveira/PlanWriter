@@ -5372,11 +5372,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj",
+      "projectUniqueName": "c:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj",
       "projectName": "PlanWriter.Infrastructure",
-      "projectPath": "C:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj",
+      "projectPath": "c:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj",
       "packagesPath": "C:\\Users\\alesi\\.nuget\\packages\\",
-      "outputPath": "C:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\obj\\",
+      "outputPath": "c:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -5398,8 +5398,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Repos\\PlanWriter\\PlanWriter.Domain\\PlanWriter.Domain.csproj": {
-              "projectPath": "C:\\Repos\\PlanWriter\\PlanWriter.Domain\\PlanWriter.Domain.csproj"
+            "c:\\Repos\\PlanWriter\\PlanWriter.Domain\\PlanWriter.Domain.csproj": {
+              "projectPath": "c:\\Repos\\PlanWriter\\PlanWriter.Domain\\PlanWriter.Domain.csproj"
             }
           }
         }

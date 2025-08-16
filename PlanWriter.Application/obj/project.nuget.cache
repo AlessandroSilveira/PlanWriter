@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "kXacnfR37IE=",
+  "dgSpecHash": "8Qa0jXrs2EU=",
   "success": true,
-  "projectFilePath": "C:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj",
+  "projectFilePath": "c:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\alesi\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\alesi\\.nuget\\packages\\fluentvalidation\\12.0.0\\fluentvalidation.12.0.0.nupkg.sha512",
@@ -21,10 +21,8 @@
     {
       "code": "NU1902",
       "level": "Warning",
-      "message": "Package 'System.IdentityModel.Tokens.Jwt' 7.0.3 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
-      "projectPath": "C:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj",
+      "message": "Package 'System.IdentityModel.Tokens.Jwt' 7.0.3 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net8.0"

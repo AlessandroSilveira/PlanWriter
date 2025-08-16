@@ -19,5 +19,6 @@ namespace PlanWriter.Domain.Entities;
         public DateTime Date { get; set; } = DateTime.UtcNow;
         public int TimeSpentInMinutes{ get; set; }
         public int WordsWritten { get; set; }
+        public string Notes { get; set; }
     }
 

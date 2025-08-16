@@ -5522,11 +5522,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Repos\\PlanWriter\\PlanWriter.API\\PlanWriter.API.csproj",
+      "projectUniqueName": "c:\\Repos\\PlanWriter\\PlanWriter.API\\PlanWriter.API.csproj",
       "projectName": "PlanWriter.API",
-      "projectPath": "C:\\Repos\\PlanWriter\\PlanWriter.API\\PlanWriter.API.csproj",
+      "projectPath": "c:\\Repos\\PlanWriter\\PlanWriter.API\\PlanWriter.API.csproj",
       "packagesPath": "C:\\Users\\alesi\\.nuget\\packages\\",
-      "outputPath": "C:\\Repos\\PlanWriter\\PlanWriter.API\\obj\\",
+      "outputPath": "c:\\Repos\\PlanWriter\\PlanWriter.API\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -5548,11 +5548,11 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj": {
-              "projectPath": "C:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj"
+            "c:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj": {
+              "projectPath": "c:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj"
             },
-            "C:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj": {
-              "projectPath": "C:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj"
+            "c:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj": {
+              "projectPath": "c:\\Repos\\PlanWriter\\PlanWriter.Infrastructure\\PlanWriter.Infrastructure.csproj"
             }
           }
         }

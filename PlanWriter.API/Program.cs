@@ -105,9 +105,10 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors("AllowFrontend");
+
 
 app.MapControllers();
 

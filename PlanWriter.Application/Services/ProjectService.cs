@@ -100,7 +100,8 @@ namespace PlanWriter.Application.Services
                 Id = Guid.NewGuid(),
                 ProjectId = project.Id,
                 WordsWritten = dto.WordsWritten,
-                Date = dto.Date
+                Date = dto.Date,
+                Notes = dto.Notes
             };
 
             project.CurrentWordCount += dto.WordsWritten;

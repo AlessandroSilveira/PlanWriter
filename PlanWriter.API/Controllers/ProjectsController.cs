@@ -21,17 +21,31 @@ namespace PlanWriter.Api.Controllers
             await projectService.CreateProjectAsync(dto, User);
             return Ok(new { Message = "Project created successfully." });
         }
+       
         
         /// <summary>
-        /// Adiciona uma entrada de progresso ao projeto.
-        /// Add a new progress entry to project
+         /// Adiciona uma entrada de progresso ao projeto.
+         /// Add a new progress entry to project
         /// </summary>
-        [HttpPost("progress")]
-        public async Task<IActionResult> AddProgress([FromBody] AddProjectProgressDto dto)
+        [HttpPost("{id:guid}/progress")]
+        public async Task<IActionResult> AddProgress(Guid id, [FromBody] AddProjectProgressDto dto)
         {
+            if (dto == null)
+                return BadRequest("Body inválido.");
+
+            // força o ProjectId pelo route param
+            dto.ProjectId = id;
+
+            if (dto.WordsWritten <= 0)
+                return BadRequest("TotalWordsWritten deve ser maior que zero.");
+
+            if (dto.Date == default)
+                dto.Date = DateTime.UtcNow;
+
             await projectService.AddProgressAsync(dto, User);
             return Ok(new { message = "Progress added successfully." });
         }
+
         
         [HttpGet]
         public async Task<IActionResult> GetAll()
