@@ -2,8 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos;
-using AddProjectProgressDto = PlanWriter.Application.DTO.AddProjectProgressDto;
-using CreateProjectDto = PlanWriter.Application.DTO.CreateProjectDto;
+
 
 namespace PlanWriter.Api.Controllers
 {
@@ -68,15 +67,23 @@ namespace PlanWriter.Api.Controllers
             await projectService.SetGoalAsync(id, userId, dto.WordCountGoal, dto.Deadline);
             return Ok(new { message = "Goal set successfully." });
         }
-        
-    
+
+
+        /// <summary>
+        /// Retorna estatísticas de progresso para o projeto
+        /// </summary>
         [HttpGet("{id}/stats")]
-        public async Task<IActionResult> GetStats(Guid id)
-        {
-            var userId = projectService.GetUserId(User);
-            var stats = await projectService.GetStatisticsAsync(id, userId);
-            return Ok(stats);   
+        public async Task<ActionResult<ProjectStatsDto>> GetStats(Guid id)
+        {   
+
+            var stats = await projectService.GetStatsAsync(id, User);
+            if (stats == null)
+                return NotFound();
+
+            return Ok(stats);
         }
+        
+        
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -95,6 +102,18 @@ namespace PlanWriter.Api.Controllers
                 return NotFound(new { message = "Progress not found or not authorized." });
 
             return NoContent();
+        }
+        
+        [HttpGet("{id:guid}/progress")]
+        public async Task<IActionResult> GetProgresses(Guid id)
+        {
+            var userId = projectService.GetUserId(User);
+
+            var result = await projectService.GetProgressHistoryAsync(id, User);
+            if (!result.Any())
+                return NotFound(new { message = "Progress not found or not authorized." });
+
+            return Ok(result);
         }
         
     }

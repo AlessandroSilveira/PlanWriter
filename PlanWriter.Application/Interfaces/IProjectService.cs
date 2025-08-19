@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
-using AddProjectProgressDto = PlanWriter.Application.DTO.AddProjectProgressDto;
-using CreateProjectDto = PlanWriter.Application.DTO.CreateProjectDto;
+
 
 namespace PlanWriter.Application.Interfaces
 {
@@ -20,5 +19,6 @@ namespace PlanWriter.Application.Interfaces
         Task<bool> DeleteProjectAsync(Guid projectId, string userId);
         Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId);
         Task<bool> DeleteProgressAsync(Guid progressId, string userId);
+        Task<ProjectStatsDto> GetStatsAsync(Guid projectId, ClaimsPrincipal user);
     }
 }
