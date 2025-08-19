@@ -26,10 +26,10 @@ C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infras
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.AssemblyInfoInputs.cache
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.AssemblyInfo.cs
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.sourcelink.json
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWrit.33171DE0.Up2Date
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.dll
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\refint\PlanWriter.Infrastructure.dll
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.pdb
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.genruntimeconfig.cache
 C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\ref\PlanWriter.Infrastructure.dll
-C:\Repos\PlanWriter\PlanWriter.Infrastructure\obj\Debug\net8.0\PlanWriter.Infrastructure.sourcelink.json

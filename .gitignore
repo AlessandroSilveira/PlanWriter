@@ -1,0 +1,101 @@
+#########################################
+## Build & IDE folders
+#########################################
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider / JetBrains
+.idea/
+
+# VS Code
+.vscode/
+
+# Build results
+bin/
+obj/
+out/
+
+# Publish
+[Dd]ebug*/
+[Rr]elease*/
+x64/
+x86/
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+
+#########################################
+## NuGet
+#########################################
+
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+#########################################
+## ASP.NET
+#########################################
+
+# User secrets
+secrets.json
+
+# IIS Express
+.vs/
+*.vspscc
+*.vssscc
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+#########################################
+## dotCover
+#########################################
+
+.idea/.dotCover
+
+#########################################
+## Resharper
+#########################################
+
+*.DotSettings.user
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings
+
+#########################################
+## Test Results
+#########################################
+
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+#########################################
+## Others
+#########################################
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Rider caches
+.idea/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/.idea.IML
+
+# Optional: Local environment overrides
+.env
+*.env
+*.local

@@ -45,6 +45,7 @@ namespace PlanWriter.Infrastructure.Repositories
             return await _dbSet
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         }
+        
         public async Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline = null)
         {
             var project = await _dbSet

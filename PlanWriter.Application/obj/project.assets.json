@@ -515,7 +515,7 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\alesi\\.nuget\\packages\\": {},
+    "C:\\Users\\alessandro.silveira\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
@@ -524,14 +524,14 @@
       "projectUniqueName": "c:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj",
       "projectName": "PlanWriter.Application",
       "projectPath": "c:\\Repos\\PlanWriter\\PlanWriter.Application\\PlanWriter.Application.csproj",
-      "packagesPath": "C:\\Users\\alesi\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\alessandro.silveira\\.nuget\\packages\\",
       "outputPath": "c:\\Repos\\PlanWriter\\PlanWriter.Application\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\alesi\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\alessandro.silveira\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -539,9 +539,8 @@
         "net8.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "C:\\Program Files\\dotnet\\library-packs": {},
-        "https://api.nuget.org/v3/index.json": {}
+        "https://api.nuget.org/v3/index.json": {},
+        "https://pkgs.dev.azure.com/geniallabs/_packaging/geniallabs/nuget/v3/index.json": {}
       },
       "frameworks": {
         "net8.0": {
@@ -619,6 +618,12 @@
     }
   },
   "logs": [
+    {
+      "code": "NU1900",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://pkgs.dev.azure.com/geniallabs/_packaging/geniallabs/nuget/v3/index.json."
+    },
     {
       "code": "NU1902",
       "level": "Warning",
