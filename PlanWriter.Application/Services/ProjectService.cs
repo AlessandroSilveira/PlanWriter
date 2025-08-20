@@ -263,8 +263,6 @@ namespace PlanWriter.Application.Services
                 SmartDailyTarget = smartDailyTarget    
             };
         }
-
-
         
     }
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PlanWriter.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cc60beee7b74a2e63155ab6cd15a1a2b60669115")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ea3b366c746251dbc6790ba56d0d2a82e113980")]
 [assembly: System.Reflection.AssemblyProductAttribute("PlanWriter.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PlanWriter.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
