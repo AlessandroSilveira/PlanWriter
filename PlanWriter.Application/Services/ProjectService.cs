@@ -2,7 +2,6 @@
 
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Entities;
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,11 +16,13 @@ namespace PlanWriter.Application.Services
     {
         private readonly IProjectRepository _projectRepo;
         private readonly IProjectProgressRepository _progressRepo;
+
         public ProjectService(IProjectRepository projectRepo, IProjectProgressRepository progressRepo)
         {
             _projectRepo = projectRepo;
             _progressRepo = progressRepo;
         }
+
         public string GetUserId(ClaimsPrincipal user) =>
             user.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? throw new UnauthorizedAccessException();
@@ -126,6 +127,7 @@ namespace PlanWriter.Application.Services
         {
             return await _projectRepo.SetGoalAsync(projectId, userId, wordCountGoal, deadline);
         }
+
         public async Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId)
         {
             return await _projectRepo.GetStatisticsAsync(projectId, userId);
@@ -135,6 +137,7 @@ namespace PlanWriter.Application.Services
         {
             return await _projectRepo.DeleteProjectAsync(projectId, userId);
         }
+
         public async Task<bool> DeleteProgressAsync(Guid progressId, string userId)
         {
             // Buscar progresso
@@ -200,17 +203,17 @@ namespace PlanWriter.Application.Services
         //     };
         // }
 
-        public async Task<ProjectStatsDto?> GetStatsAsync(Guid projectId, ClaimsPrincipal user)
+        public async Task<ProjectStatsDto> GetStatsAsync(Guid projectId, ClaimsPrincipal user)
         {
             var userId = GetUserId(user);
             var project = await _projectRepo.GetUserProjectByIdAsync(projectId, userId);
-                      
+
 
             if (project == null)
                 return null;
 
-            var entries = await _progressRepo.GetProgressByProjectIdAsync(projectId, userId);   
-             if (entries == null )
+            var entries = await _progressRepo.GetProgressByProjectIdAsync(projectId, userId);
+            if (entries == null)
             {
                 return new ProjectStatsDto
                 {
@@ -220,49 +223,67 @@ namespace PlanWriter.Application.Services
                     ActiveDays = 0,
                     WordsRemaining = project.WordCountGoal
                 };
-            }           
-        
+            }
 
-            var groupedByDay = entries.ToList()
-                .GroupBy(e => e.CreatedAt.Date)
-                .Select(g => new
-                {
-                    Date = g.Key,
-                    Words = g.Sum(e => e.WordsWritten)
-                })
+            var totalWords = entries.Sum(p => p.WordsWritten);
+            var groupedByDate = entries
+                .GroupBy(p => p.Date.Date)
+                .Select(g => new { Date = g.Key, Total = g.Sum(p => p.WordsWritten) })
                 .ToList();
 
-            var totalWords = entries.Sum(e => e.WordsWritten);
-            var averagePerDay = groupedByDay.Average(g => g.Words);
-            var bestDay = groupedByDay.OrderByDescending(g => g.Words).FirstOrDefault();
+            var averagePerDay = groupedByDate.Any()
+                ? (int)groupedByDate.Average(g => g.Total)
+                : 0;
 
-            var today = DateTime.UtcNow.Date;
-            var daysLeft = (project.Deadline?.Date - today)?.Days ?? 0;
-            daysLeft = daysLeft < 1 ? 1 : daysLeft; // evita divisão por zero
+            var bestDay = groupedByDate
+                .OrderByDescending(g => g.Total)
+                .FirstOrDefault();
 
-            var wordsRemaining = (project.WordCountGoal ?? 0) - totalWords;
-            wordsRemaining = Math.Max(0, wordsRemaining);
+            var wordsRemaining = project.WordCountGoal.HasValue
+                ? Math.Max(0, project.WordCountGoal.Value - totalWords)
+                : 0;
 
-            var smartDailyTarget = (int)Math.Ceiling((double)wordsRemaining / daysLeft);
+            var activeDays = groupedByDate.Count;
+
+            // 💬 Mensagem motivacional
+            string motivationMessage;
+            if (groupedByDate.Any())
+            {
+                var lastEntryDate = groupedByDate.Max(g => g.Date);
+                var daysSinceLast = (DateTime.Today - lastEntryDate).Days;
+
+                if (daysSinceLast >= 3)
+                    motivationMessage = "Vamos lá! Já faz alguns dias desde a última escrita.";
+                else if (wordsRemaining == 0)
+                    motivationMessage = "Parabéns! Você alcançou sua meta! 🎉";
+                else if (averagePerDay >= 500)
+                    motivationMessage = "Ótimo ritmo! Mantenha esse foco!";
+                else
+                    motivationMessage = "Cada palavra conta. Continue escrevendo!";
+            }
+            else
+            {
+                motivationMessage = "Que tal começar hoje mesmo sua primeira escrita?";
+            }
 
             return new ProjectStatsDto
             {
                 TotalWords = totalWords,
-                AveragePerDay = (int)Math.Round(averagePerDay),
+                AveragePerDay = averagePerDay,
                 BestDay = bestDay != null
                     ? new BestDayDto
                     {
                         Date = bestDay.Date.ToString("yyyy-MM-dd"),
-                        Words = bestDay.Words
+                        Words = bestDay.Total
                     }
                     : null,
-                ActiveDays = groupedByDay.Count,
-                WordsRemaining = project.WordCountGoal.HasValue
-                    ? Math.Max(0, project.WordCountGoal.Value - totalWords)
-                    : null,
-                SmartDailyTarget = smartDailyTarget    
+                ActiveDays = activeDays,
+                WordsRemaining = wordsRemaining,
+                MotivationMessage = motivationMessage
             };
         }
+
+
         
     }
 }
