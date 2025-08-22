@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PlanWriter.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ea3b366c746251dbc6790ba56d0d2a82e113980")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aff9519fb6163464b7c9361d746d5628625bbd2d")]
 [assembly: System.Reflection.AssemblyProductAttribute("PlanWriter.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PlanWriter.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

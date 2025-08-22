@@ -8,6 +8,8 @@ public class ProjectStatsDto
     public int ActiveDays { get; set; }
     public int? WordsRemaining { get; set; }
     public int? SmartDailyTarget { get; set; }
+    
+    public string MotivationMessage { get; set; }
 }
 
 public class BestDayDto
