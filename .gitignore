@@ -1,8 +1,9 @@
 # Binários e pastas de build
 **/bin/
 **/obj/
+**/out/
 
-# IDEs
+# IDEs e configurações locais
 .vscode/
 .idea/
 *.suo
@@ -12,6 +13,9 @@
 
 # Arquivos do Rider
 *.DotSettings.user
+
+# Arquivos do Visual Studio
+*.vs/
 
 # MacOS
 .DS_Store
@@ -27,3 +31,10 @@
 *.ncrunchproject
 *.localhistory
 _ReSharper*/
+
+# Backups
+*.bak
+*.old
+
+# Arquivos de publish do .NET
+publish/
