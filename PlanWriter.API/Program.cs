@@ -8,8 +8,10 @@ using PlanWriter.Application.Services;
 using PlanWriter.Application.Validators;
 using PlanWriter.Domain.Interfaces;
 using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.Services;
 using PlanWriter.Infrastructure.Data;
 using PlanWriter.Infrastructure.Repositories;
+using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +86,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository>();
+builder.Services.AddScoped<IBadgeServices, BadgeServices>();
 
 builder.Services.AddControllers();
 
