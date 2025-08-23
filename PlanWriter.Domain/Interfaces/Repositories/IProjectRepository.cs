@@ -11,7 +11,7 @@ namespace PlanWriter.Domain.Interfaces.Repositories
         Task<Project> CreateAsync(Project project);
         Task<IEnumerable<Project>> GetUserProjectsAsync(string userId);
         Task<Project> GetProjectWithProgressAsync(Guid id, string userId);
-        Task<Project> GetUserProjectByIdAsync(Guid id, string userId);
+        Task<Project?> GetUserProjectByIdAsync(Guid id, string userId);
         Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline = null);
         Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId);
         Task<bool> DeleteProjectAsync(Guid projectId, string userId);

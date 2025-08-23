@@ -87,6 +87,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository>();
 builder.Services.AddScoped<IBadgeServices, BadgeServices>();
+builder.Services.AddScoped<IBadgeRepository, BadgeRepository>();
 
 builder.Services.AddControllers();
 

@@ -12,20 +12,10 @@ using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Services
 {
-    public class ProjectService : IProjectService
+    public class ProjectService(IProjectRepository projectRepo, IProjectProgressRepository progressRepo, IUserService userService)
+        : IProjectService
     {
-        private readonly IProjectRepository _projectRepo;
-        private readonly IProjectProgressRepository _progressRepo;
-
-        public ProjectService(IProjectRepository projectRepo, IProjectProgressRepository progressRepo)
-        {
-            _projectRepo = projectRepo;
-            _progressRepo = progressRepo;
-        }
-
-        public string GetUserId(ClaimsPrincipal user) =>
-            user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? throw new UnauthorizedAccessException();
+        
 
         public async Task CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user)
         {
@@ -36,19 +26,19 @@ namespace PlanWriter.Application.Services
                 Description = dto.Description,
                 WordCountGoal = dto.WordCountGoal,
                 Deadline = dto.Deadline,
-                UserId = GetUserId(user),
+                UserId = userService.GetUserId(user),
                 CurrentWordCount = 0,
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _projectRepo.CreateAsync(project);
+            await projectRepo.CreateAsync(project);
         }
 
         public async Task<IEnumerable<ProjectDto>> GetUserProjectsAsync(ClaimsPrincipal user)
         {
-            var userId = GetUserId(user);
+            var userId = userService.GetUserId(user);
 
-            var dados = await _projectRepo.GetUserProjectsAsync(userId);
+            var dados = await projectRepo.GetUserProjectsAsync(userId);
             return dados.Where(p => p.UserId == userId)
                 .Select(p => new ProjectDto
                 {
@@ -66,8 +56,8 @@ namespace PlanWriter.Application.Services
 
         public async Task<ProjectDto> GetProjectByIdAsync(Guid id, ClaimsPrincipal user)
         {
-            var userId = GetUserId(user);
-            var project = await _projectRepo.GetUserProjectByIdAsync(id, userId);
+            var userId = userService.GetUserId(user);
+            var project = await projectRepo.GetUserProjectByIdAsync(id, userId);
 
             if (project is null)
                 throw new KeyNotFoundException("Project not found");
@@ -88,8 +78,8 @@ namespace PlanWriter.Application.Services
 
         public async Task AddProgressAsync(AddProjectProgressDto dto, ClaimsPrincipal user)
         {
-            var userId = GetUserId(user);
-            var project = await _projectRepo.GetUserProjectByIdAsync(dto.ProjectId, userId);
+            var userId = userService.GetUserId(user);
+            var project = await projectRepo.GetUserProjectByIdAsync(dto.ProjectId, userId);
 
             if (project is null)
                 throw new KeyNotFoundException("Project not found");
@@ -105,13 +95,13 @@ namespace PlanWriter.Application.Services
 
             project.CurrentWordCount += dto.WordsWritten;
 
-            await _progressRepo.AddProgressAsync(progress);
+            await progressRepo.AddProgressAsync(progress);
         }
 
         public async Task<IEnumerable<ProgressHistoryDto>> GetProgressHistoryAsync(Guid projectId, ClaimsPrincipal user)
         {
-            var userId = GetUserId(user);
-            var history = await _progressRepo.GetProgressHistoryAsync(projectId, userId);
+            var userId = userService.GetUserId(user);
+            var history = await progressRepo.GetProgressHistoryAsync(projectId, userId);
 
             return history
                 .Select(p => new ProgressHistoryDto
@@ -125,23 +115,23 @@ namespace PlanWriter.Application.Services
 
         public async Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline)
         {
-            return await _projectRepo.SetGoalAsync(projectId, userId, wordCountGoal, deadline);
+            return await projectRepo.SetGoalAsync(projectId, userId, wordCountGoal, deadline);
         }
 
         public async Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId)
         {
-            return await _projectRepo.GetStatisticsAsync(projectId, userId);
+            return await projectRepo.GetStatisticsAsync(projectId, userId);
         }
 
         public async Task<bool> DeleteProjectAsync(Guid projectId, string userId)
         {
-            return await _projectRepo.DeleteProjectAsync(projectId, userId);
+            return await projectRepo.DeleteProjectAsync(projectId, userId);
         }
 
         public async Task<bool> DeleteProgressAsync(Guid progressId, string userId)
         {
             // Buscar progresso
-            var progress = await _progressRepo.GetByIdAsync(progressId, userId);
+            var progress = await progressRepo.GetByIdAsync(progressId, userId);
             if (progress == null)
                 return false;
 
@@ -149,70 +139,33 @@ namespace PlanWriter.Application.Services
             var date = progress.Date;
 
             // Excluir progresso
-            var deleted = await _progressRepo.DeleteAsync(progressId, userId);
+            var deleted = await progressRepo.DeleteAsync(progressId, userId);
             if (!deleted) return false;
 
             // Buscar último progresso anterior
-            var lastProgress = await _progressRepo.GetLastProgressBeforeAsync(projectId, date);
+            var lastProgress = await progressRepo.GetLastProgressBeforeAsync(projectId, date);
 
             // Atualizar projeto
-            var project = await _projectRepo.GetUserProjectByIdAsync(projectId, userId);
+            var project = await projectRepo.GetUserProjectByIdAsync(projectId, userId);
             if (project != null)
             {
                 project.CurrentWordCount = lastProgress?.WordsWritten ?? 0;
-                await _projectRepo.UpdateAsync(project); // ✅ agora existe
+                await projectRepo.UpdateAsync(project); // ✅ agora existe
             }
 
             return true;
         }
 
-        // public async Task<ProjectStatsDto> GetStatsAsync(Guid projectId, ClaimsPrincipal user)
-        // {
-        //     var userId = GetUserId(user);
-        //     var project = await _projectRepo.GetUserProjectByIdAsync(projectId, userId);
-
-        //     if (project == null)
-        //         throw new KeyNotFoundException("Projeto não encontrado.");
-
-        //     var wordsRemaining = Math.Max(0, (project.WordCountGoal ?? 0) - project.CurrentWordCount);
-
-        //     int? daysRemaining = null;
-        //     int? dailyTarget = null;
-
-        //     if (project.Deadline.HasValue)
-        //     {
-        //         var today = DateTime.Today;
-        //         var deadline = project.Deadline.Value.Date;
-
-        //         if (deadline > today)
-        //         {
-        //             daysRemaining = (deadline - today).Days;
-
-        //             if (daysRemaining > 0)
-        //             {
-        //                 dailyTarget = (int)Math.Ceiling(wordsRemaining / (double)daysRemaining);
-        //             }
-        //         }
-        //     }
-
-        //     return new ProjectStatsDto
-        //     {
-        //         WordsRemaining = wordsRemaining,
-        //         DaysRemaining = daysRemaining,
-        //         DailyTarget = dailyTarget
-        //     };
-        // }
-
         public async Task<ProjectStatsDto> GetStatsAsync(Guid projectId, ClaimsPrincipal user)
         {
-            var userId = GetUserId(user);
-            var project = await _projectRepo.GetUserProjectByIdAsync(projectId, userId);
+            var userId = userService.GetUserId(user);
+            var project = await projectRepo.GetUserProjectByIdAsync(projectId, userId);
 
 
             if (project == null)
                 return null;
 
-            var entries = await _progressRepo.GetProgressByProjectIdAsync(projectId, userId);
+            var entries = await progressRepo.GetProgressByProjectIdAsync(projectId, userId);
             if (entries == null)
             {
                 return new ProjectStatsDto

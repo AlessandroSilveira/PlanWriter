@@ -9,7 +9,6 @@ namespace PlanWriter.Application.Interfaces
 {
     public interface IProjectService
     {
-        string GetUserId(ClaimsPrincipal user);
         Task CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user);
         Task<IEnumerable<ProjectDto>> GetUserProjectsAsync(ClaimsPrincipal user);
         Task<ProjectDto> GetProjectByIdAsync(Guid id, ClaimsPrincipal user);

@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Interfaces.Services;
+using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
 
 
 namespace PlanWriter.Api.Controllers
@@ -9,7 +11,7 @@ namespace PlanWriter.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class ProjectsController(IProjectService projectService) : ControllerBase
+    public class ProjectsController(IProjectService projectService, IUserService userService, IBadgeServices badgeServices) : ControllerBase
     {
         /// <summary>
         /// Create a new project
@@ -63,7 +65,7 @@ namespace PlanWriter.Api.Controllers
         [HttpPost("{id}/goal")]
         public async Task<IActionResult> SetGoal(Guid id, [FromBody] SetGoalDto dto)
         {
-            var userId = projectService.GetUserId(User);
+            var userId = userService.GetUserId(User);
             await projectService.SetGoalAsync(id, userId, dto.WordCountGoal, dto.Deadline);
             return Ok(new { message = "Goal set successfully." });
         }
@@ -87,7 +89,7 @@ namespace PlanWriter.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var userId = projectService.GetUserId(User);
+            var userId = userService.GetUserId(User);
             await projectService.DeleteProjectAsync(id, userId);
             return Ok(new { message = "Project deleted successfully." });   
         }
@@ -95,7 +97,7 @@ namespace PlanWriter.Api.Controllers
         [HttpDelete("/progress/{progressId}")]
         public async Task<IActionResult> DeleteProgress(Guid progressId)
         {
-            var userId = projectService.GetUserId(User);
+            var userId = userService.GetUserId(User);
 
             var result = await projectService.DeleteProgressAsync(progressId, userId);
             if (!result)
@@ -107,13 +109,23 @@ namespace PlanWriter.Api.Controllers
         [HttpGet("{id:guid}/progress")]
         public async Task<IActionResult> GetProgresses(Guid id)
         {
-            var userId = projectService.GetUserId(User);
+            var userId = userService.GetUserId(User);
 
             var result = await projectService.GetProgressHistoryAsync(id, User);
             if (!result.Any())
                 return NotFound(new { message = "Progress not found or not authorized." });
 
             return Ok(result);
+        }
+        
+        [HttpGet("{projectId}/badges")]
+        public async Task<IActionResult> GetBadges(Guid projectId)
+        {
+            var userId = userService.GetUserId(User);
+
+            var badges =await  badgeServices.CheckAndAssignBadgesAsync(projectId, User);
+
+            return Ok(badges);
         }
         
     }

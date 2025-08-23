@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using BCrypt.Net;
 using PlanWriter.Application.DTO;
 using PlanWriter.Application.Interfaces;
@@ -33,4 +35,8 @@ public class UserService : IUserService
         await _userRepository.AddAsync(user);
         return true;
     }
+    
+    public string GetUserId(ClaimsPrincipal user) =>
+        user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? throw new UnauthorizedAccessException();
 }
