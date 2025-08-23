@@ -121,9 +121,7 @@ namespace PlanWriter.Api.Controllers
         [HttpGet("{projectId}/badges")]
         public async Task<IActionResult> GetBadges(Guid projectId)
         {
-            var userId = userService.GetUserId(User);
-
-            var badges =await  badgeServices.CheckAndAssignBadgesAsync(projectId, User);
+            var badges = await  badgeServices.CheckAndAssignBadgesAsync(projectId, User);
 
             return Ok(badges);
         }
