@@ -9,4 +9,5 @@ public interface IBadgeRepository
 {
     Task<bool> HasFirstStepsBadge(Guid projectId);
     Task SaveBadges(List<Badge> badges);
+    Task<IEnumerable<Badge>> GetBadgesByProjectIdAsync(Guid projectId);
 }

@@ -9,4 +9,5 @@ namespace PlanWriter.Domain.Interfaces.Services;
 public interface IBadgeServices
 {
     Task<List<Badge>> CheckAndAssignBadgesAsync(Guid projectId, ClaimsPrincipal user);
+    Task<List<Badge>> GetBadgesByProjetcId(Guid projectId);
 }

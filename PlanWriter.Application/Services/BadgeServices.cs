@@ -15,12 +15,11 @@ public class BadgeServices(
     IProjectProgressRepository progressRepo,
     IUserService userService,
     IBadgeRepository badgeRepository
-    ) : IBadgeServices
+) : IBadgeServices
 {
     public async Task<List<Badge>> CheckAndAssignBadgesAsync(Guid projectId, ClaimsPrincipal user)
     {
         var badges = new List<Badge>();
-
         var userId = userService.GetUserId(user);
         var project = await projectRepo.GetUserProjectByIdAsync(projectId, userId);
 
@@ -28,10 +27,12 @@ public class BadgeServices(
             return null;
 
         var entries = await progressRepo.GetProgressByProjectIdAsync(projectId, userId);
+        var existingBadges = await badgeRepository.GetBadgesByProjectIdAsync(projectId);
 
-        var hasFirstProgress = entries.Any();
+        bool AlreadyHas(string badgeName) => existingBadges.Any(b => b.Name == badgeName);
 
-        if (hasFirstProgress && ! await badgeRepository.HasFirstStepsBadge(projectId))
+        // ✍️ Primeiro Passo
+        if (entries.Any() && !AlreadyHas("Primeiro Passo"))
         {
             badges.Add(new Badge
             {
@@ -43,11 +44,81 @@ public class BadgeServices(
             });
         }
 
-        // Outros critérios como activeDays, meta atingida, etc podem vir aqui
+        // 🔟 Dez Dias
+        var uniqueDays = entries.Select(p => p.Date.Date).Distinct().ToList();
+        if (uniqueDays.Count >= 10 && !AlreadyHas("Dez Dias"))
+        {
+            badges.Add(new Badge
+            {
+                Icon = "🔟",
+                Name = "Dez Dias",
+                AwardedAt = DateTime.UtcNow,
+                ProjectId = project.Id,
+                Description = "Parabéns por registrar seu progresso por dez dias diferentes!"
+            });
+        }
 
-        if (badges.Count != 0)
+        // 💯 Cem Palavras
+        if (entries.Any(p => p.WordsWritten > 100) && !AlreadyHas("Cem Palavras"))
+        {
+            badges.Add(new Badge
+            {
+                Icon = "💯",
+                Name = "Cem Palavras",
+                AwardedAt = DateTime.UtcNow,
+                ProjectId = project.Id,
+                Description = "Parabéns por escrever mais de 100 palavras em uma única entrada!"
+            });
+        }
+
+        // 🧠 Constância (5 dias seguidos)
+        var ordered = uniqueDays.OrderBy(d => d).ToList();
+        int streak = 1;
+        for (int i = 1; i < ordered.Count; i++)
+        {
+            if ((ordered[i] - ordered[i - 1]).Days == 1)
+                streak++;
+            else
+                streak = 1;
+
+            if (streak >= 5 && !AlreadyHas("Constância"))
+            {
+                badges.Add(new Badge
+                {
+                    Icon = "🧠",
+                    Name = "Constância",
+                    AwardedAt = DateTime.UtcNow,
+                    ProjectId = project.Id,
+                    Description = "Parabéns por escrever por 5 dias seguidos!"
+                });
+                break;
+            }
+        }
+
+        // 🚀 Meta Atingida
+        var totalWords = entries.Sum(p => p.WordsWritten);
+        if ((project.WordCountGoal ?? 0) > 0 && totalWords >= project.WordCountGoal && !AlreadyHas("Meta Atingida"))
+        {
+            badges.Add(new Badge
+            {
+                Icon = "🚀",
+                Name = "Meta Atingida",
+                AwardedAt = DateTime.UtcNow,
+                ProjectId = project.Id,
+                Description = "Parabéns por atingir sua meta de palavras!"
+            });
+        }
+
+        // Salvar se houver novidades
+        if (badges.Count > 0)
             await badgeRepository.SaveBadges(badges);
 
         return badges;
+    }
+
+    public async Task<List<Badge>> GetBadgesByProjetcId(Guid projectId)
+    {
+        var badges = await badgeRepository.GetBadgesByProjectIdAsync(projectId);
+        return badges.ToList();
     }
 }

@@ -50,8 +50,6 @@ namespace PlanWriter.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
-
                     b.ToTable("Badges");
                 });
 
@@ -159,17 +157,6 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("PlanWriter.Domain.Entities.Badge", b =>
-                {
-                    b.HasOne("PlanWriter.Domain.Entities.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("PlanWriter.Domain.Entities.ProjectProgress", b =>

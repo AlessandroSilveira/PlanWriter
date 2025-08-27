@@ -40,4 +40,18 @@ public class BadgeRepository(AppDbContext context) : Repository<Badge>(context),
         }
        
     }
+
+    public async Task<IEnumerable<Badge>> GetBadgesByProjectIdAsync(Guid projectId)
+    {
+        try
+        {
+            var response = await FindAsync(p => p.ProjectId == projectId);
+            return response;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+    }
 }

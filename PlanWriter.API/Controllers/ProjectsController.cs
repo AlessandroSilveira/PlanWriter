@@ -11,7 +11,10 @@ namespace PlanWriter.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class ProjectsController(IProjectService projectService, IUserService userService, IBadgeServices badgeServices) : ControllerBase
+    public class ProjectsController(
+        IProjectService projectService, 
+        IUserService userService, 
+        IBadgeServices badgeServices) : ControllerBase
     {
         /// <summary>
         /// Create a new project
@@ -44,6 +47,9 @@ namespace PlanWriter.Api.Controllers
                 dto.Date = DateTime.UtcNow;
 
             await projectService.AddProgressAsync(dto, User);
+
+            await badgeServices.CheckAndAssignBadgesAsync(id, User);
+            
             return Ok(new { message = "Progress added successfully." });
         }
 
