@@ -5,55 +5,31 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Interfaces.Services;
 using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
 
-
 namespace PlanWriter.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
     public class ProjectsController(
-        IProjectService projectService, 
-        IUserService userService, 
+        IProjectService projectService,
+        IUserService userService,
         IBadgeServices badgeServices) : ControllerBase
     {
         /// <summary>
-        /// Create a new project
+        /// Create a new project (JSON). Returns the created project with Id.
         /// </summary>
         [HttpPost]
+        
+        [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status201Created)]
         public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
         {
-            await projectService.CreateProjectAsync(dto, User);
-            return Ok(new { Message = "Project created successfully." });
+            var project = await projectService.CreateProjectAsync(dto, User);
+            return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
         }
-       
-        
+
         /// <summary>
-         /// Adiciona uma entrada de progresso ao projeto.
-         /// Add a new progress entry to project
+        /// Get all projects of current user
         /// </summary>
-        [HttpPost("{id:guid}/progress")]
-        public async Task<IActionResult> AddProgress(Guid id, [FromBody] AddProjectProgressDto dto)
-        {
-            if (dto == null)
-                return BadRequest("Body inválido.");
-
-            // força o ProjectId pelo route param
-            dto.ProjectId = id;
-
-            if (dto.WordsWritten <= 0)
-                return BadRequest("TotalWordsWritten deve ser maior que zero.");
-
-            if (dto.Date == default)
-                dto.Date = DateTime.UtcNow;
-
-            await projectService.AddProgressAsync(dto, User);
-
-            await badgeServices.CheckAndAssignBadgesAsync(id, User);
-            
-            return Ok(new { message = "Progress added successfully." });
-        }
-
-        
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -61,14 +37,22 @@ namespace PlanWriter.Api.Controllers
             return Ok(projects);
         }
 
-        [HttpGet("{id}")]
+        /// <summary>
+        /// Get project by Id
+        /// </summary>
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var project = await projectService.GetProjectByIdAsync(id, User);
-            return Ok(project);   
+            if (project is null) return NotFound();
+            return Ok(project);
         }
-    
-        [HttpPost("{id}/goal")]
+
+        /// <summary>
+        /// Set goal (word count + deadline)
+        /// </summary>
+        [HttpPost("{id:guid}/goal")]
         public async Task<IActionResult> SetGoal(Guid id, [FromBody] SetGoalDto dto)
         {
             var userId = userService.GetUserId(User);
@@ -76,61 +60,80 @@ namespace PlanWriter.Api.Controllers
             return Ok(new { message = "Goal set successfully." });
         }
 
+        /// <summary>
+        /// Add a new progress entry to project
+        /// </summary>
+        [HttpPost("{id:guid}/progress")]
+        public async Task<IActionResult> AddProgress(Guid id, [FromBody] AddProjectProgressDto dto)
+        {
+            if (dto == null) return BadRequest("Body inválido.");
+
+            dto.ProjectId = id; // força pelo route param
+            if (dto.WordsWritten <= 0) return BadRequest("TotalWordsWritten deve ser maior que zero.");
+            if (dto.Date == default) dto.Date = DateTime.UtcNow;
+
+            await projectService.AddProgressAsync(dto, User);
+            await badgeServices.CheckAndAssignBadgesAsync(id, User);
+
+            return Ok(new { message = "Progress added successfully." });
+        }
 
         /// <summary>
-        /// Retorna estatísticas de progresso para o projeto
+        /// Get project progress history
         /// </summary>
-        [HttpGet("{id}/stats")]
+        [HttpGet("{id:guid}/progress")]
+        public async Task<IActionResult> GetProgresses(Guid id)
+        {
+            var result = await projectService.GetProgressHistoryAsync(id, User);
+            if (!result.Any())
+                return NotFound(new { message = "Progress not found or not authorized." });
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Delete a progress entry
+        /// </summary>
+        [HttpDelete("progress/{progressId:guid}")]
+        public async Task<IActionResult> DeleteProgress(Guid progressId)
+        {
+            var userId = userService.GetUserId(User);
+            var ok = await projectService.DeleteProgressAsync(progressId, userId);
+            if (!ok) return NotFound(new { message = "Progress not found or not authorized." });
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Get project badges (calculates/assigns if needed)
+        /// </summary>
+        [HttpGet("{projectId:guid}/badges")]
+        public async Task<IActionResult> GetBadges(Guid projectId)
+        {
+            var badges = await badgeServices.CheckAndAssignBadgesAsync(projectId, User);
+            return Ok(badges);
+        }
+
+        /// <summary>
+        /// Project stats
+        /// </summary>
+        [HttpGet("{id:guid}/stats")]
         public async Task<ActionResult<ProjectStatsDto>> GetStats(Guid id)
-        {   
-
+        {
             var stats = await projectService.GetStatsAsync(id, User);
-            if (stats == null)
-                return NotFound();
-
+            if (stats == null) return NotFound();
             return Ok(stats);
         }
-        
-        
-        [HttpDelete("{id}")]
+
+        /// <summary>
+        /// Delete a project
+        /// </summary>
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var userId = userService.GetUserId(User);
             await projectService.DeleteProjectAsync(id, userId);
-            return Ok(new { message = "Project deleted successfully." });   
+            return Ok(new { message = "Project deleted successfully." });
         }
-        
-        [HttpDelete("/progress/{progressId}")]
-        public async Task<IActionResult> DeleteProgress(Guid progressId)
-        {
-            var userId = userService.GetUserId(User);
 
-            var result = await projectService.DeleteProgressAsync(progressId, userId);
-            if (!result)
-                return NotFound(new { message = "Progress not found or not authorized." });
-
-            return NoContent();
-        }
-        
-        [HttpGet("{id:guid}/progress")]
-        public async Task<IActionResult> GetProgresses(Guid id)
-        {
-            var userId = userService.GetUserId(User);
-
-            var result = await projectService.GetProgressHistoryAsync(id, User);
-            if (!result.Any())
-                return NotFound(new { message = "Progress not found or not authorized." });
-
-            return Ok(result);
-        }
-        
-        [HttpGet("{projectId}/badges")]
-        public async Task<IActionResult> GetBadges(Guid projectId)
-        {
-            var badges = await  badgeServices.CheckAndAssignBadgesAsync(projectId, User);
-
-            return Ok(badges);
-        }
         
     }
 }

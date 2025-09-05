@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Entities;
 
 
 namespace PlanWriter.Application.Interfaces
 {
     public interface IProjectService
     {
-        Task CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user);
+        Task<Project> CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user);
         Task<IEnumerable<ProjectDto>> GetUserProjectsAsync(ClaimsPrincipal user);
         Task<ProjectDto> GetProjectByIdAsync(Guid id, ClaimsPrincipal user);
         Task AddProgressAsync(AddProjectProgressDto dto, ClaimsPrincipal user);
@@ -19,5 +20,8 @@ namespace PlanWriter.Application.Interfaces
         Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId);
         Task<bool> DeleteProgressAsync(Guid progressId, string userId);
         Task<ProjectStatsDto> GetStatsAsync(Guid projectId, ClaimsPrincipal user);
+        Task UploadCoverAsync(Guid projectId, ClaimsPrincipal user, byte[] bytes, string mime, int size);
+        Task DeleteCoverAsync(Guid projectId, ClaimsPrincipal user);
+        Task<(byte[] bytes, string mime, int size, DateTime? updatedAt)?> GetCoverAsync(Guid projectId, ClaimsPrincipal user);
     }
 }

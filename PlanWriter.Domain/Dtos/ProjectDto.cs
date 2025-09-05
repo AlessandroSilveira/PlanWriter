@@ -11,4 +11,8 @@ public class ProjectDto
     public int? WordCountGoal { get; set; }
     public DateTime? Deadline { get; set; }
     public double ProgressPercent { get; set; }
+    public string? Genre { get; set; }
+    
+    public bool HasCover { get; set; }
+    public DateTime? CoverUpdatedAt { get; set; }
 }

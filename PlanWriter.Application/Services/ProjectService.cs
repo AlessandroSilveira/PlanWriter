@@ -17,13 +17,14 @@ namespace PlanWriter.Application.Services
     {
         
 
-        public async Task CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user)
+        public async Task<Project> CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user)
         {
             var project = new Project
             {
                 Id = Guid.NewGuid(),
                 Title = dto.Title,
                 Description = dto.Description,
+                Genre = dto.Genre,
                 WordCountGoal = dto.WordCountGoal,
                 Deadline = dto.Deadline,
                 UserId = userService.GetUserId(user),
@@ -32,6 +33,7 @@ namespace PlanWriter.Application.Services
             };
 
             await projectRepo.CreateAsync(project);
+            return project;
         }
 
         public async Task<IEnumerable<ProjectDto>> GetUserProjectsAsync(ClaimsPrincipal user)
@@ -50,7 +52,8 @@ namespace PlanWriter.Application.Services
                     Deadline = p.Deadline,
                     ProgressPercent = p.WordCountGoal.HasValue && p.WordCountGoal > 0
                         ? (double)p.CurrentWordCount / p.WordCountGoal.Value * 100
-                        : 0
+                        : 0,
+                    Genre = p.Genre
                 }).ToList();
         }
 
@@ -72,7 +75,9 @@ namespace PlanWriter.Application.Services
                 Deadline = project.Deadline,
                 ProgressPercent = project.WordCountGoal.HasValue && project.WordCountGoal > 0
                     ? (double)project.CurrentWordCount / project.WordCountGoal.Value * 100
-                    : 0
+                    : 0,
+                Genre = project.Genre
+                    
             };
         }
 
@@ -235,7 +240,61 @@ namespace PlanWriter.Application.Services
                 MotivationMessage = motivationMessage
             };
         }
+private static ProjectDto MapToDto(Project p) => new ProjectDto
+    {
+        Id = p.Id,
+        Title = p.Title,
+        Description = p.Description,
+        CurrentWordCount = p.CurrentWordCount,
+        WordCountGoal = p.WordCountGoal,
+        Deadline = p.Deadline,
+        ProgressPercent = p.WordCountGoal.HasValue && p.WordCountGoal.Value > 0
+            ? (double)p.CurrentWordCount / p.WordCountGoal.Value * 100
+            : 0,
+        Genre = p.Genre,
+        HasCover = p.CoverBytes != null && p.CoverBytes.Length > 0,
+        CoverUpdatedAt = p.CoverUpdatedAt
+    };
 
+    // Onde retornar listas de projetos, aplique .Select(MapToDto)
+    // Onde retornar 1 projeto por id, aplique MapToDto
+
+    public async Task UploadCoverAsync(Guid projectId, ClaimsPrincipal user, byte[] bytes, string mime, int size)
+    {
+        var userId = userService.GetUserId(user);
+        var p = await projectRepo.GetUserProjectByIdAsync(projectId, userId)
+                ?? throw new InvalidOperationException("Projeto não encontrado ou sem permissão");
+
+        p.CoverBytes = bytes;
+        p.CoverMime = mime;
+        p.CoverSize = size;
+        p.CoverUpdatedAt = DateTime.UtcNow;
+
+        await projectRepo.UpdateAsync(p);
+    }
+
+    public async Task DeleteCoverAsync(Guid projectId, ClaimsPrincipal user)
+    {
+        var userId = userService.GetUserId(user);
+        var p = await projectRepo.GetUserProjectByIdAsync(projectId, userId)
+                ?? throw new InvalidOperationException("Projeto não encontrado ou sem permissão");
+
+        p.CoverBytes = null;
+        p.CoverMime = null;
+        p.CoverSize = null;
+        p.CoverUpdatedAt = null;
+
+        await projectRepo.UpdateAsync(p);
+    }
+
+    public async Task<(byte[] bytes, string mime, int size, DateTime? updatedAt)?> GetCoverAsync(Guid projectId, ClaimsPrincipal user)
+    {
+        var userId = userService.GetUserId(user);
+        var p = await projectRepo.GetUserProjectByIdAsync(projectId, userId);
+        if (p == null || p.CoverBytes == null) return null;
+
+        return (p.CoverBytes, p.CoverMime ?? "application/octet-stream", p.CoverSize ?? p.CoverBytes.Length, p.CoverUpdatedAt);
+    }
 
         
     }
