@@ -23,5 +23,7 @@ namespace PlanWriter.Domain.Entities
         public ICollection<ProjectProgress> ProgressEntries { get; set; } = new List<ProjectProgress>();
         public DateTime? Deadline { get; set; }
         public int CurrentWordCount { get; set; }
+        
+        public bool IsPublic { get; set; }
     }
 }

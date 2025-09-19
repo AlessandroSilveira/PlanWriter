@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PlanWriter.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PlanWriter.Infrastructure.Data;
 namespace PlanWriter.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250918183526_PublicProfile_Init")]
+    partial class PublicProfile_Init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -255,12 +258,6 @@ namespace PlanWriter.Infrastructure.Migrations
 
                     b.Property<DateTime?>("ValidatedAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("ValidatedWords")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ValidationSource")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Won")
                         .HasColumnType("bit");

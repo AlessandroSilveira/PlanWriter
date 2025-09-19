@@ -88,6 +88,12 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository>();
 builder.Services.AddScoped<IBadgeServices, BadgeServices>();
 builder.Services.AddScoped<IBadgeRepository, BadgeRepository>();
+builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<ICertificateService, CertificateService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IEventValidationService, EventValidationService>();
+
 
 builder.Services.AddControllers();
 

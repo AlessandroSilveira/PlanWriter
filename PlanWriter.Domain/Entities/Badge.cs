@@ -11,5 +11,6 @@ public class Badge
     public DateTime AwardedAt { get; set; }
 
     public Guid ProjectId { get; set; }
+    public Guid? EventId { get; set; }
     
 }
