@@ -93,7 +93,8 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IEventValidationService, EventValidationService>();
-
+builder.Services.AddScoped<IProjectEventsRepository, ProjectEventsRepository>();
+builder.Services.AddScoped<IEventRepository, EventRepository>();
 
 builder.Services.AddControllers();
 
