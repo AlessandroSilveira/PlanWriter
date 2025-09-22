@@ -7,6 +7,7 @@ using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Interfaces.Services;
+using Microsoft.EntityFrameworkCore; // garanta este using no topo
 
 namespace PlanWriter.Application.Services;
 
@@ -73,26 +74,26 @@ public class BadgeServices(
 
         // 🧠 Constância (5 dias seguidos)
         var ordered = uniqueDays.OrderBy(d => d).ToList();
-        int streak = 1;
-        for (int i = 1; i < ordered.Count; i++)
+        var streak = 1;
+        for (var i = 1; i < ordered.Count; i++)
         {
             if ((ordered[i] - ordered[i - 1]).Days == 1)
                 streak++;
             else
                 streak = 1;
 
-            if (streak >= 5 && !AlreadyHas("Constância"))
+            if (streak < 5 || AlreadyHas("Constância")) 
+                continue;
+            
+            badges.Add(new Badge
             {
-                badges.Add(new Badge
-                {
-                    Icon = "🧠",
-                    Name = "Constância",
-                    AwardedAt = DateTime.UtcNow,
-                    ProjectId = project.Id,
-                    Description = "Parabéns por escrever por 5 dias seguidos!"
-                });
-                break;
-            }
+                Icon = "🧠",
+                Name = "Constância",
+                AwardedAt = DateTime.UtcNow,
+                ProjectId = project.Id,
+                Description = "Parabéns por escrever por 5 dias seguidos!"
+            });
+            break;
         }
 
         // 🚀 Meta Atingida
@@ -108,6 +109,26 @@ public class BadgeServices(
                 Description = "Parabéns por atingir sua meta de palavras!"
             });
         }
+        
+        // === Streak 7/14/30/100 (dias consecutivos deste projeto) ===
+        // Ajuste o campo de data conforme seu modelo: CreatedAt ou CreatedAtUtc
+        var hoje = DateTime.UtcNow.Date;
+        var diasComEscrita = await progressRepo.FindAsync(a=>a.ProjectId == project.Id);
+            
+         var diasComEscritas = diasComEscrita.GroupBy(w => w.CreatedAt.Date) // <- troque para w.CreatedAt.Date se for o seu campo
+            .Select(g => g.Key)
+            .ToList();
+
+        var set = new HashSet<DateTime>(diasComEscritas);
+         var streak2 = 0;
+        for (var d = hoje; set.Contains(d); d = d.AddDays(-1)) streak++;
+
+// Award só se ainda não possui (mesmo padrão dos seus outros badges)
+        if (streak2 >= 7)   await AwardIfMissingAsync(projectId, "Streak 7 Dias",   "Uma semana inteira escrevendo!", "🔥", badges);
+        if (streak2 >= 14)  await AwardIfMissingAsync(projectId, "Streak 14 Dias",  "Duas semanas de constância!",    "⚡", badges);
+        if (streak2 >= 30)  await AwardIfMissingAsync(projectId, "Streak 30 Dias",  "Um mês sem falhar!",             "🏅", badges);
+        if (streak2 >= 100) await AwardIfMissingAsync(projectId, "Streak 100 Dias", "Trilha lendária!",               "🏆", badges);
+
 
         // Salvar se houver novidades
         if (badges.Count > 0)
@@ -120,5 +141,24 @@ public class BadgeServices(
     {
         var badges = await badgeRepository.GetBadgesByProjectIdAsync(projectId);
         return badges.ToList();
+    }
+
+    private async Task AwardIfMissingAsync(Guid projectId, string name, string description, string icon,
+        List<Badge> badges)
+    {
+        var exists = await badgeRepository.GetBadgesByProjectIdAsync(projectId);
+
+        if (!exists.Any(a => a.Name == name))
+        {
+            badges.Add(new Badge
+            {
+                ProjectId  = projectId,
+                Name       = name,
+                Description= description,
+                Icon       = icon,
+                AwardedAt  = DateTime.UtcNow
+            });
+
+        }
     }
 }

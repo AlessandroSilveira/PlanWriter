@@ -12,26 +12,18 @@ using System.Threading.Tasks;
 
 namespace PlanWriter.Application.Services;
 
-public class AuthService : IAuthService
+public class AuthService(IUserRepository userRepository, IConfiguration configuration)
+    : IAuthService
 {
-    private readonly IUserRepository _userRepository;
-    private readonly IConfiguration _configuration;
-
-    public AuthService(IUserRepository userRepository, IConfiguration configuration)
-    {
-        _userRepository = userRepository;
-        _configuration = configuration;
-    }
-
     public async Task<string?> LoginAsync(LoginUserDto dto)
     {
-        var user = await _userRepository.GetByEmailAsync(dto.Email);
+        var user = await userRepository.GetByEmailAsync(dto.Email);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             return null;
 
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]!);
+        var key = Encoding.ASCII.GetBytes(configuration["Jwt:Key"]!);
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
@@ -43,8 +35,8 @@ public class AuthService : IAuthService
             }),
             Expires = DateTime.UtcNow.AddHours(1),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-            Audience = _configuration["Jwt:Audience"],
-            Issuer = _configuration["Jwt:Issuer"]
+            Audience = configuration["Jwt:Audience"],
+            Issuer = configuration["Jwt:Issuer"]
         };
 
         var token = tokenHandler.CreateToken(tokenDescriptor);

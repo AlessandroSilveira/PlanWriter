@@ -15,6 +15,6 @@ namespace PlanWriter.Domain.Interfaces.Repositories
         Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline = null);
         Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId);
         Task<bool> DeleteProjectAsync(Guid projectId, string userId);
-        
+        Task<Project?> GetProjectById(Guid id);
     }
 }

@@ -118,6 +118,11 @@ namespace PlanWriter.Infrastructure.Repositories
             return true;
         }
 
-       
+
+        public async Task<Project?> GetProjectById(Guid id)
+        {
+            return await _dbSet
+                .FirstOrDefaultAsync(p => p.Id == id) ;
+        }
     }
 }

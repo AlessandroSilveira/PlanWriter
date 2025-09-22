@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Entities;
@@ -53,5 +54,31 @@ public class BadgeRepository(AppDbContext context) : Repository<Badge>(context),
             Console.WriteLine(e);
             throw;
         }
+    }
+
+    public Task<bool> FindAsync(Func<object, bool> func)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> FindAsync(Guid projectId, object id, string evName)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<bool> FindAsync(Guid projectId, Guid eventId, string name)
+    {
+      
+       try
+       {
+           var response = await _dbSet.AnyAsync(b => b.ProjectId == projectId && b.EventId == eventId
+                                                                              && b.Name.Contains(name));
+           return response;
+       }
+       catch (Exception e)
+       {
+           Console.WriteLine(e);
+           throw;
+       }
     }
 }
