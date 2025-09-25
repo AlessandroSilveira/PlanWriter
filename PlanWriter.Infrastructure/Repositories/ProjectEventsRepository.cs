@@ -11,24 +11,50 @@ public class ProjectEventsRepository(AppDbContext context) : Repository<ProjectE
 {
     public async Task<ProjectEvent?> GetProjectEventByProjectIdAndEventId(Guid reqProjectId, Guid reqEventId)
     {
-        return await _dbSet.
-            Include(x => x.Event).
-            FirstOrDefaultAsync(a=>a.ProjectId == reqProjectId && a.EventId == reqEventId);
+        return await _dbSet
+            .Include(x => x.Event)
+            .FirstOrDefaultAsync(a => a.ProjectId == reqProjectId && a.EventId == reqEventId);
     }
 
     public async Task<ProjectEvent> AddProjectEvent(ProjectEvent pe)
     {
         await _dbSet.AddAsync(pe);
         await _context.SaveChangesAsync();
-
         return pe;
     }
 
-    public async Task<ProjectEvent?> GetProjectEventByProjectId(Guid projectEventId)
+    public async Task<ProjectEvent?> GetProjectEventByProjectId(Guid projectId)
     {
-        return await _dbSet.
-            Include(x => x.Event).
-            FirstOrDefaultAsync(a=>a.ProjectId == projectEventId);
-
+        return await _dbSet
+            .Include(x => x.Event)
+            .FirstOrDefaultAsync(a => a.ProjectId == projectId);
     }
+
+    // ✅ novo: atualizar (ex.: meta/TargetWords)
+    public async Task UpdateProjectEvent(ProjectEvent pe)
+    {
+        _dbSet.Update(pe);
+        await _context.SaveChangesAsync();
+    }
+
+    // ✅ novo: remover inscrição por chaves
+    public async Task<bool> RemoveByKeys(Guid projectId, Guid eventId)
+    {
+        var row = await _dbSet.FirstOrDefaultAsync(a => a.ProjectId == projectId && a.EventId == eventId);
+        if (row is null) return false;
+        _dbSet.Remove(row);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+    // ✅ novo
+    public async Task<ProjectEvent?> GetProjectEventById(Guid projectEventId)
+    {
+        return await _dbSet
+            .Include(pe => pe.Event)
+            .FirstOrDefaultAsync(pe => pe.Id == projectEventId);
+    }
+
+   
+
+    
 }

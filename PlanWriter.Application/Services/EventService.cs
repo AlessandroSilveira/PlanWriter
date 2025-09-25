@@ -7,31 +7,34 @@ using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Interfaces.Services;
-using PlanWriter.Infrastructure.Repositories;
 
 namespace PlanWriter.Application.Services;
 
 public class EventService
-    (
-        IEventRepository eventRepository, 
-        ProjectRepository projectRepository,
-        IProjectEventsRepository projectEventsRepository,
-        IProjectProgressRepository projectProgressRepository,
-        IBadgeRepository badgeRepository
-    ) : IEventService
+(
+    IEventRepository             eventRepository,
+    IProjectRepository           projectRepository,
+    IProjectEventsRepository     projectEventsRepository,
+    IProjectProgressRepository   projectProgressRepository,
+    IBadgeRepository             badgeRepository
+) : IEventService
 {
     public async Task<EventDto[]> GetActiveAsync()
+        => await eventRepository.GetActiveEvents();
+
+    public async Task<EventDto?> GetByIdAsync(Guid eventId)
     {
-        return await eventRepository.GetActiveEvents();
+        var ev = await eventRepository.GetEventById(eventId);
+        return ev is null
+            ? null
+            : new EventDto(ev.Id, ev.Name, ev.Slug, ev.Type.ToString(),
+                ev.StartsAtUtc, ev.EndsAtUtc, ev.DefaultTargetWords, ev.IsActive);
     }
 
     public async Task<EventDto> CreateAsync(CreateEventRequest req)
     {
-        
-        var eventSlug = await eventRepository.GetEventBySlug(req.Slug);
-        
-        if (eventSlug)
-            throw new InvalidOperationException("Slug já está em uso.");
+        var slugInUse = await eventRepository.GetEventBySlug(req.Slug);
+        if (slugInUse) throw new InvalidOperationException("Slug já está em uso.");
 
         var type = Enum.TryParse<EventType>(req.Type, true, out var t) ? t : EventType.Custom;
 
@@ -47,201 +50,190 @@ public class EventService
         };
 
         await eventRepository.AddEvent(ev);
-        
+
         return new EventDto(ev.Id, ev.Name, ev.Slug, ev.Type.ToString(),
             ev.StartsAtUtc, ev.EndsAtUtc, ev.DefaultTargetWords, ev.IsActive);
     }
 
+    // ✅ atualizado: faz upsert de TargetWords se já estiver inscrito
     public async Task<ProjectEvent> JoinAsync(JoinEventRequest req)
     {
         var ev = await eventRepository.GetEventById(req.EventId)
                  ?? throw new KeyNotFoundException("Evento não encontrado.");
-        
-        // Valide existência do projeto:
-        var projectExists = await projectRepository.GetProjectById(req.ProjectId);
-        if (projectExists is null ) throw new KeyNotFoundException("Projeto não encontrado.");
 
-        var existing = await projectEventsRepository.GetProjectEventByProjectIdAndEventId(req.ProjectId, req.EventId);
-    
-        if (existing != null) return existing;
+        var project = await projectRepository.GetProjectById(req.ProjectId)
+                      ?? throw new KeyNotFoundException("Projeto não encontrado.");
+
+        var existing = await projectEventsRepository
+            .GetProjectEventByProjectIdAndEventId(req.ProjectId, req.EventId);
+
+        if (existing != null)
+        {
+            if (req.TargetWords.HasValue && existing.TargetWords != req.TargetWords.Value)
+            {
+                existing.TargetWords = req.TargetWords.Value;
+                await projectEventsRepository.UpdateProjectEvent(existing);
+            }
+            return existing;
+        }
 
         var pe = new ProjectEvent
         {
-            ProjectId = req.ProjectId,
-            EventId   = req.EventId,
+            ProjectId   = req.ProjectId,
+            EventId     = req.EventId,
             TargetWords = req.TargetWords ?? ev.DefaultTargetWords
         };
 
         return await projectEventsRepository.AddProjectEvent(pe);
-
     }
 
-    
     public async Task<EventProgressDto> GetProgressAsync(Guid projectId, Guid eventId)
     {
-        var pe = await projectEventsRepository.GetProjectEventByProjectIdAndEventId(projectId, eventId)
-                 ?? throw new KeyNotFoundException("Inscrição do projeto no evento não encontrada.");
+        var pe = await projectEventsRepository
+            .GetProjectEventByProjectIdAndEventId(projectId, eventId)
+            ?? throw new KeyNotFoundException("Inscrição do projeto no evento não encontrada.");
 
         var ev = pe.Event!;
         var target = pe.TargetWords ?? ev.DefaultTargetWords ?? 50000;
 
-        var totalInEventList = await projectProgressRepository
-            .FindAsync(w => w.ProjectId == projectId
-                && w.CreatedAt >= ev.StartsAtUtc
-                && w.CreatedAt < ev.EndsAtUtc);
-        
-        var totalInEvent = totalInEventList.Sum(w => (int?)w.WordsWritten) ?? 0;
-       
-        var days = Math.Max(1, (int)Math.Ceiling((ev.EndsAtUtc - ev.StartsAtUtc).TotalDays));
-        var nowIndex = Math.Clamp(
-            (int)Math.Ceiling((DateTime.UtcNow - ev.StartsAtUtc).TotalDays), 1, days);
+        // soma de palavras dentro da janela do evento
+        var entries = await projectProgressRepository.FindAsync(w =>
+            w.ProjectId == projectId &&
+            w.CreatedAt >= ev.StartsAtUtc &&
+            w.CreatedAt <  ev.EndsAtUtc);
 
-        var percent   = (int)Math.Min(100, Math.Round(100.0 * totalInEvent / Math.Max(1, target)));
-        var remaining = Math.Max(0, target - totalInEvent);
+        var totalInEvent = entries.Sum(w => (int?)w.WordsWritten) ?? 0;
+
+        var days = Math.Max(1, (int)Math.Ceiling((ev.EndsAtUtc - ev.StartsAtUtc).TotalDays));
+        var dayIndex = Math.Clamp(
+            (int)Math.Ceiling((DateTime.UtcNow - ev.StartsAtUtc).TotalDays),
+            1, days);
+
         var dailyTarget = (int)Math.Ceiling((double)target / days);
+        var percent = target > 0 ? (int)Math.Round(totalInEvent * 100.0 / target) : 0;
+        var remaining = Math.Max(0, target - totalInEvent);
 
         return new EventProgressDto(
-            projectId, eventId, target, totalInEvent, percent, remaining, days, nowIndex, dailyTarget,
-            pe.Id, pe.ValidatedAtUtc, pe.Won
+            projectId,
+            eventId,
+            target,
+            totalInEvent,
+            percent,
+            remaining,
+            days,
+            dayIndex,
+            dailyTarget,
+            pe.Id,                 // ProjectEventId
+            pe.ValidatedAtUtc,
+            pe.Won
         );
     }
 
     public async Task<ProjectEvent> FinalizeAsync(Guid projectEventId)
     {
-        // var pe = await db.ProjectEvents.Include(x => x.Event)
-        //              .FirstOrDefaultAsync(x => x.Id == projectEventId)
-        //          ?? throw new KeyNotFoundException("Inscrição não encontrada.");
-        
-        var pe = await projectEventsRepository.GetProjectEventByProjectId(projectEventId);
-        
-        var ev = pe?.Event!;
-        if (DateTime.UtcNow < ev.EndsAtUtc.AddHours(-1))
-            throw new InvalidOperationException("Validação só disponível ao final do evento.");
+        var pe = await projectEventsRepository.GetProjectEventByProjectId(projectEventId)
+                 ?? throw new KeyNotFoundException("Inscrição não encontrada.");
 
-        var totalInEventList = await projectProgressRepository
-            .FindAsync(w => w.ProjectId == pe.ProjectId
-                            && w.CreatedAt >= ev.StartsAtUtc
-                            && w.CreatedAt < ev.EndsAtUtc);
-        
-        var totalInEvent = totalInEventList.Sum(w => (int?)w.WordsWritten) ?? 0;
+        var ev = pe.Event ?? await eventRepository.GetEventById(pe.EventId)
+                 ?? throw new KeyNotFoundException("Evento não encontrado.");
 
-        pe.FinalWordCount = totalInEvent;
-        pe.ValidatedAtUtc = DateTime.UtcNow;
-        pe.Won = pe.FinalWordCount >= (pe.TargetWords ?? ev.DefaultTargetWords ?? 50000);
+        var target = pe.TargetWords ?? ev.DefaultTargetWords ?? 50000;
 
-        // Premia
-        // var already = await db.Badges
-        //     .
+        var entries = await projectProgressRepository.FindAsync(w =>
+            w.ProjectId == pe.ProjectId &&
+            w.CreatedAt >= ev.StartsAtUtc &&
+            w.CreatedAt <  ev.EndsAtUtc);
 
-        var already = await badgeRepository
-            .FindAsync(pe.ProjectId, ev.Id, ev.Name);
-        
-        if (!already)
+        var totalInEvent = entries.Sum(w => (int?)w.WordsWritten) ?? 0;
+
+        pe.FinalWordCount  = totalInEvent;
+        pe.ValidatedWords  = totalInEvent;
+        pe.ValidatedAtUtc  = DateTime.UtcNow;
+        pe.Won             = totalInEvent >= target;
+
+        await projectEventsRepository.UpdateProjectEvent(pe);
+
+        // badge winner/participant do evento
+        var badge = new Badge
         {
-            var badge = new Badge
-            {
-                ProjectId = pe.ProjectId,
-                EventId = ev.Id,
-                Name = pe.Won ? $"Winner — {ev.Name}" : $"Participant — {ev.Name}",
-                Description = pe.Won ? "Meta atingida no evento" : "Participou do evento",
-                Icon = pe.Won ? "🏆" : "🎉"
-            };
-            badgeRepository.SaveBadges(new List<Badge> { badge });
-           
-        }
-        
+            ProjectId   = pe.ProjectId,
+            EventId     = ev.Id,
+            Name        = (pe.Won ? "🏆 Winner — " : "🎉 Participant — ") + ev.Name,
+            Description = pe.Won
+                ? $"Você atingiu a meta de {target:N0} palavras no {ev.Name}!"
+                : $"Obrigado por participar do {ev.Name}. Continue escrevendo!",
+            Icon        = pe.Won ? "🏆" : "🎉",
+            AwardedAt   = DateTime.UtcNow
+        };
+        await badgeRepository.SaveBadges(new List<Badge> { badge });
+
         return pe;
     }
 
     public async Task<List<EventLeaderboardRowDto>> GetLeaberBoard(Guid eventId, string scope, int top)
     {
-        var ev = await eventRepository.GetEventById(eventId);
-        if (ev == null) 
-            throw new Exception("Evento nao encontrado.");
+        var ev = await eventRepository.GetEventById(eventId)
+            ?? throw new Exception("Evento nao encontrado.");
 
         var start = ev.StartsAtUtc.Date;
         var end = ev.EndsAtUtc.Date;
         var today = DateTime.UtcNow.Date;
         var effectiveEnd = today < end ? today : end;
 
-        // janela válida do evento
         DateTime winStart = start, winEnd = effectiveEnd;
 
-        // escopo "daily" = apenas hoje (se cair dentro da janela)
-        bool daily = string.Equals(scope, "daily", StringComparison.OrdinalIgnoreCase);
+        var daily = string.Equals(scope, "daily", StringComparison.OrdinalIgnoreCase);
         if (daily)
         {
-            if (today < start || today > end)
-                return []; // fora do período, nada a mostrar
-            
+            if (today < start || today > end) return new List<EventLeaderboardRowDto>();
             winStart = winEnd = today;
         }
 
-        // somatório de palavras por projeto no intervalo
-        // var agg = await db.ProjectProgresses
-        //     .Where(w =>
-        //         w.CreatedAt.Date >= winStart &&
-        //         w.CreatedAt.Date <= winEnd)
-        //     .GroupBy(w => w.ProjectId)
-        //     .Select(g => new { ProjectId = g.Key, Words = g.Sum(x => x.WordsWritten) })
-        //     .ToListAsync();
-
-        var responseAgg = await projectProgressRepository.FindAsync(w =>
-            w.CreatedAt.Date >= winStart &&
-            w.CreatedAt.Date <= winEnd);
-
-        var agg = responseAgg.GroupBy(w => w.ProjectId)
+        var agg = (await projectProgressRepository.FindAsync(w =>
+                w.CreatedAt.Date >= winStart && w.CreatedAt.Date <= winEnd))
+            .GroupBy(w => w.ProjectId)
             .Select(g => new { ProjectId = g.Key, Words = g.Sum(x => x.WordsWritten) })
             .ToList();
 
-        if (agg.Count == 0) 
-            return new List<EventLeaderboardRowDto>();
+        if (agg.Count == 0) return new List<EventLeaderboardRowDto>();
 
-        var projectIds = agg.Select(a => a.ProjectId).ToList();
+        // Pegar metas por projeto no evento
+        var metas = new Dictionary<Guid, int>();
+        foreach (var row in agg)
+        {
+            var link = await projectEventsRepository.GetProjectEventByProjectIdAndEventId(row.ProjectId, eventId);
+            var target = link?.TargetWords ?? ev.DefaultTargetWords ?? 50000;
+            metas[row.ProjectId] = target;
+        }
 
-        // infos de projeto/autor
-        // var projInfo = await db.Projects
-        //     .Where(p => projectIds.Contains(p.Id))
-        //     .Select(p => new { p.Id, p.Title })
-        //     .ToListAsync();
-
-        var projInfo = await projectRepository.GetProjectById(projectIds.FirstOrDefault());
-
-        // // vínculo no evento (meta/ganhou)
-        // var peMap = await db.ProjectEvents
-        //     .Where(pe => pe.EventId == eventId && projectIds.Contains(pe.ProjectId))
-        //     .Select(pe => new { pe.ProjectId, pe.TargetWords, pe.ValidatedWords, pe.Won })
-        //     .ToListAsync();
-        
-        
-        var peMap = await projectEventsRepository.GetProjectEventByProjectIdAndEventId(projInfo.Id, ev.Id);
-
-        var rows = agg.Select(a =>
+        var rows = agg
+            .Select((a, _) => new EventLeaderboardRowDto
             {
-                var p = projInfo.Id;
-                var pe = peMap.ProjectId;
-            var target = (int)(peMap.TargetWords?? 0);
-            var percent = target > 0 ? (double)a.Words / target * 100.0 : 0.0;
+                ProjectId    = a.ProjectId,
+                ProjectTitle = "",   // título pode ser preenchido se necessário (não impacta ordenação)
+                UserName     = "",
+                Words        = a.Words,
+                Percent      = metas.TryGetValue(a.ProjectId, out var tgt) && tgt > 0
+                                ? (double)a.Words / tgt * 100.0
+                                : 0.0,
+                Won          = false,
+                Rank         = 0
+            })
+            .OrderByDescending(r => r.Words)
+            .ThenBy(r => r.ProjectTitle)
+            .ToList();
 
-            return new EventLeaderboardRowDto
-            {
-                ProjectId = a.ProjectId,
-                ProjectTitle = projInfo.Title ?? "Projeto",
-                
-                Words = a.Words,
-                Percent = percent,
-                Won = peMap.Won
-            };
-        })
-        // regra de desempate: mais palavras, depois título
-        .OrderByDescending(r => r.Words)
-        .ThenBy(r => r.ProjectTitle)
-        .ToList();
-
-        // rank 1..N
         for (int i = 0; i < rows.Count; i++) rows[i].Rank = i + 1;
 
         var limit = Math.Clamp(top, 1, 200);
-        return (List<EventLeaderboardRowDto>)rows.Take(limit);
+        return rows.Take(limit).ToList();
     }
+
+    // ✅ novo
+    public async Task LeaveAsync(Guid projectId, Guid eventId)
+    {
+        await projectEventsRepository.RemoveByKeys(projectId, eventId);
+    }
+    
+    
 }
