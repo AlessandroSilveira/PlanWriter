@@ -1,7 +1,6 @@
 ﻿using FluentValidation;
-using PlanWriter.Application.DTOs;
-using System;
 using PlanWriter.Application.DTO;
+using System;
 
 namespace PlanWriter.Application.Validators
 {
@@ -13,8 +12,8 @@ namespace PlanWriter.Application.Validators
                 .NotEmpty().WithMessage("Project ID is required.")
                 .NotEqual(Guid.Empty).WithMessage("Project ID cannot be empty GUID.");
 
-            // RuleFor(x => x.TotalWordsWritten)
-            //     .GreaterThanOrEqualTo(0).WithMessage("Total words written must be zero or greater.");
+            RuleFor(x => x.WordsWritten)
+                .GreaterThan(0).WithMessage("Words written must be greater than zero.");
         }
     }
 }
