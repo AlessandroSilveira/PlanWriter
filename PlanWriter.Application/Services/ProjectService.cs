@@ -85,24 +85,40 @@ namespace PlanWriter.Application.Services
 
         public async Task AddProgressAsync(AddProjectProgressDto dto, ClaimsPrincipal user)
         {
+            if (dto is null)
+                throw new ArgumentNullException(nameof(dto));
+
+            if (dto.WordsWritten <= 0)
+                throw new ArgumentException("WordsWritten must be greater than zero.", nameof(dto));
+
             var userId = userService.GetUserId(user);
             var project = await projectRepo.GetUserProjectByIdAsync(dto.ProjectId, userId);
 
             if (project is null)
                 throw new KeyNotFoundException("Project not found");
 
+            var newTotalWords = project.CurrentWordCount + dto.WordsWritten;
+
             var progress = new ProjectProgress
             {
                 Id = Guid.NewGuid(),
                 ProjectId = project.Id,
-                WordsWritten = dto.WordsWritten.Value,
-                Date = dto.Date,
+                WordsWritten = dto.WordsWritten,
+                TotalWordsWritten = newTotalWords,
+                RemainingWords = project.WordCountGoal.HasValue
+                    ? Math.Max(0, project.WordCountGoal.Value - newTotalWords)
+                    : 0,
+                RemainingPercentage = project.WordCountGoal.HasValue && project.WordCountGoal.Value > 0
+                    ? Math.Round((double)newTotalWords / project.WordCountGoal.Value * 100, 2)
+                    : 0,
+                Date = dto.Date == default ? DateTime.UtcNow : dto.Date,
                 Notes = dto.Notes
             };
 
-            project.CurrentWordCount += dto.WordsWritten.Value;
+            project.CurrentWordCount = newTotalWords;
 
             await progressRepo.AddProgressAsync(progress);
+            await projectRepo.UpdateAsync(project);
         }
 
         public async Task<IEnumerable<ProgressHistoryDto>> GetProgressHistoryAsync(Guid projectId, ClaimsPrincipal user)
