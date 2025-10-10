@@ -4,7 +4,6 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
-using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 
 
@@ -12,7 +11,7 @@ namespace PlanWriter.Application.Interfaces
 {
     public interface IProjectService
     {
-        Task<Project> CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user);
+        Task<ProjectDto> CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user);
         Task<IEnumerable<ProjectDto>> GetUserProjectsAsync(ClaimsPrincipal user);
         Task<ProjectDto> GetProjectByIdAsync(Guid id, ClaimsPrincipal user);
         Task AddProgressAsync(AddProjectProgressDto dto, ClaimsPrincipal user);
