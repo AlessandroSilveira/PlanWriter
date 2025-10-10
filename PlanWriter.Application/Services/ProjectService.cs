@@ -28,7 +28,7 @@ public class ProjectService : IProjectService
         _userService = userService;
     }
 
-    public async Task<Project> CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user)
+    public async Task<ProjectDto> CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user)
     {
         var project = new Project
         {
@@ -46,7 +46,7 @@ public class ProjectService : IProjectService
         };
 
         await _projectRepository.CreateAsync(project);
-        return project;
+        return MapToDto(project);
     }
 
     public async Task<IEnumerable<ProjectDto>> GetUserProjectsAsync(ClaimsPrincipal user)
