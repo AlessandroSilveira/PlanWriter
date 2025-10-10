@@ -6,8 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Services
@@ -93,12 +95,12 @@ namespace PlanWriter.Application.Services
             {
                 Id = Guid.NewGuid(),
                 ProjectId = project.Id,
-                WordsWritten = dto.WordsWritten,
+                WordsWritten = dto.WordsWritten.Value,
                 Date = dto.Date,
                 Notes = dto.Notes
             };
 
-            project.CurrentWordCount += dto.WordsWritten;
+            project.CurrentWordCount += dto.WordsWritten.Value;
 
             await progressRepo.AddProgressAsync(progress);
         }
@@ -296,6 +298,16 @@ private static ProjectDto MapToDto(Project p) => new ProjectDto
         return (p.CoverBytes, p.CoverMime ?? "application/octet-stream", p.CoverSize ?? p.CoverBytes.Length, p.CoverUpdatedAt);
     }
 
-        
+
+
+    public async Task SetFlexibleGoalAsync(Guid projectId, Guid userId, int goalAmount, GoalUnit goalUnit, DateTime? deadline, CancellationToken ct = default)
+    {
+        if (goalAmount < 0) throw new ArgumentOutOfRangeException(nameof(goalAmount), "GoalAmount deve ser >= 0.");
+
+        var owns = await projectRepo.UserOwnsProjectAsync(projectId, userId, ct);
+        if (!owns) throw new UnauthorizedAccessException("Você não tem permissão para alterar este projeto.");
+
+        await projectRepo.UpdateFlexibleGoalAsync(projectId, goalAmount, goalUnit, deadline, ct);
+    }
     }
 }

@@ -95,6 +95,15 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IEventValidationService, EventValidationService>();
 builder.Services.AddScoped<IProjectEventsRepository, ProjectEventsRepository>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<IUserFollowRepository, UserFollowRepository>();
+builder.Services.AddScoped<IBuddiesRepository, BuddiesRepository>();
+builder.Services.AddScoped<IBuddiesService, BuddiesService>();
+builder.Services.AddScoped<IWordCountService, WordCountService>();
+builder.Services.AddScoped<IValidationService, ValidationService>();
+builder.Services.AddScoped<IRegionsRepository, RegionsRepository>();
+builder.Services.AddScoped<IRegionsService, RegionsService>();
+
+
 
 builder.Services.AddControllers();
 

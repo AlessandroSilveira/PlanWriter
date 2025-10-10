@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace PlanWriter.Domain.Entities
 {
@@ -15,5 +16,12 @@ namespace PlanWriter.Domain.Entities
         public bool IsProfilePublic { get; set; }  // se o perfil é público
         public string? Slug { get; set; }          // ex.: "ale-silveira"
         public string? DisplayName { get; set; }
+        public Guid? RegionId { get; set; }
+        public Region? Region { get; set; }
+
+        
+        public ICollection<UserFollow> Following { get; set; } = new List<UserFollow>();
+        public ICollection<UserFollow> Followers { get; set; } = new List<UserFollow>();
+
     }
 }// Entidade de usuário
