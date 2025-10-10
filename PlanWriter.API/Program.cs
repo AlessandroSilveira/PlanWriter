@@ -1,11 +1,14 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Application.Services;
 using PlanWriter.Application.Validators;
+using PlanWriter.Domain.Helpers;
 using PlanWriter.Domain.Interfaces;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Interfaces.Services;
@@ -15,11 +18,21 @@ using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//Validations
-builder.Services.AddControllers()
+// ===== Controllers + JSON + FluentValidation =====
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(opt =>
+    {
+        // enums como string (opcional, ajuda no Swagger/Front)
+        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+
+        // conversores para DateOnly/TimeOnly
+        opt.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+        opt.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+    })
     .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<RegisterUserDtoValidator>());
 
-// JWT Config
+// ===== JWT Config =====
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -43,43 +56,49 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-//Swagger
+// ===== Swagger (única chamada) =====
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "PlanWriter API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+
+    // JWT Bearer
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        In = ParameterLocation.Header,
         Description = "Digite o token JWT assim: Bearer {seu token}"
     });
-
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
+            new OpenApiSecurityScheme {
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme, Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
+
+    // Mapear DateOnly/TimeOnly para o schema
+    c.MapType<DateOnly>(() => new OpenApiSchema { Type = "string", Format = "date" });
+    c.MapType<DateOnly?>(() => new OpenApiSchema { Type = "string", Format = "date", Nullable = true });
+    c.MapType<TimeOnly>(() => new OpenApiSchema { Type = "string", Format = "time" });
+    c.MapType<TimeOnly?>(() => new OpenApiSchema { Type = "string", Format = "time", Nullable = true });
+
+    // Se houver conflito de nomes de tipos em namespaces diferentes, habilite:
+    // c.CustomSchemaIds(t => t.FullName);
 });
 
-// EF Core
+// ===== EF Core =====
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// DI
+// ===== DI =====
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -103,11 +122,7 @@ builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddScoped<IRegionsRepository, RegionsRepository>();
 builder.Services.AddScoped<IRegionsService, RegionsService>();
 
-
-
-builder.Services.AddControllers();
-
-// Adicionar CORS
+// ===== CORS =====
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -121,15 +136,25 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// ===== Swagger UI =====
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 app.MapControllers();
 
 app.Run();
+
+
+// =======================
+// Conversores JSON (DateOnly/TimeOnly)
+// =======================
+
+
+
+
