@@ -12,8 +12,8 @@ using PlanWriter.Infrastructure.Data;
 namespace PlanWriter.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250918183526_PublicProfile_Init")]
-    partial class PublicProfile_Init
+    [Migration("20251002110010_AddFlexibleGoals")]
+    partial class AddFlexibleGoals
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -87,30 +87,48 @@ namespace PlanWriter.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Genre")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("GoalAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<byte>("GoalUnit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("bit");
 
                     b.Property<string>("Title")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ValidatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ValidatedWords")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("ValidationPassed")
+                        .HasColumnType("bit");
 
                     b.Property<int?>("WordCountGoal")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Projects");
+                    b.ToTable("Projects", t =>
+                        {
+                            t.HasCheckConstraint("CK_Project_GoalAmount_NonNegative", "[GoalAmount] >= 0");
+                        });
                 });
 
             modelBuilder.Entity("PlanWriter.Domain.Entities.ProjectProgress", b =>
@@ -125,9 +143,18 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("Minutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Notes")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Pages")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
@@ -151,7 +178,40 @@ namespace PlanWriter.Infrastructure.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("ProjectProgresses");
+                    b.ToTable("ProjectProgresses", t =>
+                        {
+                            t.HasCheckConstraint("CK_Progress_Minutes_NonNegative", "[Minutes] >= 0");
+
+                            t.HasCheckConstraint("CK_Progress_Pages_NonNegative", "[Pages] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("PlanWriter.Domain.Entities.Region", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Regions");
                 });
 
             modelBuilder.Entity("PlanWriter.Domain.Entities.User", b =>
@@ -161,42 +221,89 @@ namespace PlanWriter.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AvatarUrl")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("Bio")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(280)
+                        .HasColumnType("nvarchar(280)");
 
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("DisplayName")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<bool>("IsProfilePublic")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid?>("RegionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Slug")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("RegionId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasFilter("[Slug] IS NOT NULL");
+
+                    b.HasIndex("FirstName", "LastName");
+
+                    b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("PlanWriter.Domain.Entities.UserFollow", b =>
+                {
+                    b.Property<Guid>("FollowerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FolloweeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("FollowerId", "FolloweeId");
+
+                    b.HasIndex("FolloweeId");
+
+                    b.ToTable("UserFollows", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_UserFollow_NoSelfFollow", "[FollowerId] <> [FolloweeId]");
+                        });
                 });
 
             modelBuilder.Entity("PlanWriter.Domain.Events.Event", b =>
@@ -259,6 +366,12 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.Property<DateTime?>("ValidatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ValidatedWords")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ValidationSource")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("Won")
                         .HasColumnType("bit");
 
@@ -283,6 +396,35 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("PlanWriter.Domain.Entities.User", b =>
+                {
+                    b.HasOne("PlanWriter.Domain.Entities.Region", "Region")
+                        .WithMany("Users")
+                        .HasForeignKey("RegionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Region");
+                });
+
+            modelBuilder.Entity("PlanWriter.Domain.Entities.UserFollow", b =>
+                {
+                    b.HasOne("PlanWriter.Domain.Entities.User", "Followee")
+                        .WithMany("Followers")
+                        .HasForeignKey("FolloweeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("PlanWriter.Domain.Entities.User", "Follower")
+                        .WithMany("Following")
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Followee");
+
+                    b.Navigation("Follower");
+                });
+
             modelBuilder.Entity("PlanWriter.Domain.Events.ProjectEvent", b =>
                 {
                     b.HasOne("PlanWriter.Domain.Events.Event", "Event")
@@ -305,6 +447,18 @@ namespace PlanWriter.Infrastructure.Migrations
             modelBuilder.Entity("PlanWriter.Domain.Entities.Project", b =>
                 {
                     b.Navigation("ProgressEntries");
+                });
+
+            modelBuilder.Entity("PlanWriter.Domain.Entities.Region", b =>
+                {
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("PlanWriter.Domain.Entities.User", b =>
+                {
+                    b.Navigation("Followers");
+
+                    b.Navigation("Following");
                 });
 
             modelBuilder.Entity("PlanWriter.Domain.Events.Event", b =>

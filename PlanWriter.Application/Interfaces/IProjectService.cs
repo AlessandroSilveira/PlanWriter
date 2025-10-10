@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Enums;
 
 
 namespace PlanWriter.Application.Interfaces
@@ -23,5 +25,8 @@ namespace PlanWriter.Application.Interfaces
         Task UploadCoverAsync(Guid projectId, ClaimsPrincipal user, byte[] bytes, string mime, int size);
         Task DeleteCoverAsync(Guid projectId, ClaimsPrincipal user);
         Task<(byte[] bytes, string mime, int size, DateTime? updatedAt)?> GetCoverAsync(Guid projectId, ClaimsPrincipal user);
+        Task SetFlexibleGoalAsync(Guid projectId, Guid userId, int goalAmount, GoalUnit goalUnit, DateTime? deadline, CancellationToken ct = default);
+
+
     }
 }

@@ -7,7 +7,7 @@ namespace PlanWriter.Domain.Entities;
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public Guid ProjectId { get; set; }
-        public Project Project { get; set; }
+        public Project? Project { get; set; }
 
         public int TotalWordsWritten { get; set; }
 
@@ -19,6 +19,8 @@ namespace PlanWriter.Domain.Entities;
         public DateTime Date { get; set; } = DateTime.UtcNow;
         public int TimeSpentInMinutes{ get; set; }
         public int WordsWritten { get; set; }
-        public string Notes { get; set; }
+        public string? Notes { get; set; }
+        public int Minutes { get; set; }        
+        public int Pages { get; set; }          
     }
 

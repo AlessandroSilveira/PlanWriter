@@ -5,7 +5,9 @@ using PlanWriter.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Infrastructure.Repositories
@@ -65,6 +67,18 @@ namespace PlanWriter.Infrastructure.Repositories
             _dbSet.Remove(progress);
             await _context.SaveChangesAsync();
             return true;
+        }
+        
+        public async Task<int> GetAccumulatedAsync(Guid projectId, GoalUnit unit, CancellationToken ct)
+        {
+            var q = _dbSet.Where(x => x.ProjectId == projectId);
+            return unit switch
+            {
+                GoalUnit.Words   => await q.SumAsync(x => (int?)x.WordsWritten, ct) ?? 0,
+                GoalUnit.Minutes => await q.SumAsync(x => (int?)x.Minutes, ct) ?? 0,
+                GoalUnit.Pages   => await q.SumAsync(x => (int?)x.Pages, ct) ?? 0,
+                _ => 0
+            };
         }
 
     }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Enums; // GoalUnit
 using PlanWriter.Domain.Interfaces.Services;
 using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
 
@@ -19,7 +20,6 @@ namespace PlanWriter.Api.Controllers
         /// Create a new project (JSON). Returns the created project with Id.
         /// </summary>
         [HttpPost]
-        
         [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status201Created)]
         public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
         {
@@ -50,29 +50,45 @@ namespace PlanWriter.Api.Controllers
         }
 
         /// <summary>
-        /// Set goal (word count + deadline)
+        /// Set flexible goal (amount + unit + optional deadline)
         /// </summary>
         [HttpPost("{id:guid}/goal")]
-        public async Task<IActionResult> SetGoal(Guid id, [FromBody] SetGoalDto dto)
+        public async Task<IActionResult> SetGoal(Guid id, [FromBody] SetFlexibleGoalDto dto)
         {
+            if (dto is null) return BadRequest("Body inválido.");
+            if (dto.GoalAmount < 0) return BadRequest("GoalAmount deve ser >= 0.");
+
             var userId = userService.GetUserId(User);
-            await projectService.SetGoalAsync(id, userId, dto.WordCountGoal, dto.Deadline);
+
+            // Novo método do service (ver seção 3)
+            await projectService.SetFlexibleGoalAsync(id, Guid.Parse(userId), dto.GoalAmount, dto.GoalUnit, dto.Deadline);
+
             return Ok(new { message = "Goal set successfully." });
         }
 
         /// <summary>
-        /// Add a new progress entry to project
+        /// Add a new progress entry (supports Words/Minutes/Pages)
         /// </summary>
         [HttpPost("{id:guid}/progress")]
         public async Task<IActionResult> AddProgress(Guid id, [FromBody] AddProjectProgressDto dto)
         {
             if (dto == null) return BadRequest("Body inválido.");
-
             dto.ProjectId = id; // força pelo route param
-            if (dto.WordsWritten <= 0) return BadRequest("TotalWordsWritten deve ser maior que zero.");
+
+            // Se Date vier vazio, usa agora (UTC)
             if (dto.Date == default) dto.Date = DateTime.UtcNow;
 
+            // Validação mínima: pelo menos um campo > 0
+            var w = dto.WordsWritten.GetValueOrDefault();
+            var m = dto.Minutes.GetValueOrDefault();
+            var p = dto.Pages.GetValueOrDefault();
+            if (w <= 0 && m <= 0 && p <= 0)
+                return BadRequest("Informe WordsWritten, Minutes ou Pages com valor > 0.");
+
+            // O Service vai checar qual unidade faz sentido para o projeto (Words/Minutes/Pages)
             await projectService.AddProgressAsync(dto, User);
+
+            // Badges seguem funcionando — o serviço pode considerar streaks por unidade, se você desejar
             await badgeServices.CheckAndAssignBadgesAsync(id, User);
 
             return Ok(new { message = "Progress added successfully." });
@@ -133,7 +149,5 @@ namespace PlanWriter.Api.Controllers
             await projectService.DeleteProjectAsync(id, userId);
             return Ok(new { message = "Project deleted successfully." });
         }
-
-        
     }
 }
