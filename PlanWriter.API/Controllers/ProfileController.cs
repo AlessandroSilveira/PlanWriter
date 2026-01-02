@@ -1,5 +1,3 @@
-// Controllers/ProfileController.cs
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.DTO;
@@ -14,10 +12,20 @@ public class ProfileController(IProfileService profileService, IHttpContextAcces
 {
     private Guid CurrentUserId()
     {
-        var id = ctx.HttpContext?.User?.FindFirst("sub")?.Value
-                 ?? ctx.HttpContext?.User?.FindFirst("user_id")?.Value;
-        return Guid.Parse(id!);
+        var userIdValue = ctx.HttpContext?
+            .User?
+            .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?
+            .Value;
+
+        if (string.IsNullOrWhiteSpace(userIdValue))
+            throw new UnauthorizedAccessException("Usuário não autenticado");
+        
+        if (!Guid.TryParse(userIdValue, out var userId))
+            throw new UnauthorizedAccessException("Claim de usuário inválida");
+
+        return Guid.Parse(userIdValue);
     }
+
 
     [Authorize]
     [HttpGet("me")]

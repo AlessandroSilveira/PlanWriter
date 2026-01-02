@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Entities;
 
 namespace PlanWriter.Domain.Interfaces.Services;
 
@@ -11,4 +13,5 @@ public interface IValidationService
 {
     Task<ValidationResultDto> ValidateTextAsync(Guid projectId, string text, bool save, CancellationToken ct);
     Task<ValidationResultDto> ValidateUploadAsync(Guid projectId, string fileName, Stream fileStream, bool save, CancellationToken ct);
+    
 }

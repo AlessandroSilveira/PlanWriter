@@ -7,6 +7,7 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Enums;
 
 
+
 namespace PlanWriter.Application.Interfaces
 {
     public interface IProjectService
@@ -27,5 +28,6 @@ namespace PlanWriter.Application.Interfaces
         Task SetFlexibleGoalAsync(Guid projectId, Guid userId, int goalAmount, GoalUnit goalUnit, DateTime? deadline, CancellationToken ct = default);
 
 
+        Task CreateFromSprintAsync(CreateSprintProgressDto dto, CancellationToken ct);
     }
 }

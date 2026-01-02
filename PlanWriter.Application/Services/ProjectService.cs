@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -9,6 +9,9 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.Services;
+using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
+
 
 namespace PlanWriter.Application.Services;
 
@@ -17,15 +20,18 @@ public class ProjectService : IProjectService
     private readonly IProjectRepository _projectRepository;
     private readonly IProjectProgressRepository _projectProgressRepository;
     private readonly IUserService _userService;
+    private readonly IMilestonesService _milestonesService;
+
 
     public ProjectService(
         IProjectRepository projectRepository,
         IProjectProgressRepository projectProgressRepository,
-        IUserService userService)
+        IUserService userService, IMilestonesService milestonesService)
     {
         _projectRepository = projectRepository;
         _projectProgressRepository = projectProgressRepository;
         _userService = userService;
+        _milestonesService = milestonesService;
     }
 
     public async Task<ProjectDto> CreateProjectAsync(CreateProjectDto dto, ClaimsPrincipal user)
@@ -36,13 +42,17 @@ public class ProjectService : IProjectService
             Title = dto.Title,
             Description = dto.Description,
             Genre = dto.Genre,
+
             WordCountGoal = dto.WordCountGoal,
             GoalAmount = dto.WordCountGoal ?? 0,
             GoalUnit = GoalUnit.Words,
+
+            StartDate = dto.StartDate ?? DateTime.UtcNow,
             Deadline = dto.Deadline,
-            UserId = _userService.GetUserId(user),
+
+            CreatedAt = DateTime.UtcNow,
             CurrentWordCount = 0,
-            CreatedAt = DateTime.UtcNow
+            UserId = _userService.GetUserId(user)
         };
 
         await _projectRepository.CreateAsync(project);
@@ -72,9 +82,7 @@ public class ProjectService : IProjectService
     public async Task AddProgressAsync(AddProjectProgressDto dto, ClaimsPrincipal user)
     {
         if (dto is null)
-        {
             throw new ArgumentNullException(nameof(dto));
-        }
 
         var userId = _userService.GetUserId(user);
         var project = await _projectRepository.GetUserProjectByIdAsync(dto.ProjectId, userId)
@@ -124,6 +132,11 @@ public class ProjectService : IProjectService
 
         await _projectProgressRepository.AddProgressAsync(progress);
         await _projectRepository.UpdateAsync(project);
+        var ct = new CancellationToken();
+
+        var totalAccum = await _projectProgressRepository.GetAccumulatedAsync(project.Id, project.GoalUnit, ct);
+
+        await _milestonesService.EvaluateMilestonesAsync(project.Id, totalAccum, ct);
     }
 
     public async Task<IEnumerable<ProgressHistoryDto>> GetProgressHistoryAsync(Guid projectId, ClaimsPrincipal user)
@@ -184,47 +197,101 @@ public class ProjectService : IProjectService
         return true;
     }
 
-    public async Task<ProjectStatsDto> GetStatsAsync(Guid projectId, ClaimsPrincipal user)
+    public async Task<ProjectStatsDto?> GetStatsAsync(Guid projectId, ClaimsPrincipal user)
     {
         var userId = _userService.GetUserId(user);
         var project = await _projectRepository.GetUserProjectByIdAsync(projectId, userId);
-        if (project == null)
-        {
-            return null;
-        }
+        if (project == null) return null;
+
+        var goalTarget = ResolveGoalTarget(project) ?? 0;
+        var today = DateTime.UtcNow.Date;
+
+        // 🔥 StartDate é obrigatório no domínio
+        var startDate = project.StartDate.Date;
+
+        // Se houver deadline, usamos; senão, janela padrão de 30 dias (NaNo-like)
+        var endDate = project.Deadline?.Date;
+        var daysTotal = endDate.HasValue
+            ? Math.Max(1, (endDate.Value - startDate).Days + 1)
+            : 30;
 
         var entries = await _projectProgressRepository.GetProgressByProjectIdAsync(projectId, userId);
+
+        /* ===================== SEM PROGRESSO ===================== */
         if (entries == null || !entries.Any())
         {
+            var daysElapsed = Math.Min(
+                Math.Max(1, (today - startDate).Days + 1),
+                daysTotal
+            );
+
             return new ProjectStatsDto
             {
                 TotalWords = 0,
                 AveragePerDay = 0,
                 BestDay = null,
                 ActiveDays = 0,
-                WordsRemaining = ResolveGoalTarget(project),
-                MotivationMessage = "Que tal começar hoje mesmo sua primeira escrita?"
+                WordsRemaining = goalTarget > 0 ? goalTarget : 0,
+                MotivationMessage = "Que tal começar hoje mesmo sua primeira escrita?",
+                TargetPerDay = CalcTargetPerDay(goalTarget, daysTotal),
+                Status = ResolveStatus(
+                    total: 0,
+                    goal: goalTarget,
+                    startDate: startDate,
+                    today: today,
+                    deadline: endDate
+                ),
+                StatusReason = "Sem lançamentos ainda."
             };
         }
 
+        /* ===================== COM PROGRESSO ===================== */
+
+        // Total acumulado respeitando a unidade
         var total = SumByGoalUnit(entries, project.GoalUnit);
+
+        // Agrupado por dia
         var groupedByDate = entries
             .GroupBy(p => p.Date.Date)
             .Select(g => new ProgressSummary(g.Key, SumByGoalUnit(g, project.GoalUnit)))
+            .OrderBy(g => g.Date)
             .ToList();
 
-        var averagePerDay = groupedByDate.Any()
-            ? (int)groupedByDate.Average(g => g.Total)
+        var activeDays = groupedByDate.Count;
+
+        var averagePerDay = activeDays > 0
+            ? (int)Math.Round(groupedByDate.Average(g => g.Total))
             : 0;
 
         var bestDay = groupedByDate
             .OrderByDescending(g => g.Total)
             .FirstOrDefault();
 
-        var goalTarget = ResolveGoalTarget(project) ?? 0;
-        var remaining = goalTarget > 0 ? Math.Max(0, goalTarget - total) : 0;
-        var activeDays = groupedByDate.Count;
+        var remaining = goalTarget > 0
+            ? Math.Max(0, goalTarget - total)
+            : 0;
 
+        var daysElapsedFinal = Math.Min(
+            Math.Max(1, (today - startDate).Days + 1),
+            daysTotal
+        );
+
+        var targetPerDay = CalcTargetPerDay(goalTarget, daysTotal);
+        var expectedAcc = goalTarget > 0
+            ? (int)Math.Round((double)goalTarget * daysElapsedFinal / daysTotal)
+            : 0;
+
+        var delta = total - expectedAcc;
+
+        var status = ResolveStatus(
+            total: total,
+            goal: goalTarget,
+            startDate: startDate,
+            today: today,
+            deadline: endDate
+        );
+
+        var statusReason = BuildStatusReason(status, delta);
         var motivationMessage = BuildMotivationMessage(groupedByDate, remaining, averagePerDay);
 
         return new ProjectStatsDto
@@ -240,15 +307,61 @@ public class ProjectService : IProjectService
                 : null,
             ActiveDays = activeDays,
             WordsRemaining = remaining,
-            MotivationMessage = motivationMessage
+            MotivationMessage = motivationMessage,
+            TargetPerDay = targetPerDay,
+            Status = status,
+            StatusReason = statusReason
         };
     }
+
+
+// ===== Helpers locais =====
+    private static int CalcTargetPerDay(int? goal, int daysTotal)
+    {
+        var g = goal.GetValueOrDefault(0);
+        return (g > 0 && daysTotal > 0) ? (int)Math.Ceiling((double)g / daysTotal) : 0;
+    }
+
+    private static PlanWriter.Domain.Enums.ProjectStatus ResolveStatus(
+        int total, int goal, DateTime startDate, DateTime today, DateTime? deadline)
+    {
+        if (goal > 0 && total >= goal) return ProjectStatus.Completed;
+        if (goal <= 0) return total > 0 ? ProjectStatus.OnTrack : ProjectStatus.NotStarted;
+
+        var endDate = deadline ?? startDate.AddDays(29); // fallback p/ 30d
+        var daysTotal = Math.Max(1, (endDate.Date - startDate.Date).Days + 1);
+        var daysElapsed = Math.Min(Math.Max(1, (today.Date - startDate.Date).Days + 1), daysTotal);
+
+        var expectedAcc = (int)Math.Round((double)goal * daysElapsed / daysTotal);
+        var delta = total - expectedAcc;
+
+        if (delta >= 0) return ProjectStatus.OnTrack;
+
+        var pctBehind = expectedAcc > 0 ? (double)delta / expectedAcc : -1;
+        if (pctBehind > -0.15) return ProjectStatus.AtRisk;
+
+        return ProjectStatus.Behind;
+    }
+
+    private static string BuildStatusReason(ProjectStatus status, int deltaVsPace)
+    {
+        return status switch
+        {
+            ProjectStatus.Completed => "Meta alcançada.",
+            ProjectStatus.NotStarted => "Sem meta definida ou início recente.",
+            ProjectStatus.OnTrack => "Acima ou no pace.",
+            ProjectStatus.AtRisk => $"Pouco abaixo do pace ({deltaVsPace}).",
+            ProjectStatus.Behind => $"Abaixo do pace ({deltaVsPace}).",
+            _ => null
+        };
+    }
+
 
     public async Task UploadCoverAsync(Guid projectId, ClaimsPrincipal user, byte[] bytes, string mime, int size)
     {
         var userId = _userService.GetUserId(user);
         var project = await _projectRepository.GetUserProjectByIdAsync(projectId, userId)
-                       ?? throw new InvalidOperationException("Projeto não encontrado ou sem permissão");
+                      ?? throw new InvalidOperationException("Projeto não encontrado ou sem permissão");
 
         project.CoverBytes = bytes;
         project.CoverMime = mime;
@@ -262,7 +375,7 @@ public class ProjectService : IProjectService
     {
         var userId = _userService.GetUserId(user);
         var project = await _projectRepository.GetUserProjectByIdAsync(projectId, userId)
-                       ?? throw new InvalidOperationException("Projeto não encontrado ou sem permissão");
+                      ?? throw new InvalidOperationException("Projeto não encontrado ou sem permissão");
 
         project.CoverBytes = null;
         project.CoverMime = null;
@@ -272,7 +385,8 @@ public class ProjectService : IProjectService
         await _projectRepository.UpdateAsync(project);
     }
 
-    public async Task<(byte[] bytes, string mime, int size, DateTime? updatedAt)?> GetCoverAsync(Guid projectId, ClaimsPrincipal user)
+    public async Task<(byte[] bytes, string mime, int size, DateTime? updatedAt)?> GetCoverAsync(Guid projectId,
+        ClaimsPrincipal user)
     {
         var userId = _userService.GetUserId(user);
         var project = await _projectRepository.GetUserProjectByIdAsync(projectId, userId);
@@ -326,7 +440,8 @@ public class ProjectService : IProjectService
             ProgressPercent = progressPercent,
             Genre = project.Genre,
             HasCover = project.CoverBytes != null && project.CoverBytes.Length > 0,
-            CoverUpdatedAt = project.CoverUpdatedAt
+            CoverUpdatedAt = project.CoverUpdatedAt,
+            StartDate = project.StartDate
         };
     }
 
@@ -376,6 +491,36 @@ public class ProjectService : IProjectService
         return averagePerDay >= 500
             ? "Ótimo ritmo! Mantenha esse foco!"
             : "Cada palavra conta. Continue escrevendo!";
+    }
+
+    public async Task CreateFromSprintAsync(CreateSprintProgressDto dto, CancellationToken ct)
+    {
+        // 1. Carrega o projeto (1x)
+        var project = await _projectRepository.GetProjectById(dto.ProjectId);
+        if (project == null)
+            throw new Exception("Projeto não encontrado");
+
+        // 2. Atualiza total acumulado do projeto
+        project.CurrentWordCount += dto.Words;
+
+        var goal = project.WordCountGoal ?? 0;
+
+        // 3. Cria o registro de progresso CORRETO
+        var progress = new ProjectProgress
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = project.Id,
+            WordsWritten = dto.Words,
+            TimeSpentInMinutes = dto.Minutes,
+            Date = dto.Date,
+            TotalWordsWritten = project.CurrentWordCount,
+            RemainingWords = Math.Max(0, goal - project.CurrentWordCount),
+            RemainingPercentage = goal > 0 ? Math.Round((double)project.CurrentWordCount / goal * 100, 2) : 0d,
+            CreatedAt = DateTime.UtcNow,
+            Notes = $"Word Sprint — {dto.Words} palavras em {dto.Minutes} min"
+        };
+
+        _projectProgressRepository.AddProgressAsync(progress);
     }
 
     private sealed record ProgressSummary(DateTime Date, int Total);

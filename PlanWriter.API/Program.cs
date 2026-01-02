@@ -121,18 +121,31 @@ builder.Services.AddScoped<IWordCountService, WordCountService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddScoped<IRegionsRepository, RegionsRepository>();
 builder.Services.AddScoped<IRegionsService, RegionsService>();
+builder.Services.AddScoped<IMilestonesService, MilestonesService>();
+builder.Services.AddScoped<IMilestonesRepository, MilestonesRepository>();
+
+
 
 // ===== CORS =====
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+        policy =>
+        {
+            policy
+                .WithOrigins(
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+            "http://192.168.15.36:5173"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
 });
+
 
 var app = builder.Build();
 
@@ -141,7 +154,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
+app.UseCors(MyAllowSpecificOrigins);
 
 app.UseAuthentication();
 app.UseAuthorization();

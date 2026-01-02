@@ -15,4 +15,5 @@ public class ProjectDto
     
     public bool HasCover { get; set; }
     public DateTime? CoverUpdatedAt { get; set; }
+    public DateTime StartDate { get; set; }
 }

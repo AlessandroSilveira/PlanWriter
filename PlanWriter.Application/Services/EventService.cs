@@ -8,6 +8,7 @@ using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Interfaces.Services;
 
+
 namespace PlanWriter.Application.Services;
 
 public class EventService
@@ -21,6 +22,7 @@ public class EventService
 {
     public async Task<EventDto[]> GetActiveAsync()
         => await eventRepository.GetActiveEvents();
+    
 
     public async Task<EventDto?> GetByIdAsync(Guid eventId)
     {
@@ -35,9 +37,9 @@ public class EventService
     {
         var slugInUse = await eventRepository.GetEventBySlug(req.Slug);
         if (slugInUse) throw new InvalidOperationException("Slug já está em uso.");
-
+    
         var type = Enum.TryParse<EventType>(req.Type, true, out var t) ? t : EventType.Custom;
-
+    
         var ev = new Event
         {
             Name = req.Name.Trim(),
@@ -48,9 +50,9 @@ public class EventService
             DefaultTargetWords = req.DefaultTargetWords,
             IsActive = true
         };
-
+    
         await eventRepository.AddEvent(ev);
-
+    
         return new EventDto(ev.Id, ev.Name, ev.Slug, ev.Type.ToString(),
             ev.StartsAtUtc, ev.EndsAtUtc, ev.DefaultTargetWords, ev.IsActive);
     }

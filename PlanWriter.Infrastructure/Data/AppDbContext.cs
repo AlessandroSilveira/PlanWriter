@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Event> Events => Set<Event>();
     public DbSet<ProjectEvent> ProjectEvents => Set<ProjectEvent>();
     public DbSet<Region> Regions => Set<Region>();
+    public DbSet<Milestone> Milestones { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -134,5 +135,63 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(r => r.Slug).HasMaxLength(80).IsRequired();
             b.Property(r => r.CountryCode).HasMaxLength(10);
         });
+        modelBuilder.Entity<Milestone>(b =>
+        {
+            b.ToTable("Milestones");
+
+            b.HasKey(x => x.Id);
+
+            b.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(80);
+
+            b.Property(x => x.TargetAmount)
+                .IsRequired();
+
+            b.Property(x => x.Order)
+                .HasDefaultValue(0);
+
+            b.Property(x => x.CreatedAt)
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            b.Property(x => x.ProjectId)
+                .IsRequired();
+
+            b.HasOne(x => x.Project)
+                .WithMany(p => p.Milestones) // 🔴 IMPORTANTE
+                .HasForeignKey(x => x.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 🔒 garante que não existam milestones duplicados no mesmo target
+            b.HasIndex(x => new { x.ProjectId, x.TargetAmount })
+                .IsUnique();
+        });
+
+        
+        // modelBuilder.Entity<Milestone>(entity =>
+        // {
+        //     entity.HasKey(x => x.Id);
+        //
+        //     entity.Property(x => x.Name)
+        //         .IsRequired()
+        //         .HasMaxLength(200);
+        //
+        //     entity.Property(x => x.ProjectId);
+        //
+        //     entity.Property(x => x.TargetAmount)
+        //         .IsRequired();
+        //
+        //     entity.Property(x => x.Order)
+        //         .IsRequired();
+        //
+        //     entity.Property(x => x.CreatedAt)
+        //         .IsRequired();
+        //
+        //     entity.HasIndex(x => new { x.ProjectId, x.Order })
+        //         .IsUnique(false);
+        //     modelBuilder.Entity<Milestone>()
+        //         .HasIndex(m => new { m.ProjectId, m.Name });
+        // });       
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace PlanWriter.Domain.Dtos;
+﻿using PlanWriter.Domain.Enums;
+
+namespace PlanWriter.Domain.Dtos;
 
 public class ProjectStatsDto
 {
@@ -10,6 +12,10 @@ public class ProjectStatsDto
     public int? SmartDailyTarget { get; set; }
     
     public string MotivationMessage { get; set; }
+    
+    public ProjectStatus Status { get; set; }
+    public string? StatusReason { get; set; }
+    public int TargetPerDay { get; set; }
 }
 
 public class BestDayDto

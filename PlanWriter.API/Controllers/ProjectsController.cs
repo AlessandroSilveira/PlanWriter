@@ -14,7 +14,8 @@ namespace PlanWriter.Api.Controllers
     public class ProjectsController(
         IProjectService projectService,
         IUserService userService,
-        IBadgeServices badgeServices) : ControllerBase
+        IBadgeServices badgeServices,
+        IMilestonesService milestonesService) : ControllerBase
     {
         /// <summary>
         /// Create a new project (JSON). Returns the created project with Id.
@@ -70,29 +71,41 @@ namespace PlanWriter.Api.Controllers
         /// Add a new progress entry (supports Words/Minutes/Pages)
         /// </summary>
         [HttpPost("{id:guid}/progress")]
-        public async Task<IActionResult> AddProgress(Guid id, [FromBody] AddProjectProgressDto dto)
+        public async Task<IActionResult> AddProgress(Guid id, [FromBody] AddProjectProgressDto dto, CancellationToken ct = default)
         {
-            if (dto == null) return BadRequest("Body inválido.");
-            dto.ProjectId = id; // força pelo route param
+            if (dto == null) 
+                return BadRequest("Body inválido.");
 
-            // Se Date vier vazio, usa agora (UTC)
-            if (dto.Date == default) dto.Date = DateTime.UtcNow;
+            dto.ProjectId = id;
 
-            // Validação mínima: pelo menos um campo > 0
+            // Se não vier data, usa hoje (UTC)
+            if (dto.Date == default) 
+                dto.Date = DateTime.UtcNow;
+
+            // Validação mínima
             var w = dto.WordsWritten.GetValueOrDefault();
             var m = dto.Minutes.GetValueOrDefault();
             var p = dto.Pages.GetValueOrDefault();
+
             if (w <= 0 && m <= 0 && p <= 0)
                 return BadRequest("Informe WordsWritten, Minutes ou Pages com valor > 0.");
 
-            // O Service vai checar qual unidade faz sentido para o projeto (Words/Minutes/Pages)
+            // 🔥 CHAMA APENAS UMA VEZ!
             await projectService.AddProgressAsync(dto, User);
 
-            // Badges seguem funcionando — o serviço pode considerar streaks por unidade, se você desejar
+            // Recalcula stats
+            var stats = await projectService.GetStatsAsync(id, User);
+            var totalAccum = stats?.TotalWords ?? 0;
+
+            // milestones automáticos
+            await milestonesService.EvaluateAutoMilestonesAsync(id, totalAccum, ct);
+
+            // badges
             await badgeServices.CheckAndAssignBadgesAsync(id, User);
 
             return Ok(new { message = "Progress added successfully." });
         }
+
 
         /// <summary>
         /// Get project progress history
@@ -149,5 +162,21 @@ namespace PlanWriter.Api.Controllers
             await projectService.DeleteProjectAsync(id, userId);
             return Ok(new { message = "Project deleted successfully." });
         }
+
+        [HttpGet("{id}/history")]
+        public async Task<IActionResult> GetHistory(Guid id)
+        {
+            var history = await projectService.GetProgressHistoryAsync(id, User);
+            return Ok(history);
+        }
+        
+        [HttpPost("progress/sprint")]
+        public async Task<IActionResult> CreateFromSprint(CreateSprintProgressDto dto, CancellationToken ct)
+        {
+            await projectService.CreateFromSprintAsync(dto, ct);
+            await milestonesService.EvaluateMilestonesAsync(dto.ProjectId, dto.Words, new CancellationToken());
+            return Ok();
+        }
+
     }
 }

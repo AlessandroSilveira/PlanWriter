@@ -26,6 +26,8 @@ public class AuthController(IUserService userService, IAuthService authService, 
     public async Task<IActionResult> Login([FromBody] LoginUserDto dto)
     {
         var token = await authService.LoginAsync(dto);
+        
+        
 
         if (token == null)
             return Unauthorized("Invalid email or password.");
