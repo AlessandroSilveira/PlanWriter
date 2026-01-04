@@ -21,15 +21,15 @@ namespace PlanWriter.Infrastructure.Repositories
             project.Id = Guid.NewGuid();
             project.CreatedAt = DateTime.UtcNow;
 
-            await _dbSet.AddAsync(project);
-            await _context.SaveChangesAsync();
+            await DbSet.AddAsync(project);
+            await Context.SaveChangesAsync();
 
             return project;
         }
         
         public async Task<IEnumerable<Project>> GetUserProjectsAsync(string userId)
         {
-            return await _dbSet
+            return await DbSet
                 .Where(p => p.UserId == userId)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
@@ -37,20 +37,20 @@ namespace PlanWriter.Infrastructure.Repositories
 
         public async Task<Project> GetProjectWithProgressAsync(Guid id, string userId)
         {
-            return await _dbSet
+            return await DbSet
                 .Include(p => p.ProgressEntries)
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         }
         
         public async Task<Project> GetUserProjectByIdAsync(Guid id, string userId)
         {
-            return await _dbSet
+            return await DbSet
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         }
         
         public async Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline = null)
         {
-            var project = await _dbSet
+            var project = await DbSet
                 .FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
 
             if (project == null)
@@ -59,15 +59,15 @@ namespace PlanWriter.Infrastructure.Repositories
             project.WordCountGoal = wordCountGoal;
             project.Deadline = deadline;
 
-            _context.Update(project);
-            await _context.SaveChangesAsync();
+            Context.Update(project);
+            await Context.SaveChangesAsync();
 
             return true;
         }
         
         public async Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId)
         {
-            var project = await _dbSet
+            var project = await DbSet
                 .Include(p => p.ProgressEntries)
                 .FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
 
@@ -107,39 +107,39 @@ namespace PlanWriter.Infrastructure.Repositories
         
         public async Task<bool> DeleteProjectAsync(Guid projectId, string userId)
         {
-            var project = await _dbSet
+            var project = await DbSet
                 .Include(p => p.ProgressEntries)
                 .FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
 
             if (project == null)
                 return false;
 
-            _dbSet.Remove(project);
-            await _context.SaveChangesAsync();
+            DbSet.Remove(project);
+            await Context.SaveChangesAsync();
 
             return true;
         }
         public async Task<Project?> GetProjectById(Guid id)
         {
-            return await _dbSet
+            return await DbSet
                 .FirstOrDefaultAsync(p => p.Id == id) ;
         }
         
         public async Task ApplyValidationAsync(Guid projectId, ValidationResultDto res, CancellationToken ct)
         {
-            var p = await _dbSet.FirstOrDefaultAsync(x => x.Id == projectId, ct)
+            var p = await DbSet.FirstOrDefaultAsync(x => x.Id == projectId, ct)
                     ?? throw new KeyNotFoundException("Projeto não encontrado.");
 
             p.ValidatedWords = res.Words;
             p.ValidatedAtUtc = res.ValidatedAtUtc;
             p.ValidationPassed = res.MeetsGoal;
 
-            await _context.SaveChangesAsync(ct);
+            await Context.SaveChangesAsync(ct);
         }
         
         public async Task<(int? goalWords, string? title)> GetGoalAndTitleAsync(Guid projectId, CancellationToken ct)
         {
-            var proj = await _dbSet
+            var proj = await DbSet
                 .Where(p => p.Id == projectId)
                 .Select(p => new { p.WordCountGoal, p.Title })
                 .FirstOrDefaultAsync(ct);
@@ -149,19 +149,19 @@ namespace PlanWriter.Infrastructure.Repositories
 
         public async Task SaveValidationAsync(Guid projectId, int words, bool passed, DateTime utcNow, CancellationToken ct)
         {
-            var proj = await _dbSet.FirstOrDefaultAsync(p => p.Id == projectId, ct)
+            var proj = await DbSet.FirstOrDefaultAsync(p => p.Id == projectId, ct)
                        ?? throw new KeyNotFoundException("Projeto não encontrado.");
 
             proj.ValidatedWords = words;
             proj.ValidatedAtUtc = utcNow;
             proj.ValidationPassed = passed;
 
-            await _context.SaveChangesAsync(ct);
+            await Context.SaveChangesAsync(ct);
         }
         
         public async Task<(int goalAmount, GoalUnit unit)> GetGoalAsync(Guid projectId, CancellationToken ct)
         {
-            var row = await _dbSet
+            var row = await DbSet
                 .Where(p => p.Id == projectId)
                 .Select(p => new { p.GoalAmount, p.GoalUnit })
                 .FirstOrDefaultAsync(ct);
@@ -171,20 +171,20 @@ namespace PlanWriter.Infrastructure.Repositories
 
         public async Task<bool> UserOwnsProjectAsync(Guid projectId, Guid userId, CancellationToken ct)
         {
-            return await _dbSet.AnyAsync(p => p.Id == projectId && p.UserId == userId.ToString(), ct);
+            return await DbSet.AnyAsync(p => p.Id == projectId && p.UserId == userId.ToString(), ct);
             // ^ ajuste 'UserId' se seu Project usa outro campo para dono
         }
 
         public async Task UpdateFlexibleGoalAsync(Guid projectId, int goalAmount, GoalUnit unit, DateTime? deadline, CancellationToken ct)
         {
-            var p = await _dbSet.FirstOrDefaultAsync(x => x.Id == projectId, ct)
+            var p = await DbSet.FirstOrDefaultAsync(x => x.Id == projectId, ct)
                     ?? throw new KeyNotFoundException("Projeto não encontrado.");
 
             p.GoalAmount = goalAmount;
             p.GoalUnit   = unit;
             if (deadline.HasValue) p.Deadline = deadline.Value; // ajuste o nome do campo se diferente
 
-            await _context.SaveChangesAsync(ct);
+            await Context.SaveChangesAsync(ct);
         }
 
     }

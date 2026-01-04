@@ -14,7 +14,7 @@ public class EventRepository(AppDbContext context) : Repository<Event>(context),
     public async Task<EventDto[]> GetActiveEvents()
     {
         var now = DateTime.UtcNow;
-        var q = await _dbSet
+        var q = await DbSet
             .Where(e => e.IsActive && e.StartsAtUtc <= now && e.EndsAtUtc >= now)
             .Select(e => new EventDto(e.Id, e.Name, e.Slug, e.Type.ToString(),
                 e.StartsAtUtc, e.EndsAtUtc, e.DefaultTargetWords, e.IsActive))
@@ -24,17 +24,17 @@ public class EventRepository(AppDbContext context) : Repository<Event>(context),
 
     public Task<bool> GetEventBySlug(string reqSlug)
     {
-        return _dbSet.AnyAsync(e => e.Slug == reqSlug);
+        return DbSet.AnyAsync(e => e.Slug == reqSlug);
     }
 
     public async Task AddEvent(Event ev)
     {
-        _dbSet.Add(ev);
-        await _context.SaveChangesAsync();
+        DbSet.Add(ev);
+        await Context.SaveChangesAsync();
     }
 
     public async Task<Event?> GetEventById(Guid reqEventId)
     {
-        return await _dbSet.FirstOrDefaultAsync(e => e.Id == reqEventId);
+        return await DbSet.FirstOrDefaultAsync(e => e.Id == reqEventId);
     }
 }

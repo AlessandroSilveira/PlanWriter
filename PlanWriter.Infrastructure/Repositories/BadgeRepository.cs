@@ -15,7 +15,7 @@ public class BadgeRepository(AppDbContext context) : Repository<Badge>(context),
     {
         try
         {
-            var response = await _dbSet.AnyAsync(p => p.ProjectId == projectId
+            var response = await DbSet.AnyAsync(p => p.ProjectId == projectId
                                                       && p.Name == "First Steps");
             return response;
         }
@@ -31,8 +31,8 @@ public class BadgeRepository(AppDbContext context) : Repository<Badge>(context),
     {
         try
         {
-            await _dbSet.AddRangeAsync(badges);
-            await _context.SaveChangesAsync();   
+            await DbSet.AddRangeAsync(badges);
+            await Context.SaveChangesAsync();   
         }
         catch (Exception e)
         {
@@ -71,7 +71,7 @@ public class BadgeRepository(AppDbContext context) : Repository<Badge>(context),
       
        try
        {
-           var response = await _dbSet.AnyAsync(b => b.ProjectId == projectId && b.EventId == eventId
+           var response = await DbSet.AnyAsync(b => b.ProjectId == projectId && b.EventId == eventId
                                                                               && b.Name.Contains(name));
            return response;
        }

@@ -14,30 +14,30 @@ namespace PlanWriter.Application.Services;
 
 public class MilestonesService : IMilestonesService
 {
-    private readonly IMilestonesRepository repo;
-    private readonly IProjectRepository projects;
-    private readonly IUserService userService;
+    private readonly IMilestonesRepository _repo;
+    private readonly IProjectRepository _projects;
+    private readonly IUserService _userService;
 
     public MilestonesService(
         IMilestonesRepository repo,
         IProjectRepository projects,
         IUserService userService)
     {
-        this.repo = repo;
-        this.projects = projects;
-        this.userService = userService;
+        this._repo = repo;
+        this._projects = projects;
+        this._userService = userService;
     }
 
     /* ===================== LIST ===================== */
     public async Task<IReadOnlyList<MilestoneDto>> GetProjectMilestonesAsync(Guid projectId, ClaimsPrincipal user, CancellationToken ct) 
     {
-        var userId = userService.GetUserId(user);
+        var userId = _userService.GetUserId(user);
 
         // garante ownership do projeto
-        var project = await projects.GetUserProjectByIdAsync(projectId, userId)
+        var project = await _projects.GetUserProjectByIdAsync(projectId, userId)
                       ?? throw new UnauthorizedAccessException("Projeto não encontrado.");
 
-        var items = await repo.GetByProjectIdAsync(projectId, ct);
+        var items = await _repo.GetByProjectIdAsync(projectId, ct);
 
         return items
             .OrderBy(m => m.Order)
@@ -58,13 +58,13 @@ public class MilestonesService : IMilestonesService
         if (dto.TargetAmount <= 0)
             throw new ArgumentException("TargetAmount deve ser maior que zero.");
 
-        var userId = userService.GetUserId(user);
+        var userId = _userService.GetUserId(user);
 
-        var project = await projects.GetUserProjectByIdAsync(projectId, userId)
+        var project = await _projects.GetUserProjectByIdAsync(projectId, userId)
                       ?? throw new UnauthorizedAccessException("Projeto não encontrado.");
 
         var order = dto.Order
-                    ?? await repo.GetNextOrderAsync(projectId, ct);
+                    ?? await _repo.GetNextOrderAsync(projectId, ct);
 
         var milestone = new Milestone
         {
@@ -84,7 +84,7 @@ public class MilestonesService : IMilestonesService
             CreatedAt = DateTime.UtcNow
         };
 
-        milestone = await repo.AddAsync(milestone, ct);
+        milestone = await _repo.AddAsync(milestone, ct);
         return Map(milestone);
     }
 
@@ -94,14 +94,14 @@ public class MilestonesService : IMilestonesService
         ClaimsPrincipal user,
         CancellationToken ct)
     {
-        var userId = userService.GetUserId(user);
+        var userId = _userService.GetUserId(user);
 
         // NÃO validamos milestone diretamente
         // assumimos que o repo só deleta por ID
         // e que milestones SEMPRE pertencem a um projeto do usuário
 
         // alternativa segura: repo pode garantir ProjectId internamente
-        await repo.DeleteAsync(milestoneId, Guid.Parse(userId),ct);
+        await _repo.DeleteAsync(milestoneId, Guid.Parse(userId),ct);
     }
 
     /* ===================== AUTO MILESTONES ===================== */
@@ -110,7 +110,7 @@ public class MilestonesService : IMilestonesService
         int totalAccum,
         CancellationToken ct)
     {
-        var project = await projects.GetByIdAsync(projectId);
+        var project = await _projects.GetByIdAsync(projectId);
         if (project == null || project.WordCountGoal.GetValueOrDefault() <= 0)
             return;
 
@@ -134,9 +134,9 @@ public class MilestonesService : IMilestonesService
         CancellationToken ct)
     {
         if (totalAccum < goal * ratio) return;
-        if (await repo.ExistsAsync(projectId, name, ct)) return;
+        if (await _repo.ExistsAsync(projectId, name, ct)) return;
 
-        var order = await repo.GetNextOrderAsync(projectId, ct);
+        var order = await _repo.GetNextOrderAsync(projectId, ct);
 
         var milestone = new Milestone
         {
@@ -151,12 +151,12 @@ public class MilestonesService : IMilestonesService
             CreatedAt = DateTime.UtcNow
         };
 
-        await repo.AddAsync(milestone, ct);
+        await _repo.AddAsync(milestone, ct);
     }
     
     public async Task EvaluateCompletionAsync(Guid projectId, int totalAccum, CancellationToken ct)
     {
-        var milestones = await repo.GetByProjectIdAsync(projectId, ct);
+        var milestones = await _repo.GetByProjectIdAsync(projectId, ct);
 
         foreach (var m in milestones.Where(x => !x.Completed))
         {
@@ -165,7 +165,7 @@ public class MilestonesService : IMilestonesService
                 m.Completed = true;
                 m.CompletedAt = DateTime.UtcNow;
 
-                await repo.UpdateAsync(m, ct);
+                await _repo.UpdateAsync(m, ct);
             }
         }
     }
@@ -173,14 +173,14 @@ public class MilestonesService : IMilestonesService
     public async Task EvaluateMilestonesAsync(Guid projectId, int totalAccum, CancellationToken ct)
 {
     // 1️⃣ Busca projeto
-    var project = await projects.GetProjectById(projectId);
+    var project = await _projects.GetProjectById(projectId);
     if (project == null || project.WordCountGoal <= 0)
         return;
 
     var goal = project.WordCountGoal.Value;
 
     // 2️⃣ Busca milestones existentes
-    var milestones = await repo.GetByProjectIdAsync(projectId, ct);
+    var milestones = await _repo.GetByProjectIdAsync(projectId, ct);
 
     /* =========================================================
      * 3️⃣ MARCAR milestones (manuais + automáticos) como concluídos
@@ -192,7 +192,7 @@ public class MilestonesService : IMilestonesService
             m.Completed = true;
             m.CompletedAt = DateTime.UtcNow;
 
-            await repo.UpdateAsync(m, ct);
+            await _repo.UpdateAsync(m, ct);
         }
     }
 
@@ -232,7 +232,7 @@ public class MilestonesService : IMilestonesService
             CreatedAt = DateTime.UtcNow
         };
 
-        await repo.AddAsync(milestone, ct);
+        await _repo.AddAsync(milestone, ct);
     }
 }
 

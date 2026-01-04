@@ -17,7 +17,7 @@ namespace PlanWriter.Infrastructure.Repositories
     {
         public async Task<IEnumerable<ProjectProgress>> GetProgressByProjectIdAsync(Guid projectId, string userId)
         {
-            return await _dbSet
+            return await DbSet
                 .Where(p => p.ProjectId == projectId && p.Project.UserId == userId)
                 .OrderBy(p => p.Date)
                 .ToListAsync();
@@ -29,15 +29,15 @@ namespace PlanWriter.Infrastructure.Repositories
             if (progress.Date == default)
                 progress.Date = DateTime.UtcNow;
 
-            await _dbSet.AddAsync(progress);
-            await _context.SaveChangesAsync();
+            await DbSet.AddAsync(progress);
+            await Context.SaveChangesAsync();
 
             return progress;
         }
         
         public async Task<IEnumerable<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, string userId)
         {
-            return await _dbSet
+            return await DbSet
                 .Include(pp => pp.Project)
                 .Where(pp => pp.ProjectId == projectId && pp.Project.UserId == userId)
                 .OrderBy(pp => pp.Date)
@@ -45,14 +45,14 @@ namespace PlanWriter.Infrastructure.Repositories
         }
         public async Task<ProjectProgress> GetByIdAsync(Guid id, string userId)
         {
-            return await _dbSet
+            return await DbSet
                 .Include(p => p.Project)
                 .FirstOrDefaultAsync(p => p.Id == id && p.Project.UserId == userId);
         }
         
         public async Task<ProjectProgress> GetLastProgressBeforeAsync(Guid projectId, DateTime date)
         {
-            return await _dbSet
+            return await DbSet
                 .Where(p => p.ProjectId == projectId && p.Date < date)
                 .OrderByDescending(p => p.Date)
                 .FirstOrDefaultAsync();
@@ -64,14 +64,14 @@ namespace PlanWriter.Infrastructure.Repositories
             if (progress == null)
                 return false;
 
-            _dbSet.Remove(progress);
-            await _context.SaveChangesAsync();
+            DbSet.Remove(progress);
+            await Context.SaveChangesAsync();
             return true;
         }
         
         public async Task<int> GetAccumulatedAsync(Guid projectId, GoalUnit unit, CancellationToken ct)
         {
-            var q = _dbSet.Where(x => x.ProjectId == projectId);
+            var q = DbSet.Where(x => x.ProjectId == projectId);
             return unit switch
             {
                 GoalUnit.Words   => await q.SumAsync(x => (int?)x.WordsWritten, ct) ?? 0,

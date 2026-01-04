@@ -2,14 +2,16 @@ using System.Text;
 using System.Text.Json.Serialization;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PlanWriter.API.Middleware;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Application.Services;
 using PlanWriter.Application.Validators;
+using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Helpers;
-using PlanWriter.Domain.Interfaces;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Interfaces.Services;
 using PlanWriter.Infrastructure.Data;
@@ -18,21 +20,17 @@ using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== Controllers + JSON + FluentValidation =====
+
 builder.Services
     .AddControllers()
     .AddJsonOptions(opt =>
     {
-        // enums como string (opcional, ajuda no Swagger/Front)
         opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-
-        // conversores para DateOnly/TimeOnly
         opt.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
         opt.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
     })
     .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<RegisterUserDtoValidator>());
 
-// ===== JWT Config =====
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -56,13 +54,10 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// ===== Swagger (única chamada) =====
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "PlanWriter API", Version = "v1" });
-
-    // JWT Bearer
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -83,15 +78,10 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
-
-    // Mapear DateOnly/TimeOnly para o schema
     c.MapType<DateOnly>(() => new OpenApiSchema { Type = "string", Format = "date" });
     c.MapType<DateOnly?>(() => new OpenApiSchema { Type = "string", Format = "date", Nullable = true });
     c.MapType<TimeOnly>(() => new OpenApiSchema { Type = "string", Format = "time" });
     c.MapType<TimeOnly?>(() => new OpenApiSchema { Type = "string", Format = "time", Nullable = true });
-
-    // Se houver conflito de nomes de tipos em namespaces diferentes, habilite:
-    // c.CustomSchemaIds(t => t.FullName);
 });
 
 // ===== EF Core =====
@@ -123,15 +113,14 @@ builder.Services.AddScoped<IRegionsRepository, RegionsRepository>();
 builder.Services.AddScoped<IRegionsService, RegionsService>();
 builder.Services.AddScoped<IMilestonesService, MilestonesService>();
 builder.Services.AddScoped<IMilestonesRepository, MilestonesRepository>();
-
-
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 // ===== CORS =====
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+var myAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: MyAllowSpecificOrigins,
+    options.AddPolicy(name: myAllowSpecificOrigins,
         policy =>
         {
             policy
@@ -149,25 +138,36 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// ===== Swagger UI =====
+using (var scope = app.Services.CreateScope())
+{
+    var users = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+    var admin = await users.GetByEmailAsync("admin@admin.com");
+
+    if (admin == null)
+    {
+        var user = new User
+        {
+            FirstName = "Admin",
+            LastName = "System",
+            Email = "admin@admin.com",
+            IsProfilePublic = false,
+            DisplayName = "Administrador"
+        };
+        user.ChangePassword(
+            hasher.HashPassword(user, "admin")
+        );
+        user.MakeAdmin();
+        await users.AddAsync(user);
+    }
+}
+
 app.UseSwagger();
 app.UseSwaggerUI();
-
 app.UseHttpsRedirection();
-app.UseCors(MyAllowSpecificOrigins);
-
+app.UseCors(myAllowSpecificOrigins);
 app.UseAuthentication();
+app.UseMiddleware<MustChangePasswordMiddleware>();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
-
-
-// =======================
-// Conversores JSON (DateOnly/TimeOnly)
-// =======================
-
-
-
-

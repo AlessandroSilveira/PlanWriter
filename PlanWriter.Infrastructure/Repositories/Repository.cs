@@ -12,34 +12,34 @@ namespace PlanWriter.Infrastructure.Repositories
 {
     public class Repository<T> : IRepository<T> where T : class
     {
-        protected readonly AppDbContext _context;
-        protected readonly DbSet<T> _dbSet;
+        protected readonly AppDbContext Context;
+        protected readonly DbSet<T> DbSet;
 
         public Repository(AppDbContext context)
         {
-            _context = context;
-            _dbSet = context.Set<T>();
+            Context = context;
+            DbSet = context.Set<T>();
         }
 
-        public virtual async Task<T> GetByIdAsync(Guid id) => await _dbSet.FindAsync(id);
+        public virtual async Task<T> GetByIdAsync(Guid id) => await DbSet.FindAsync(id);
 
-        public virtual async Task<IEnumerable<T>> GetAllAsync() => await _dbSet.ToListAsync();
+        public virtual async Task<IEnumerable<T>> GetAllAsync() => await DbSet.ToListAsync();
 
         public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate) =>
-            await _dbSet.Where(predicate).ToListAsync();
+            await DbSet.Where(predicate).ToListAsync();
 
-        public virtual async Task AddAsync(T entity) => await _dbSet.AddAsync(entity);
+        public virtual async Task AddAsync(T entity) => await DbSet.AddAsync(entity);
 
-        public virtual void Update(T entity) => _dbSet.Update(entity);
+        public virtual void Update(T entity) => DbSet.Update(entity);
 
-        public virtual void Remove(T entity) => _dbSet.Remove(entity);
+        public virtual void Remove(T entity) => DbSet.Remove(entity);
 
-        public virtual async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
+        public virtual async Task<int> SaveChangesAsync() => await Context.SaveChangesAsync();
         
         public virtual async Task UpdateAsync(T entity)
         {
-            _dbSet.Update(entity);
-            await _context.SaveChangesAsync();
+            DbSet.Update(entity);
+            await Context.SaveChangesAsync();
         }
     }
 }

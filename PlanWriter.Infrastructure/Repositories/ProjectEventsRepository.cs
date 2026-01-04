@@ -11,21 +11,21 @@ public class ProjectEventsRepository(AppDbContext context) : Repository<ProjectE
 {
     public async Task<ProjectEvent?> GetProjectEventByProjectIdAndEventId(Guid reqProjectId, Guid reqEventId)
     {
-        return await _dbSet
+        return await DbSet
             .Include(x => x.Event)
             .FirstOrDefaultAsync(a => a.ProjectId == reqProjectId && a.EventId == reqEventId);
     }
 
     public async Task<ProjectEvent> AddProjectEvent(ProjectEvent pe)
     {
-        await _dbSet.AddAsync(pe);
-        await _context.SaveChangesAsync();
+        await DbSet.AddAsync(pe);
+        await Context.SaveChangesAsync();
         return pe;
     }
 
     public async Task<ProjectEvent?> GetProjectEventByProjectId(Guid projectId)
     {
-        return await _dbSet
+        return await DbSet
             .Include(x => x.Event)
             .FirstOrDefaultAsync(a => a.ProjectId == projectId);
     }
@@ -33,23 +33,23 @@ public class ProjectEventsRepository(AppDbContext context) : Repository<ProjectE
     // ✅ novo: atualizar (ex.: meta/TargetWords)
     public async Task UpdateProjectEvent(ProjectEvent pe)
     {
-        _dbSet.Update(pe);
-        await _context.SaveChangesAsync();
+        DbSet.Update(pe);
+        await Context.SaveChangesAsync();
     }
 
     // ✅ novo: remover inscrição por chaves
     public async Task<bool> RemoveByKeys(Guid projectId, Guid eventId)
     {
-        var row = await _dbSet.FirstOrDefaultAsync(a => a.ProjectId == projectId && a.EventId == eventId);
+        var row = await DbSet.FirstOrDefaultAsync(a => a.ProjectId == projectId && a.EventId == eventId);
         if (row is null) return false;
-        _dbSet.Remove(row);
-        await _context.SaveChangesAsync();
+        DbSet.Remove(row);
+        await Context.SaveChangesAsync();
         return true;
     }
     // ✅ novo
     public async Task<ProjectEvent?> GetProjectEventById(Guid projectEventId)
     {
-        return await _dbSet
+        return await DbSet
             .Include(pe => pe.Event)
             .FirstOrDefaultAsync(pe => pe.Id == projectEventId);
     }
