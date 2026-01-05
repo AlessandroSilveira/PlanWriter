@@ -4,7 +4,7 @@ namespace PlanWriter.Domain.Events;
 
 public enum EventType
 {
-    Nano = 0,
-    Camp = 1,
-    Custom = 2
+    Nanowrimo = 0,
+    Desafio = 1,
+    Oficial = 2
 }

@@ -2,14 +2,16 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.Services;
 
 namespace PlanWriter.API.Controllers;
 
 [ApiController]
 [Route("api/events")]
-public class EventsController(IEventService eventService) : ControllerBase
+public class EventsController(IEventService eventService, IUserService userService) : ControllerBase
 {
     // lista eventos ativos
     [HttpGet("active")]
@@ -67,5 +69,16 @@ public class EventsController(IEventService eventService) : ControllerBase
     {
         var response = await eventService.GetLeaberBoard(eventId, scope, top);
         return Ok(response);
+    }
+    
+    [Authorize]
+    [HttpGet("my")]
+    public async Task<ActionResult<IEnumerable<MyEventDto>>> GetMyEvents()
+    {
+        var userId = userService.GetUserId(User);
+
+        var result = await eventService.GetMyEventsAsync(userId);
+
+        return Ok(result);
     }
 }

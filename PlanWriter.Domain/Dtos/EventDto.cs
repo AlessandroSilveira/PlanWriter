@@ -6,7 +6,7 @@ namespace PlanWriter.Domain.Dtos
         DateTime StartsAtUtc, DateTime EndsAtUtc,
         int? DefaultTargetWords, bool IsActive);
 
-    public record CreateEventRequest(string Name, string Slug, string Type,
+    public record CreateEventRequest(string Name, string Type,
         DateTime StartsAtUtc, DateTime EndsAtUtc,
         int? DefaultTargetWords);
 

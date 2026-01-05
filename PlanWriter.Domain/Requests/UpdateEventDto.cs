@@ -2,16 +2,16 @@ using System;
 
 namespace PlanWriter.Domain.Requests;
 
-public class CreateEventRequest
+public class UpdateEventDto
 {
+    public bool isActive { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    public int TargetWords { get; set; }
-    
     public string Type { get; set; }
     public DateTime StartsAtUtc { get; set; }
     public DateTime EndsAtUtc { get; set; }
+    public int TargetWords { get; set; }
    
 }

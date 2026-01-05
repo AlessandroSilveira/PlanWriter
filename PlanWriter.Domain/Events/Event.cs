@@ -8,7 +8,7 @@ public class Event
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = default!;
     public string Slug { get; set; } = default!;
-    public EventType Type  { get; set; } = EventType.Nano!;
+    public EventType Type  { get; set; } = EventType.Nanowrimo!;
     public DateTime StartsAtUtc { get; set; }    // sempre UTC
     public DateTime EndsAtUtc   { get; set; }
 

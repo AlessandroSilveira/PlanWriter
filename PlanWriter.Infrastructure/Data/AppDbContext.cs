@@ -31,20 +31,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(u => u.FirstName).IsRequired().HasMaxLength(80);
             b.Property(u => u.LastName).IsRequired().HasMaxLength(80);
             b.Property(u => u.DateOfBirth).IsRequired();
-
             b.Property(u => u.Email).IsRequired().HasMaxLength(254);
             b.HasIndex(u => u.Email).IsUnique();
-
             b.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256);
             b.Property(u => u.Bio).HasMaxLength(280);
             b.Property(u => u.AvatarUrl).HasMaxLength(256);
             b.Property(u => u.IsProfilePublic).HasDefaultValue(false);
-
             b.Property(u => u.Slug).HasMaxLength(80);
             b.HasIndex(u => u.Slug).IsUnique().HasFilter("[Slug] IS NOT NULL");
-
             b.Property(u => u.DisplayName).HasMaxLength(100);
-
             b.HasIndex(u => new { u.FirstName, u.LastName });
 
             // Região (ON DELETE SET NULL)

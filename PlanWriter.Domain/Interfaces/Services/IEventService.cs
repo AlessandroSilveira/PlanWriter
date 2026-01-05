@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Requests;
+using CreateEventRequest = PlanWriter.Domain.Requests.CreateEventRequest;
 
 namespace PlanWriter.Domain.Interfaces.Services;
 
@@ -20,4 +23,8 @@ public interface IEventService
     // ✅ novos
     Task<EventDto?> GetByIdAsync(Guid eventId);
     Task LeaveAsync(Guid projectId, Guid eventId);
+    Task<List<EventDto>?> GetAllAsync();
+    Task UpdateAsync(Guid id, UpdateEventDto dto);
+    Task DeleteAsync(Guid id);
+    Task<List<MyEventDto>> GetMyEventsAsync(string userId);
 }
