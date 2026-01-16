@@ -154,22 +154,22 @@ public class ProjectService : IProjectService
             .ToList();
     }
 
-    public Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline)
+    public Task<bool> SetGoalAsync(Guid projectId, Guid userId, int wordCountGoal, DateTime? deadline)
     {
         return _projectRepository.SetGoalAsync(projectId, userId, wordCountGoal, deadline);
     }
 
-    public Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId)
+    public Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, Guid userId)
     {
         return _projectRepository.GetStatisticsAsync(projectId, userId);
     }
 
-    public Task<bool> DeleteProjectAsync(Guid projectId, string userId)
+    public Task<bool> DeleteProjectAsync(Guid projectId, Guid userId)
     {
         return _projectRepository.DeleteProjectAsync(projectId, userId);
     }
 
-    public async Task<bool> DeleteProgressAsync(Guid progressId, string userId)
+    public async Task<bool> DeleteProgressAsync(Guid progressId, Guid userId)
     {
         var progress = await _projectProgressRepository.GetByIdAsync(progressId, userId);
         if (progress == null)
@@ -520,8 +520,18 @@ public class ProjectService : IProjectService
             Notes = $"Word Sprint — {dto.Words} palavras em {dto.Minutes} min"
         };
 
-        _projectProgressRepository.AddProgressAsync(progress);
+        await _projectProgressRepository.AddProgressAsync(progress);
     }
+
+    public async Task<int> GetMonthlyTotalAsync(Guid userId)
+    {
+        var now = DateTime.UtcNow;
+        var start = new DateTime(now.Year, now.Month, 1);
+        var end = start.AddMonths(1);
+
+        return await _projectProgressRepository.GetMonthlyWordsAsync(userId, start, end);
+    }
+
 
     private sealed record ProgressSummary(DateTime Date, int Total);
 }

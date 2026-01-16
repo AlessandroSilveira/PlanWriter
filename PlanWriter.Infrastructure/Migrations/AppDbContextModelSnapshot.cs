@@ -56,6 +56,39 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.ToTable("Badges");
                 });
 
+            modelBuilder.Entity("PlanWriter.Domain.Entities.DailyWordLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("WordsWritten")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProjectId", "UserId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("DailyWordLogs", (string)null);
+                });
+
             modelBuilder.Entity("PlanWriter.Domain.Entities.Milestone", b =>
                 {
                     b.Property<Guid>("Id")
@@ -161,8 +194,8 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.Property<string>("Title")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("ValidatedAtUtc")
                         .HasColumnType("datetime2");
@@ -177,6 +210,8 @@ namespace PlanWriter.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Projects", t =>
                         {
@@ -416,7 +451,7 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.Property<int?>("FinalWordCount")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("ProjectId")
+                    b.Property<Guid?>("ProjectId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("TargetWords")
@@ -439,9 +474,25 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.HasIndex("EventId");
 
                     b.HasIndex("ProjectId", "EventId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ProjectId] IS NOT NULL");
 
                     b.ToTable("ProjectEvents");
+                });
+
+            modelBuilder.Entity("PlanWriter.Domain.Entities.DailyWordLog", b =>
+                {
+                    b.HasOne("PlanWriter.Domain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PlanWriter.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PlanWriter.Domain.Entities.Milestone", b =>
@@ -453,6 +504,17 @@ namespace PlanWriter.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("PlanWriter.Domain.Entities.Project", b =>
+                {
+                    b.HasOne("PlanWriter.Domain.Entities.User", "User")
+                        .WithMany("Projects")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PlanWriter.Domain.Entities.ProjectProgress", b =>
@@ -505,9 +567,7 @@ namespace PlanWriter.Infrastructure.Migrations
 
                     b.HasOne("PlanWriter.Domain.Entities.Project", "Project")
                         .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ProjectId");
 
                     b.Navigation("Event");
 
@@ -531,6 +591,8 @@ namespace PlanWriter.Infrastructure.Migrations
                     b.Navigation("Followers");
 
                     b.Navigation("Following");
+
+                    b.Navigation("Projects");
                 });
 
             modelBuilder.Entity("PlanWriter.Domain.Events.Event", b =>

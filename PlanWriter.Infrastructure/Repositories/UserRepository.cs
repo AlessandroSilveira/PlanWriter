@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Entities;
@@ -28,5 +30,10 @@ public class UserRepository(AppDbContext context) : IUserRepository
     {
         context.Users.Update(user);
         await context.SaveChangesAsync();
+    }
+
+    public async Task<List<User>> GetUsersByIdsAsync(IEnumerable<Guid> buddyIds)
+    {
+        return await context.Users.Where(u => buddyIds.Contains(u.Id)).ToListAsync();
     }
 }

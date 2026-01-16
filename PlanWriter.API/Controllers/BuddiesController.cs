@@ -3,6 +3,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Interfaces.Services;
 
@@ -14,7 +15,13 @@ namespace PlanWriter.API.Controllers;
 public class BuddiesController : ControllerBase
 {
     private readonly IBuddiesService _service;
-    public BuddiesController(IBuddiesService service) => _service = service;
+    private readonly IUserService _userService;
+
+    public BuddiesController(IBuddiesService service, IUserService userService)
+    {
+        _service = service;
+        _userService = userService;
+    }
 
     // Ajuste conforme como você emite o ID do usuário nos tokens
     private Guid Me => Guid.Parse(User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
@@ -26,7 +33,7 @@ public class BuddiesController : ControllerBase
     [HttpPost("follow/username")]
     public async Task<IActionResult> FollowByUsername([FromBody] BuddiesDto.FollowBuddyByUsernameRequest req, CancellationToken ct)
     {
-        await _service.FollowByUsernameAsync(Me, req.Username, ct);
+        await _service.FollowByUsernameAsync(Me, req.Email, ct);
         return NoContent();
     }
 
@@ -44,7 +51,19 @@ public class BuddiesController : ControllerBase
         return NoContent();
     }
 
+    // [HttpGet("leaderboard")]
+    // public async Task<ActionResult<List<BuddiesDto.BuddyLeaderboardItemDto>>> Leaderboard([FromQuery] Guid? eventId, [FromQuery] DateOnly? start, [FromQuery] DateOnly? end, CancellationToken ct)
+    //     => Ok(await _service.LeaderboardAsync(Me, eventId, start, end, ct));
+    
+    [Authorize]
     [HttpGet("leaderboard")]
-    public async Task<ActionResult<List<BuddiesDto.BuddyLeaderboardItemDto>>> Leaderboard([FromQuery] Guid? eventId, [FromQuery] DateOnly? start, [FromQuery] DateOnly? end, CancellationToken ct)
-        => Ok(await _service.LeaderboardAsync(Me, eventId, start, end, ct));
+    public async Task<IActionResult> BuddiesLeaderboard([FromQuery] DateTime? start, [FromQuery] DateTime? end)
+    {
+        var userId = _userService.GetUserId(User);
+
+        var result = await _service
+            .GetBuddiesLeaderboardAsync(userId, start, end);
+
+        return Ok(result);
+    }
 }

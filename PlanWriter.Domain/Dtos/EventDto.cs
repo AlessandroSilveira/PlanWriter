@@ -7,8 +7,11 @@ namespace PlanWriter.Domain.Dtos
         int? DefaultTargetWords, bool IsActive);
 
     public record CreateEventRequest(string Name, string Type,
-        DateTime StartsAtUtc, DateTime EndsAtUtc,
-        int? DefaultTargetWords);
+        DateTime StartDate, DateTime EndDate,
+        int? DefaultTargetWords)
+    {
+        
+    }
 
     public record JoinEventRequest(Guid ProjectId, Guid EventId, int? TargetWords);
 
@@ -26,6 +29,7 @@ namespace PlanWriter.Domain.Dtos
         int DailyTarget,     // ceil(TargetWords / Days)
         Guid ProjectEventId,         // NEW
         DateTime? ValidatedAtUtc,    // NEW
-        bool Won
+        bool Won,
+        string Name
     );
 }

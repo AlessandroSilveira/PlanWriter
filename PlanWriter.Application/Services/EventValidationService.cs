@@ -21,7 +21,7 @@ public class EventValidationService : IEventValidationService
     {
         var ev = await _db.Events.FirstOrDefaultAsync(e => e.Id == eventId)
                  ?? throw new KeyNotFoundException("Evento não encontrado.");
-        var proj = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId.ToString())
+        var proj = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId)
                    ?? throw new InvalidOperationException("Projeto não encontrado ou não pertence ao usuário.");
         var pe = await _db.ProjectEvents.FirstOrDefaultAsync(x => x.EventId == eventId && x.ProjectId == projectId)
                  ?? throw new InvalidOperationException("Projeto não está inscrito neste evento.");

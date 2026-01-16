@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.API.Security;
 using PlanWriter.Domain.Interfaces.Services;

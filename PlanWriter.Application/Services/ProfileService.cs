@@ -22,7 +22,7 @@ public class ProfileService : IProfileService
     {
         var me = await _db.Set<User>().FirstAsync(u => u.Id == userId);
         var publicIds = await _db.Set<Project>()
-            .Where(p => p.UserId == userId.ToString() && p.IsPublic)
+            .Where(p => p.UserId == userId && p.IsPublic)
             .Select(p => p.Id)
             .ToArrayAsync();
 
@@ -71,7 +71,7 @@ public class ProfileService : IProfileService
         if (req.PublicProjectIds != null)
         {
             var ids = req.PublicProjectIds.Distinct().ToHashSet();
-            var myProjects = await _db.Set<Project>().Where(p => p.UserId == userId.ToString()).ToListAsync();
+            var myProjects = await _db.Set<Project>().Where(p => p.UserId == userId).ToListAsync();
             foreach (var p in myProjects)
                 p.IsPublic = ids.Contains(p.Id);
         }
@@ -93,7 +93,7 @@ public class ProfileService : IProfileService
 
         // projetos públicos do usuário
         var projects = await _db.Set<Project>()
-            .Where(p => p.UserId == u.Id.ToString() && p.IsPublic)
+            .Where(p => p.UserId == u.Id && p.IsPublic)
             .Select(p => new { p.Id, p.Title, p.WordCountGoal, p.CurrentWordCount })
             .ToListAsync();
 
@@ -136,7 +136,7 @@ public class ProfileService : IProfileService
         string? highlight = null;
         var recentWin = await _db.ProjectEvents
             .Include(pe => pe.Event)
-            .Where(pe => pe.Project!.UserId == u.Id.ToString() && pe.Won && pe.ValidatedAtUtc != null)
+            .Where(pe => pe.Project!.UserId == u.Id && pe.Won && pe.ValidatedAtUtc != null)
             .OrderByDescending(pe => pe.ValidatedAtUtc)
             .FirstOrDefaultAsync();
         if (recentWin != null)

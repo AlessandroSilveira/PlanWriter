@@ -5,7 +5,7 @@ namespace PlanWriter.Domain.Dtos;
 public class BuddiesDto
 {
     // PlanWriter.Application/DTOs/BuddiesDtos.cs
-    public record FollowBuddyByUsernameRequest(string Username);
+    public record FollowBuddyByUsernameRequest(string Email);
     public record FollowBuddyByIdRequest(Guid FolloweeId);
 
     public record BuddySummaryDto(Guid UserId, string Username, string DisplayName, string? AvatarUrl);

@@ -70,4 +70,42 @@ public class BuddiesRepository(AppDbContext db) : IBuddiesRepository
 
         return rows.ToDictionary(x => x.UserId, x => x.Total);
     }
+
+    public async Task<List<BuddiesDto.BuddySummaryDto>> GetBuddies(Guid userId)
+    {
+        // quem eu sigo
+        var buddies = await db.UserFollows
+            .Where(x => x.FollowerId == userId)
+            .Join(db.Users, x => x.FolloweeId, u => u.Id, (x, u) => new { x, u })
+            .Select(x => new BuddiesDto.BuddySummaryDto
+            (
+                x.u.Id,
+                x.u.DisplayName,
+                x.u.FirstName + " " + x.u.LastName,
+                x.u.AvatarUrl
+            ))
+            .ToListAsync();
+
+        return buddies;
+
+
+    }
+
+    public async Task<List<BuddiesDto.BuddySummaryDto>> GetByUserId(Guid userId)
+    {
+        // quem eu sigo
+        var buddies = await db.UserFollows
+            .Where(x => x.FollowerId == userId)
+            .Join(db.Users, x => x.FollowerId, u => u.Id, (x, u) => new { x, u })
+            .Select(x => new BuddiesDto.BuddySummaryDto
+            (
+                x.u.Id,
+                x.u.DisplayName,
+                x.u.FirstName + " " + x.u.LastName,
+                x.u.AvatarUrl
+            ))
+            .ToListAsync();
+
+        return buddies;
+    }
 }

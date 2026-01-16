@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Entities;
-using PlanWriter.Domain.Interfaces;
 using PlanWriter.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
@@ -27,7 +26,7 @@ namespace PlanWriter.Infrastructure.Repositories
             return project;
         }
         
-        public async Task<IEnumerable<Project>> GetUserProjectsAsync(string userId)
+        public async Task<IEnumerable<Project>> GetUserProjectsAsync(Guid userId)
         {
             return await DbSet
                 .Where(p => p.UserId == userId)
@@ -35,20 +34,20 @@ namespace PlanWriter.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Project> GetProjectWithProgressAsync(Guid id, string userId)
+        public async Task<Project> GetProjectWithProgressAsync(Guid id, Guid userId)
         {
             return await DbSet
                 .Include(p => p.ProgressEntries)
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         }
         
-        public async Task<Project> GetUserProjectByIdAsync(Guid id, string userId)
+        public async Task<Project> GetUserProjectByIdAsync(Guid id, Guid userId)
         {
             return await DbSet
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         }
         
-        public async Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline = null)
+        public async Task<bool> SetGoalAsync(Guid projectId, Guid userId, int wordCountGoal, DateTime? deadline = null)
         {
             var project = await DbSet
                 .FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
@@ -65,7 +64,7 @@ namespace PlanWriter.Infrastructure.Repositories
             return true;
         }
         
-        public async Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId)
+        public async Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, Guid userId)
         {
             var project = await DbSet
                 .Include(p => p.ProgressEntries)
@@ -105,7 +104,7 @@ namespace PlanWriter.Infrastructure.Repositories
             };
         }
         
-        public async Task<bool> DeleteProjectAsync(Guid projectId, string userId)
+        public async Task<bool> DeleteProjectAsync(Guid projectId, Guid userId)
         {
             var project = await DbSet
                 .Include(p => p.ProgressEntries)
@@ -171,7 +170,7 @@ namespace PlanWriter.Infrastructure.Repositories
 
         public async Task<bool> UserOwnsProjectAsync(Guid projectId, Guid userId, CancellationToken ct)
         {
-            return await DbSet.AnyAsync(p => p.Id == projectId && p.UserId == userId.ToString(), ct);
+            return await DbSet.AnyAsync(p => p.Id == projectId && p.UserId == userId, ct);
             // ^ ajuste 'UserId' se seu Project usa outro campo para dono
         }
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
@@ -17,7 +16,7 @@ public interface IEventRepository
     Task<List<EventDto>?> GetAllAsync();
     Task UpdateAsync(Event ev, Guid id);
     Task DeleteAsync(Event ev);
-    Task<List<MyEventDto>> GetEventByUserId(string userId);
+    Task<List<MyEventDto>> GetEventByUserId(Guid userId);
     
     Task<List<EventLeaderboardRowDto>> GetLeaderboard(Event ev, DateTime winStart, DateTime winEnd, int top);
 }

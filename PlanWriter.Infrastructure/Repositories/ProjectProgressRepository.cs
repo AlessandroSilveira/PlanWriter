@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.Repositories;
 
@@ -15,7 +16,7 @@ namespace PlanWriter.Infrastructure.Repositories
     public class ProjectProgressRepository(AppDbContext context)
         : Repository<ProjectProgress>(context), IProjectProgressRepository
     {
-        public async Task<IEnumerable<ProjectProgress>> GetProgressByProjectIdAsync(Guid projectId, string userId)
+        public async Task<IEnumerable<ProjectProgress>> GetProgressByProjectIdAsync(Guid projectId, Guid userId)
         {
             return await DbSet
                 .Where(p => p.ProjectId == projectId && p.Project.UserId == userId)
@@ -35,7 +36,7 @@ namespace PlanWriter.Infrastructure.Repositories
             return progress;
         }
         
-        public async Task<IEnumerable<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, string userId)
+        public async Task<IEnumerable<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, Guid userId)
         {
             return await DbSet
                 .Include(pp => pp.Project)
@@ -43,7 +44,7 @@ namespace PlanWriter.Infrastructure.Repositories
                 .OrderBy(pp => pp.Date)
                 .ToListAsync();
         }
-        public async Task<ProjectProgress> GetByIdAsync(Guid id, string userId)
+        public async Task<ProjectProgress> GetByIdAsync(Guid id, Guid userId)
         {
             return await DbSet
                 .Include(p => p.Project)
@@ -58,7 +59,7 @@ namespace PlanWriter.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<bool> DeleteAsync(Guid id, string userId)
+        public async Task<bool> DeleteAsync(Guid id, Guid userId)
         {
             var progress = await GetByIdAsync(id, userId);
             if (progress == null)
@@ -79,6 +80,126 @@ namespace PlanWriter.Infrastructure.Repositories
                 GoalUnit.Pages   => await q.SumAsync(x => (int?)x.Pages, ct) ?? 0,
                 _ => 0
             };
+        }
+
+        
+        public async Task<Dictionary<Guid, int>> GetTotalWordsByProjectIdsAsync(
+            IEnumerable<Guid> projectIds)
+        {
+            return await DbSet
+                .Where(p => projectIds.Contains(p.ProjectId))
+                .GroupBy(p => p.ProjectId)
+                .Select(g => new
+                {
+                    ProjectId = g.Key,
+                    Total = g.Sum(x => x.WordsWritten)
+                })
+                .ToDictionaryAsync(x => x.ProjectId, x => x.Total);
+        }
+
+       
+
+        public async Task<EventProjectProgressDto?> GetEventProjectProgressAsync(Guid eventId, Guid projectId)
+        {
+            // 1️⃣ Carrega o vínculo Projeto ↔ Evento
+            var link = await Context.ProjectEvents
+                .Include(pe => pe.Event)
+                .FirstOrDefaultAsync(pe =>
+                    pe.EventId == eventId &&
+                    pe.ProjectId == projectId
+                );
+
+            if (link == null)
+                return null;
+
+            var ev = link.Event;
+
+            var start = ev.StartsAtUtc.Date;
+            var endExclusive = ev.EndsAtUtc.Date.AddDays(1);
+
+            // 2️⃣ Soma progresso do projeto dentro da janela do evento
+            var totalWritten = await DbSet
+                .Where(p =>
+                    p.ProjectId == projectId &&
+                    p.CreatedAt >= start &&
+                    p.CreatedAt < endExclusive
+                )
+                .SumAsync(p => (int?)p.WordsWritten) ?? 0;
+
+            var target = link.TargetWords
+                         ?? ev.DefaultTargetWords
+                         ?? 0;
+
+            var percent = target > 0
+                ? Math.Round((double)totalWritten / target * 100, 2)
+                : 0;
+
+            // 3️⃣ Ranking (calculado de forma segura)
+            var ranking = await Context.ProjectEvents
+                .Where(pe => pe.EventId == eventId)
+                .Select(pe => new
+                {
+                    pe.ProjectId,
+                    Words = Context.ProjectProgresses
+                        .Where(p =>
+                            p.ProjectId == pe.ProjectId &&
+                            p.CreatedAt >= start &&
+                            p.CreatedAt < endExclusive
+                        )
+                        .Sum(p => (int?)p.WordsWritten) ?? 0
+                })
+                .OrderByDescending(x => x.Words)
+                .Select((x, index) => new { x.ProjectId, Rank = index + 1 })
+                .FirstOrDefaultAsync(x => x.ProjectId == projectId);
+
+            return new EventProjectProgressDto
+            {
+                EventId = eventId,
+                ProjectId = projectId,
+                TotalWrittenInEvent = totalWritten,
+                TargetWords = target,
+                Percent = percent,
+                Rank = ranking?.Rank
+            };
+        }
+        public async Task<Dictionary<Guid, int>> GetTotalWordsByUsersAsync(IEnumerable<Guid> userIds, DateTime? start, DateTime? end)
+        {
+            var query = Context.ProjectProgresses
+                .Include(p => p.Project)
+                .Where(p => userIds.Contains<Guid>(p.Project.UserId));
+
+            if (start.HasValue && start.Value > DateTime.MinValue)
+            {
+                query = query.Where(p => p.Date >= start.Value);
+            }
+
+            if (end.HasValue)
+            {
+                query = query.Where(p => p.Date <= end.Value);
+            }
+
+            var result = await query
+                .GroupBy(p => p.Project.UserId)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    Total = g.Sum(x => x.WordsWritten)
+                })
+                .ToDictionaryAsync(x => x.UserId, x => x.Total);
+
+            return result;
+        }
+
+        public async Task<int> GetMonthlyWordsAsync(Guid userId, DateTime start, DateTime end)
+        {
+            return await DbSet
+                .Include(p => p.Project)
+                .Where(p =>
+                    p.Project.UserId == userId &&
+                    p.Date >= start &&
+                    p.Date < end
+                )
+                .SumAsync(p => p.WordsWritten);
         }
 
     }

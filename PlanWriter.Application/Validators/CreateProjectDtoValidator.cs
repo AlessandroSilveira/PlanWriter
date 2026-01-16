@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using PlanWriter.Application.DTO;
-using PlanWriter.Application.DTOs;
 
 namespace PlanWriter.Application.Validators
 {

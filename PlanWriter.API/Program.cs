@@ -109,11 +109,13 @@ builder.Services.AddScoped<IBuddiesRepository, BuddiesRepository>();
 builder.Services.AddScoped<IBuddiesService, BuddiesService>();
 builder.Services.AddScoped<IWordCountService, WordCountService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
-builder.Services.AddScoped<IRegionsRepository, RegionsRepository>();
-builder.Services.AddScoped<IRegionsService, RegionsService>();
 builder.Services.AddScoped<IMilestonesService, MilestonesService>();
 builder.Services.AddScoped<IMilestonesRepository, MilestonesRepository>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IDailyWordLogRepository, DailyWordLogRepository>();
+builder.Services.AddScoped<IDailyWordLogService, DailyWordLogService>();
+
+
 
 // ===== CORS =====
 var myAllowSpecificOrigins = "_myAllowSpecificOrigins";

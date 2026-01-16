@@ -11,12 +11,12 @@ namespace PlanWriter.Domain.Interfaces.Repositories
     public interface IProjectRepository: IRepository<Project>
     {
         Task<Project> CreateAsync(Project project);
-        Task<IEnumerable<Project>> GetUserProjectsAsync(string userId);
-        Task<Project> GetProjectWithProgressAsync(Guid id, string userId);
-        Task<Project?> GetUserProjectByIdAsync(Guid id, string userId);
-        Task<bool> SetGoalAsync(Guid projectId, string userId, int wordCountGoal, DateTime? deadline = null);
-        Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, string userId);
-        Task<bool> DeleteProjectAsync(Guid projectId, string userId);
+        Task<IEnumerable<Project>> GetUserProjectsAsync(Guid userId);
+        Task<Project> GetProjectWithProgressAsync(Guid id, Guid userId);
+        Task<Project?> GetUserProjectByIdAsync(Guid id, Guid userId);
+        Task<bool> SetGoalAsync(Guid projectId, Guid userId, int wordCountGoal, DateTime? deadline = null);
+        Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, Guid userId);
+        Task<bool> DeleteProjectAsync(Guid projectId, Guid userId);
         Task<Project?> GetProjectById(Guid id);
         Task ApplyValidationAsync(Guid projectId, ValidationResultDto res, CancellationToken ct);
         Task<(int? goalWords, string? title)> GetGoalAndTitleAsync(Guid projectId, CancellationToken ct);

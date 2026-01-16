@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Events;
@@ -54,7 +56,16 @@ public class ProjectEventsRepository(AppDbContext context) : Repository<ProjectE
             .FirstOrDefaultAsync(pe => pe.Id == projectEventId);
     }
 
-   
+    public async Task<List<ProjectEvent>> GetByUserIdAsync(Guid userId)
+    {
+        return await DbSet
+            .Include(pe => pe.Event)
+            .Include(pe => pe.Project)
+            .Where(pe => pe.Project != null && pe.Project.UserId == userId)
+            .ToListAsync();
+    }
+
+
 
     
 }

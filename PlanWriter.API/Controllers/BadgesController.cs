@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PlanWriter.Application.Services;
 using PlanWriter.Domain.Interfaces.Services;
 
 namespace PlanWriter.Api.Controllers;

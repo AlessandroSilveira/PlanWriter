@@ -1,6 +1,7 @@
 // PlanWriter.Domain/Interfaces/IBuddiesRepository.cs
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,4 +20,7 @@ public interface IBuddiesRepository
 
     // Progress totals (words) por usuário no intervalo
     Task<Dictionary<Guid, int>> GetTotalsAsync(IEnumerable<Guid> userIds, DateOnly? start, DateOnly? end, CancellationToken ct);
+    Task<List<BuddiesDto.BuddySummaryDto>> GetBuddies(Guid userId);
+    
+    Task<List<BuddiesDto.BuddySummaryDto>> GetByUserId(Guid userId);
 }

@@ -115,7 +115,7 @@ public class EventRepository(AppDbContext context) : Repository<Event>(context),
        
     }
 
-    public async Task<List<MyEventDto>> GetEventByUserId(string userId)
+    public async Task<List<MyEventDto>> GetEventByUserId(Guid userId)
     {
         try
         {
@@ -175,7 +175,7 @@ public class EventRepository(AppDbContext context) : Repository<Event>(context),
         join p in context.Projects
             on pe.ProjectId equals p.Id
         join u in context.Users
-            on p.UserId equals u.Id.ToString()
+            on p.UserId equals u.Id
         where pe.EventId == ev.Id
         select new
         {
@@ -198,7 +198,7 @@ public class EventRepository(AppDbContext context) : Repository<Event>(context),
 
             return new EventLeaderboardRowDto
             {
-                ProjectId = r.ProjectId,
+                ProjectId = r.ProjectId.Value,
                 ProjectTitle = r.ProjectTitle,
                 UserName = r.UserName,
                 Words = words,

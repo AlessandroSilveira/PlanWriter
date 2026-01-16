@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos;
-using PlanWriter.Domain.Enums; // GoalUnit
+// GoalUnit
 using PlanWriter.Domain.Interfaces.Services;
 using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
 
@@ -62,7 +62,7 @@ namespace PlanWriter.Api.Controllers
             var userId = userService.GetUserId(User);
 
             // Novo método do service (ver seção 3)
-            await projectService.SetFlexibleGoalAsync(id, Guid.Parse(userId), dto.GoalAmount, dto.GoalUnit, dto.Deadline);
+            await projectService.SetFlexibleGoalAsync(id, userId, dto.GoalAmount, dto.GoalUnit, dto.Deadline);
 
             return Ok(new { message = "Goal set successfully." });
         }
@@ -177,6 +177,22 @@ namespace PlanWriter.Api.Controllers
             await milestonesService.EvaluateMilestonesAsync(dto.ProjectId, dto.Words, new CancellationToken());
             return Ok();
         }
+        
+        [Authorize]
+        [HttpGet("monthly")]
+        public async Task<IActionResult> MonthlyProgress()
+        {
+            var userId = userService.GetUserId(User);
+
+            var total = await projectService.GetMonthlyTotalAsync(userId);
+
+            return Ok(new
+            {
+                total,
+                month = DateTime.UtcNow.ToString("yyyy-MM")
+            });
+        }
+
 
     }
 }

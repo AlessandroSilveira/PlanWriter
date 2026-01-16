@@ -73,7 +73,7 @@ public class EventService
         await eventRepository.DeleteAsync(ev);
     }
 
-    public async Task<List<MyEventDto>> GetMyEventsAsync(string userId)
+    public async Task<List<MyEventDto>> GetMyEventsAsync(Guid userId)
     {
         var userEvents = await eventRepository.GetEventByUserId(userId);
 
@@ -195,7 +195,8 @@ public class EventService
             dailyTarget,
             pe.Id,                 // ProjectEventId
             pe.ValidatedAtUtc,
-            pe.Won
+            pe.Won,
+            pe.Event.Name
         );
     }
 
@@ -226,7 +227,7 @@ public class EventService
         // badge winner/participant do evento
         var badge = new Badge
         {
-            ProjectId   = pe.ProjectId,
+            ProjectId   = pe.ProjectId.Value,
             EventId     = ev.Id,
             Name        = (pe.Won ? "🏆 Winner — " : "🎉 Participant — ") + ev.Name,
             Description = pe.Won

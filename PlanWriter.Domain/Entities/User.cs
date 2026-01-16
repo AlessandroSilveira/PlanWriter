@@ -16,8 +16,7 @@ namespace PlanWriter.Domain.Entities
         public bool IsProfilePublic { get; set; }
         public string? Slug { get; set; }
         public string? DisplayName { get; set; }
-        public Guid? RegionId { get; set; }
-        public Region? Region { get; set; }
+       
 
         public bool IsAdmin { get; private set; }
         public bool MustChangePassword { get; private set; }
@@ -47,6 +46,7 @@ namespace PlanWriter.Domain.Entities
         
         public ICollection<UserFollow> Following { get; set; } = new List<UserFollow>();
         public ICollection<UserFollow> Followers { get; set; } = new List<UserFollow>();
+        public ICollection<Project> Projects { get; set; } = new List<Project>();
 
     }
 }// Entidade de usuário

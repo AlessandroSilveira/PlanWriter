@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using BCrypt.Net;
 using Microsoft.AspNetCore.Identity;
 using PlanWriter.Application.DTO;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Entities;
-using PlanWriter.Domain.Interfaces;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Services;
@@ -40,7 +38,16 @@ public class UserService(IUserRepository userRepository, IPasswordHasher<User> p
         return true;
     }
     
-    public string GetUserId(ClaimsPrincipal user) =>
-        user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-        ?? throw new UnauthorizedAccessException();
+    public Guid GetUserId(ClaimsPrincipal user)
+    {
+        var claim = user.FindFirst(ClaimTypes.NameIdentifier);
+
+        if (claim == null || string.IsNullOrWhiteSpace(claim.Value))
+            throw new UnauthorizedAccessException("Usuário não autenticado.");
+
+        if (!Guid.TryParse(claim.Value, out var userId))
+            throw new UnauthorizedAccessException("Identificador de usuário inválido.");
+
+        return userId;
+    }
 }

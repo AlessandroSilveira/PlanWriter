@@ -6,7 +6,7 @@ namespace PlanWriter.Domain.Events;
 public class ProjectEvent
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
     public Guid EventId { get; set; }
     public int? TargetWords { get; set; }
     public int? FinalWordCount { get; set; }

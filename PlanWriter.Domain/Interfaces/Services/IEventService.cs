@@ -26,5 +26,5 @@ public interface IEventService
     Task<List<EventDto>?> GetAllAsync();
     Task UpdateAsync(Guid id, UpdateEventDto dto);
     Task DeleteAsync(Guid id);
-    Task<List<MyEventDto>> GetMyEventsAsync(string userId);
+    Task<List<MyEventDto>> GetMyEventsAsync(Guid userId);
 }

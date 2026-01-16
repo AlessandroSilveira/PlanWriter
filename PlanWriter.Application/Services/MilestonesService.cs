@@ -101,7 +101,7 @@ public class MilestonesService : IMilestonesService
         // e que milestones SEMPRE pertencem a um projeto do usuário
 
         // alternativa segura: repo pode garantir ProjectId internamente
-        await _repo.DeleteAsync(milestoneId, Guid.Parse(userId),ct);
+        await _repo.DeleteAsync(milestoneId, Guid.Parse(userId.ToString()),ct);
     }
 
     /* ===================== AUTO MILESTONES ===================== */

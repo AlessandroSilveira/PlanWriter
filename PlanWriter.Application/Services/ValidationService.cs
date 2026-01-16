@@ -2,11 +2,9 @@
 
 using System;
 using System.IO;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
-using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Interfaces.Services;
 

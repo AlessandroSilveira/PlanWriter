@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Entities;
 
@@ -11,4 +12,5 @@ public interface IUserRepository
     Task<User?> GetByEmailAsync(string email);
     Task<User?> GetByIdAsync(Guid userId);
     Task UpdateAsync(User user);
+    Task<List<User>> GetUsersByIdsAsync(IEnumerable<Guid> buddyIds);
 }

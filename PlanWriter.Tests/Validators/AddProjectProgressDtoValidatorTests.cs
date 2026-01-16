@@ -1,7 +1,6 @@
 ﻿using FluentValidation.TestHelper;
 using PlanWriter.Application.DTO;
 using PlanWriter.Application.Validators;
-using System;
 using Xunit;
 
 namespace PlanWriter.Application.Tests.Validators

@@ -1,5 +1,3 @@
-using System.Xml;
-
 namespace PlanWriter.Domain.Events;
 
 public enum EventType
