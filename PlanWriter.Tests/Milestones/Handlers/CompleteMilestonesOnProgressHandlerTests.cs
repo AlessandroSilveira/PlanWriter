@@ -1,0 +1,46 @@
+using FluentAssertions;
+using Moq;
+using PlanWriter.Application.Milestones.Handlers;
+using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.Repositories;
+using Xunit;
+
+namespace PlanWriter.Tests.Milestones.Handlers;
+
+public class CompleteMilestonesOnProgressHandlerTests
+{
+    private readonly Mock<IMilestonesRepository> _repo = new();
+
+    private CompleteMilestonesOnProgressHandler CreateHandler()
+        => new(_repo.Object);
+
+    [Fact]
+    public async Task Handle_ShouldCompleteMilestones_WhenTargetReached()
+    {
+        var projectId = Guid.NewGuid();
+
+        var milestone = new Milestone
+        {
+            ProjectId = projectId,
+            TargetAmount = 1000,
+            Completed = false
+        };
+
+        _repo.Setup(r => r.GetByProjectIdAsync(projectId))
+            .ReturnsAsync(new List<Milestone> { milestone });
+
+        _repo.Setup(r => r.UpdateAsync(milestone, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = CreateHandler();
+
+        await handler.Handle(
+            new ProjectProgressAdded(projectId, Guid.NewGuid(), 1500, Domain.Enums.GoalUnit.Words),
+            CancellationToken.None
+        );
+
+        milestone.Completed.Should().BeTrue();
+        milestone.CompletedAt.Should().NotBeNull();
+    }
+}
