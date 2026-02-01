@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Entities;
@@ -8,76 +9,38 @@ using PlanWriter.Infrastructure.Data;
 
 namespace PlanWriter.Infrastructure.Repositories;
 
-public class BadgeRepository(AppDbContext context) : Repository<Badge>(context), IBadgeRepository
+public class BadgeRepository(AppDbContext context) : IBadgeRepository
 {
+    public async Task<IEnumerable<Badge>> GetByProjectIdAsync(Guid projectId)
+    {
+        return await context.Set<Badge>()
+            .Where(b => b.ProjectId == projectId)
+            .ToListAsync();
+    }
+
     public async Task<bool> HasFirstStepsBadge(Guid projectId)
     {
-        try
-        {
-            var response = await DbSet.AnyAsync(p => p.ProjectId == projectId
-                                                      && p.Name == "First Steps");
-            return response;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-      
+        return await context.Set<Badge>()
+            .AnyAsync(b =>
+                b.ProjectId == projectId &&
+                b.Name == "First Steps");
     }
 
-    public async Task SaveBadges(List<Badge> badges)
+    public async Task<bool> ExistsAsync(
+        Guid projectId,
+        Guid eventId,
+        string name)
     {
-        try
-        {
-            await DbSet.AddRangeAsync(badges);
-            await Context.SaveChangesAsync();   
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-       
+        return await context.Set<Badge>()
+            .AnyAsync(b =>
+                b.ProjectId == projectId &&
+                b.EventId == eventId &&
+                b.Name.Contains(name));
     }
 
-    public async Task<IEnumerable<Badge>> GetBadgesByProjectIdAsync(Guid projectId)
+    public async Task SaveAsync(IEnumerable<Badge> badges)
     {
-        try
-        {
-            var response = await FindAsync(p => p.ProjectId == projectId);
-            return response;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-    }
-
-    public Task<bool> FindAsync(Func<object, bool> func)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<bool> FindAsync(Guid projectId, object id, string evName)
-    {
-        throw new NotImplementedException();
-    }
-
-    public async Task<bool> FindAsync(Guid projectId, Guid eventId, string name)
-    {
-      
-       try
-       {
-           var response = await DbSet.AnyAsync(b => b.ProjectId == projectId && b.EventId == eventId
-                                                                              && b.Name.Contains(name));
-           return response;
-       }
-       catch (Exception e)
-       {
-           Console.WriteLine(e);
-           throw;
-       }
+        await context.Set<Badge>().AddRangeAsync(badges);
+        await context.SaveChangesAsync();
     }
 }

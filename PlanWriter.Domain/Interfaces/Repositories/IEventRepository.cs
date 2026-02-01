@@ -9,7 +9,7 @@ namespace PlanWriter.Domain.Interfaces.Repositories;
 
 public interface IEventRepository
 {
-    Task<EventDto[]> GetActiveEvents();
+    Task<List<EventDto>> GetActiveEvents();
     Task<bool> GetEventBySlug(string reqSlug);
     Task AddEvent(Event ev);
     Task<Event?> GetEventById(Guid reqEventId);

@@ -2,6 +2,8 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+namespace PlanWriter.Domain.Helpers;
+
 public sealed class TimeOnlyJsonConverter : JsonConverter<TimeOnly>
 {
     private const string Format = "HH:mm:ss";

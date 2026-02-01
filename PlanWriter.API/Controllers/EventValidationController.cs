@@ -1,37 +1,33 @@
-// Controllers/EventValidationController.cs
-
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PlanWriter.Domain.Interfaces.Services;
+using PlanWriter.Application.EventValidation.Dtos.Commands;
+using PlanWriter.Application.EventValidation.Dtos.Queries;
+using PlanWriter.Application.Interfaces;
 
 namespace PlanWriter.API.Controllers;
 
 [ApiController]
 [Route("api/events")]
 [Authorize]
-public class EventValidationController(IEventValidationService svc, IHttpContextAccessor ctx) : ControllerBase
+public class EventValidationController(IUserService userService, IMediator mediator) : ControllerBase
 {
-    private Guid CurrentUserId()
-    {
-        var id = ctx.HttpContext?.User?.FindFirst("sub")?.Value
-                 ?? ctx.HttpContext?.User?.FindFirst("user_id")?.Value;
-        return Guid.Parse(id!);
-    }
-
-    public record PreviewQuery(Guid ProjectId);
-    public record ValidateBody(Guid ProjectId, int Words, string? Source);
-
+    private Guid UserId => userService.GetUserId(User);
     [HttpGet("{eventId:guid}/validate/preview")]
     public async Task<IActionResult> Preview(Guid eventId, [FromQuery] PreviewQuery q)
     {
-        var (target, total) = await svc.PreviewAsync(CurrentUserId(), eventId, q.ProjectId);
+        
+        var (target, total) = await mediator.Send(new PreviewQuery(UserId, eventId, q.ProjectId)); 
         return Ok(new { target, total });
     }
 
     [HttpPost("{eventId:guid}/validate")]
-    public async Task<IActionResult> Validate(Guid eventId, [FromBody] ValidateBody body)
+    public async Task<IActionResult> Validate(Guid eventId, [FromBody] ValidateRequest request)
     {
-        await svc.ValidateAsync(CurrentUserId(), eventId, body.ProjectId, body.Words, body.Source ?? "manual");
+        await mediator.Send(new ValidateCommand(UserId, eventId, request.ProjectId, request.Words,
+            request.Source ?? "manual"));
         return NoContent();
     }
+    
+   
 }

@@ -4,16 +4,18 @@ using PlanWriter.Domain.Entities;
 using PlanWriter.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapper;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Infrastructure.Repositories
 {
-    public class ProjectProgressRepository(AppDbContext context)
+    public class ProjectProgressRepository(AppDbContext context, IDbConnection connection)
         : Repository<ProjectProgress>(context), IProjectProgressRepository
     {
         public async Task<IEnumerable<ProjectProgress>> GetProgressByProjectIdAsync(Guid projectId, Guid userId)
@@ -24,19 +26,78 @@ namespace PlanWriter.Infrastructure.Repositories
                 .ToListAsync();
         }
         
-        public async Task<ProjectProgress> AddProgressAsync(ProjectProgress progress)
+        // public async Task<ProjectProgress> AddProgressAsync(ProjectProgress progress)
+        // {
+        //     progress.Id = Guid.NewGuid();
+        //     if (progress.Date == default)
+        //         progress.Date = DateTime.UtcNow;
+        //
+        //     await DbSet.AddAsync(progress);
+        //     await Context.SaveChangesAsync();
+        //
+        //     return progress;
+        // }
+        
+        public async Task<ProjectProgress> AddProgressAsync(ProjectProgress progress, CancellationToken ct)
         {
-            progress.Id = Guid.NewGuid();
-            if (progress.Date == default)
-                progress.Date = DateTime.UtcNow;
+            const string sql = @"
+                INSERT INTO ProjectProgresses
+                (
+                    Id,
+                    ProjectId,
+                    WordsWritten,
+                    Minutes,
+                    Pages,
+                    TotalWordsWritten,
+                    RemainingWords,
+                    RemainingPercentage,
+                    [Date],
+                    Notes,
+                    CreatedAt
+                )
+                VALUES
+                (
+                    @Id,
+                    @ProjectId,
+                    @WordsWritten,
+                    @Minutes,
+                    @Pages,
+                    @TotalWordsWritten,
+                    @RemainingWords,
+                    @RemainingPercentage,
+                    @Date,
+                    @Notes,
+                    @CreatedAt
+                );";
 
-            await DbSet.AddAsync(progress);
-            await Context.SaveChangesAsync();
+            // Se sua tabela não tem CreatedAt, remove daqui
+            var entity = progress;
+            entity.CreatedAt = entity.CreatedAt == default ? DateTime.UtcNow : entity.CreatedAt;
 
+            await connection.ExecuteAsync(
+                new CommandDefinition(
+                    sql,
+                    new
+                    {
+                        entity.Id,
+                        entity.ProjectId,
+                        entity.WordsWritten,
+                        entity.Minutes,
+                        entity.Pages,
+                        entity.TotalWordsWritten,
+                        entity.RemainingWords,
+                        entity.RemainingPercentage,
+                        Date = entity.Date,   // cuidado com nome reservado
+                        entity.Notes,
+                        entity.CreatedAt
+                    },
+                    cancellationToken: ct
+                )
+            );
             return progress;
         }
         
-        public async Task<IEnumerable<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, Guid userId)
+        public async Task<List<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, Guid userId)
         {
             return await DbSet
                 .Include(pp => pp.Project)
@@ -59,15 +120,33 @@ namespace PlanWriter.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        // public async Task<bool> DeleteAsync(Guid id, Guid userId)
+        // {
+        //     var progress = await GetByIdAsync(id, userId);
+        //     if (progress == null)
+        //         return false;
+        //
+        //     DbSet.Remove(progress);
+        //     await Context.SaveChangesAsync();
+        //     return true;
+        // }
+        
         public async Task<bool> DeleteAsync(Guid id, Guid userId)
         {
-            var progress = await GetByIdAsync(id, userId);
-            if (progress == null)
-                return false;
+            const string sql = @"
+                DELETE pp
+                FROM ProjectProgresses pp
+                WHERE pp.Id = @id
+                  AND EXISTS (
+                      SELECT 1
+                      FROM Projects p
+                      WHERE p.Id = pp.ProjectId
+                        AND p.UserId = @userId
+                  );
+                ";
 
-            DbSet.Remove(progress);
-            await Context.SaveChangesAsync();
-            return true;
+            var affected = await connection.ExecuteAsync(sql, new { id, userId });
+            return affected > 0;
         }
         
         public async Task<int> GetAccumulatedAsync(Guid projectId, GoalUnit unit, CancellationToken ct)
@@ -201,6 +280,6 @@ namespace PlanWriter.Infrastructure.Repositories
                 )
                 .SumAsync(p => p.WordsWritten);
         }
-
+        
     }
 }

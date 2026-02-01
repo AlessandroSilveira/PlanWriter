@@ -1,5 +1,3 @@
-using PlanWriter.Application.DTO;
-
 namespace PlanWriter.Domain.Dtos;
 
 public record PublicProfileDto(

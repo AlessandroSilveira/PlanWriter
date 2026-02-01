@@ -1,21 +1,25 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.API.Security;
-using PlanWriter.Domain.Interfaces.Services;
+using PlanWriter.Application.AdminEvents.Dtos.Commands;
+using PlanWriter.Application.AdminEvents.Dtos.Queries;
 using PlanWriter.Domain.Requests;
+using CreateEventRequest = PlanWriter.Domain.Dtos.CreateEventRequest;
 
 namespace PlanWriter.API.Controllers;
 
 [ApiController]
 [Route("api/admin/events")]
 [AdminOnly]
-public class AdminEventsController(IEventService eventService) : ControllerBase
+public class AdminEventsController(IMediator mediator) : ControllerBase
 {
     /// <summary>
     /// Lista eventos ativos (admin também usa)
     /// </summary>
     [HttpGet("active")]
     public async Task<IActionResult> GetActive()
-        => Ok(await eventService.GetActiveAsync());
+    => Ok(await mediator.Send(new GetActiveQuery()));
+        
 
     /// <summary>
     /// Detalhe do evento
@@ -23,10 +27,10 @@ public class AdminEventsController(IEventService eventService) : ControllerBase
     [HttpGet("{eventId:guid}")]
     public async Task<IActionResult> GetById(Guid eventId)
     {
-        var ev = await eventService.GetByIdAsync(eventId);
-        return ev is null
+        var eventDto = await mediator.Send(new GetEventByIdQuery(eventId));
+        return eventDto is null
             ? NotFound(new { message = "Evento não encontrado." })
-            : Ok(ev);
+            : Ok(eventDto);
     }
     
     /// <summary>
@@ -35,10 +39,10 @@ public class AdminEventsController(IEventService eventService) : ControllerBase
     [HttpGet()]
     public async Task<IActionResult> GetEvents()
     {
-        var ev = await eventService.GetAllAsync();
-        return ev is null
-            ? NotFound(new { message = "Evento não encontrado." })
-            : Ok(ev);
+        var allEvents = await mediator.Send(new GetEventsQuery());
+        return allEvents is null
+            ? NotFound(new { message = "Event not found." })
+            : Ok(allEvents);
     }
 
     /// <summary>
@@ -47,24 +51,29 @@ public class AdminEventsController(IEventService eventService) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEventRequest req)
     {
-        var ev = await eventService.CreateAsync(req);
-        return CreatedAtAction(nameof(GetById), new { eventId = ev.Id }, ev);
+        var ev =  await mediator.Send(new CreateEventCommand(req));
+         return ev is null 
+             ? BadRequest(new { message = "Could not create event." }) : 
+             CreatedAtAction(nameof(GetById), new { eventId = ev.Id }, ev);
     }
     
     /// <summary>
     /// Atualizar evento (ADMIN)
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateEvent(Guid id, UpdateEventDto dto)
+    public async Task<IActionResult> UpdateEvent(Guid id, UpdateEventDto request)
     {
-        await eventService.UpdateAsync(id, dto);
-        return NoContent();
+       await mediator.Send(new UpdateEventCommand(request, id));
+       return NoContent();
     }
     
+    /// <summary>
+    /// Deletar um evento (ADMIN)
+    /// </summary>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await eventService.DeleteAsync(id);
+        await mediator.Send(new DeleteEventCommand(id));
         return NoContent();
     }
 }

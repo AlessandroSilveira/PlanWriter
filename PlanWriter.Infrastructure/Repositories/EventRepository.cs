@@ -13,7 +13,7 @@ namespace PlanWriter.Infrastructure.Repositories;
 
 public class EventRepository(AppDbContext context) : Repository<Event>(context), IEventRepository
 {
-    public async Task<EventDto[]> GetActiveEvents()
+    public async Task<List<EventDto>> GetActiveEvents()
     {
         try
         {
@@ -23,7 +23,7 @@ public class EventRepository(AppDbContext context) : Repository<Event>(context),
                 .Select(e => new EventDto(e.Id, e.Name, e.Slug, e.Type.ToString(),
                     e.StartsAtUtc, e.EndsAtUtc, e.DefaultTargetWords, e.IsActive))
                 .ToArrayAsync();
-            return q;
+            return q.ToList();
         }
         catch (Exception e)
         {

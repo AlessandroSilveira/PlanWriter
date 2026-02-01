@@ -13,4 +13,6 @@ public interface IUserRepository
     Task<User?> GetByIdAsync(Guid userId);
     Task UpdateAsync(User user);
     Task<List<User>> GetUsersByIdsAsync(IEnumerable<Guid> buddyIds);
+    Task<bool> SlugExistsAsync(string slug, Guid userId);
+    Task<User?> GetBySlugAsync(string requestSlug);
 }

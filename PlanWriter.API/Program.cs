@@ -1,22 +1,29 @@
+using System.Data;
 using System.Text;
 using System.Text.Json.Serialization;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PlanWriter.API.Common.Middleware;
 using PlanWriter.API.Middleware;
+using PlanWriter.Application;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Application.Services;
 using PlanWriter.Application.Validators;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Helpers;
+using PlanWriter.Domain.Interfaces.Auth;
+using PlanWriter.Domain.Interfaces.ReadModels;
 using PlanWriter.Domain.Interfaces.Repositories;
-using PlanWriter.Domain.Interfaces.Services;
+using PlanWriter.Infrastructure.Auth;
 using PlanWriter.Infrastructure.Data;
+using PlanWriter.Infrastructure.ReadModels.Projects;
 using PlanWriter.Infrastructure.Repositories;
-using IProjectService = PlanWriter.Application.Interfaces.IProjectService;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +60,7 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey!))
     };
 });
+builder.Services.AddApplication();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -89,32 +97,27 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ===== DI =====
-builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository>();
-builder.Services.AddScoped<IBadgeServices, BadgeServices>();
-builder.Services.AddScoped<IBadgeRepository, BadgeRepository>();
-builder.Services.AddScoped<IEventService, EventService>();
-builder.Services.AddScoped<ICertificateService, CertificateService>();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IProfileService, ProfileService>();
-builder.Services.AddScoped<IEventValidationService, EventValidationService>();
+builder.Services.AddScoped<IBadgeRepository, BadgeRepository>(); 
 builder.Services.AddScoped<IProjectEventsRepository, ProjectEventsRepository>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IUserFollowRepository, UserFollowRepository>();
 builder.Services.AddScoped<IBuddiesRepository, BuddiesRepository>();
-builder.Services.AddScoped<IBuddiesService, BuddiesService>();
-builder.Services.AddScoped<IWordCountService, WordCountService>();
-builder.Services.AddScoped<IValidationService, ValidationService>();
-builder.Services.AddScoped<IMilestonesService, MilestonesService>();
 builder.Services.AddScoped<IMilestonesRepository, MilestonesRepository>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IDailyWordLogRepository, DailyWordLogRepository>();
-builder.Services.AddScoped<IDailyWordLogService, DailyWordLogService>();
+builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+builder.Services.AddScoped<IProjectReadRepository, ProjectReadRepository>();
+builder.Services.AddScoped<IProjectProgressReadRepository, ProjectProgressReadRepository>();
 
+builder.Services.AddScoped<IDbConnection>(sp =>
+    new SqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+builder.Services.AddHttpContextAccessor();
 
 
 // ===== CORS =====
@@ -170,6 +173,7 @@ app.UseHttpsRedirection();
 app.UseCors(myAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseMiddleware<MustChangePasswordMiddleware>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

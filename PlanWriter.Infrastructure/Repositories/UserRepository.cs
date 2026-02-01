@@ -36,4 +36,14 @@ public class UserRepository(AppDbContext context) : IUserRepository
     {
         return await context.Users.Where(u => buddyIds.Contains(u.Id)).ToListAsync();
     }
+
+    public async Task<bool> SlugExistsAsync(string slug, Guid userId)
+    {
+        return await context.Users.AnyAsync(a => a.Id != userId && a.Slug == slug);
+    }
+
+    public Task<User?> GetBySlugAsync(string requestSlug)
+    {
+       return context.Users.FirstOrDefaultAsync(s => s.Slug == requestSlug);
+    }
 }

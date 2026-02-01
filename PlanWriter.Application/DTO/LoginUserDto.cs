@@ -1,4 +1,4 @@
-﻿namespace PlanWriter.Application.DTOs;
+﻿namespace PlanWriter.Application.DTO;
 
 public class LoginUserDto
 {

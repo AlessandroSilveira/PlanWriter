@@ -4,7 +4,7 @@ namespace PlanWriter.Domain.Requests;
 
 public class UpdateEventDto
 {
-    public bool isActive { get; set; }
+    public bool IsActive { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public DateTime StartDate { get; set; }

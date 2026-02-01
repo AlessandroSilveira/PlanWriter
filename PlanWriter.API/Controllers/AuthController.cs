@@ -1,49 +1,37 @@
 using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PlanWriter.Application.Auth.Dtos.Commands;
 using PlanWriter.Application.DTO;
-using PlanWriter.Application.DTOs;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos.Auth;
 
-namespace PlanWriter.Api.Controllers;
+namespace PlanWriter.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IUserService userService, IAuthService authService, IProjectService projectService)
+public class AuthController(IMediator mediator)
     : ControllerBase
 {
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterUserDto dto)
+    public async Task<IActionResult> Register([FromBody] RegisterUserDto request)
     {
-        try
-        {
-            var result = await userService.RegisterUserAsync(dto);
+        var result = await mediator.Send(new RegisterUserCommand(request));
+        if (!result)
+            return BadRequest();
+        
+        return Ok("User registered successfully.");
 
-            if (!result)
-                return BadRequest();
-
-            return Ok("User registered successfully.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
-        catch (Exception e)
-        {
-           return BadRequest(e.Message);
-        }
-       
     }
     
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginUserDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginUserDto request)
     {
-        var token = await authService.LoginAsync(dto);
-
-        if (token == null)
+        var token = await mediator.Send(new LoginUserCommand(request));
+        if (string.IsNullOrEmpty(token))
             return Unauthorized("Invalid email or password.");
-
+        
         return Ok(new { AccessToken = token });
     }
     
@@ -51,17 +39,22 @@ public class AuthController(IUserService userService, IAuthService authService, 
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
+      
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
             return Unauthorized();
 
-        if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 6)
-            return BadRequest("Password must have at least 6 characters.");
+        try
+        {
+            var token = await mediator.Send(new ChangePasswordCommand(userId, dto));
 
-        var token = await authService.ChangePasswordAsync(userId, dto.NewPassword);
-
-        return Ok(new { token });
+            return Ok(new { token });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
    
 }

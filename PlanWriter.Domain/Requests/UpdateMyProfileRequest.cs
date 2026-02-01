@@ -1,6 +1,6 @@
 using System;
 
-namespace PlanWriter.Application.DTO;
+namespace PlanWriter.Domain.Requests;
 
 public record UpdateMyProfileRequest(
     string? DisplayName,

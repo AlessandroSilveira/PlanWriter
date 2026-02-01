@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using PlanWriter.Application.DTOs;
+using PlanWriter.Application.DTO;
 
 namespace PlanWriter.Application.Interfaces;
 

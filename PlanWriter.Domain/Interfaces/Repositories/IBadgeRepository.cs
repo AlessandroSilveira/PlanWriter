@@ -7,9 +7,8 @@ namespace PlanWriter.Domain.Interfaces.Repositories;
 
 public interface IBadgeRepository
 {
+    Task<IEnumerable<Badge>> GetByProjectIdAsync(Guid projectId);
     Task<bool> HasFirstStepsBadge(Guid projectId);
-    Task SaveBadges(List<Badge> badges);
-    Task<IEnumerable<Badge>> GetBadgesByProjectIdAsync(Guid projectId);
-    Task<bool> FindAsync(Func<object, bool> func);
-    Task<bool> FindAsync(Guid projectId, Guid id, string evName);
+    Task SaveAsync(IEnumerable<Badge> badges);
+    Task<bool> ExistsAsync(Guid projectId, Guid eventId, string name);
 }

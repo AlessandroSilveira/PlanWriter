@@ -10,7 +10,7 @@ namespace PlanWriter.Domain.Interfaces.Repositories
 {
     public interface IProjectRepository: IRepository<Project>
     {
-        Task<Project> CreateAsync(Project project);
+        Task<Project> CreateAsync(Project project, CancellationToken ct);
         Task<IEnumerable<Project>> GetUserProjectsAsync(Guid userId);
         Task<Project> GetProjectWithProgressAsync(Guid id, Guid userId);
         Task<Project?> GetUserProjectByIdAsync(Guid id, Guid userId);
@@ -24,8 +24,11 @@ namespace PlanWriter.Domain.Interfaces.Repositories
         Task<(int goalAmount, GoalUnit unit)> GetGoalAsync(Guid projectId, CancellationToken ct);
         Task<bool> UserOwnsProjectAsync(Guid projectId, Guid userId, CancellationToken ct);
         Task UpdateFlexibleGoalAsync(Guid projectId, int goalAmount, GoalUnit unit, DateTime? deadline, CancellationToken ct);
-
-        
+        Task<List<Project>> GetByUserIdAsync(Guid userId);
+        Task<IEnumerable<Project>> GetPublicProjectsByUserIdAsync(Guid userId);
+       
+       
+        Task UpdateAsync(Project project);
     }
         
 

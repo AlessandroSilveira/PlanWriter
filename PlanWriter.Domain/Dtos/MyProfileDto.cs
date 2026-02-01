@@ -2,7 +2,7 @@
 
 using System;
 
-namespace PlanWriter.Application.DTO
+namespace PlanWriter.Domain.Dtos
 {
     public record MyProfileDto(
         string Email,

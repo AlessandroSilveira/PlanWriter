@@ -1,69 +1,58 @@
-// PlanWriter.API/Controllers/BuddiesController.cs
 
 using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PlanWriter.Application.Buddies.Dtos.Commands;
+using PlanWriter.Application.Buddies.Dtos.Queries;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos;
-using PlanWriter.Domain.Interfaces.Services;
+
 
 namespace PlanWriter.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class BuddiesController : ControllerBase
+public class BuddiesController( IUserService userService, IMediator mediator) : ControllerBase
 {
-    private readonly IBuddiesService _service;
-    private readonly IUserService _userService;
-
-    public BuddiesController(IBuddiesService service, IUserService userService)
-    {
-        _service = service;
-        _userService = userService;
-    }
-
-    // Ajuste conforme como você emite o ID do usuário nos tokens
     private Guid Me => Guid.Parse(User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
-    public async Task<ActionResult<List<BuddiesDto.BuddySummaryDto>>> Get(CancellationToken ct)
-        => Ok(await _service.ListAsync(Me, ct));
+    public async Task<ActionResult<List<BuddiesDto.BuddySummaryDto>>> Get()
+    {
+        var response = await mediator.Send(new GetListBuddiesQuery(Me));
+        return Ok(response);
+    }
+       
 
     [HttpPost("follow/username")]
-    public async Task<IActionResult> FollowByUsername([FromBody] BuddiesDto.FollowBuddyByUsernameRequest req, CancellationToken ct)
+    public async Task<IActionResult> FollowByUsername([FromBody] BuddiesDto.FollowBuddyByUsernameRequest req)
     {
-        await _service.FollowByUsernameAsync(Me, req.Email, ct);
+        await mediator.Send(new FollowByUsernameCommand(Me, req.Email));
         return NoContent();
     }
 
     [HttpPost("follow/{followeeId:guid}")]
     public async Task<IActionResult> FollowById(Guid followeeId, CancellationToken ct)
     {
-        await _service.FollowByIdAsync(Me, followeeId, ct);
+        await mediator.Send(new FollowByIdCommand(Me, followeeId), ct);
         return NoContent();
     }
 
     [HttpDelete("{followeeId:guid}")]
     public async Task<IActionResult> Unfollow(Guid followeeId, CancellationToken ct)
     {
-        await _service.UnfollowAsync(Me, followeeId, ct);
+        await mediator.Send(new UnfollowCommand(Me, followeeId), ct);
         return NoContent();
     }
-
-    // [HttpGet("leaderboard")]
-    // public async Task<ActionResult<List<BuddiesDto.BuddyLeaderboardItemDto>>> Leaderboard([FromQuery] Guid? eventId, [FromQuery] DateOnly? start, [FromQuery] DateOnly? end, CancellationToken ct)
-    //     => Ok(await _service.LeaderboardAsync(Me, eventId, start, end, ct));
     
     [Authorize]
     [HttpGet("leaderboard")]
     public async Task<IActionResult> BuddiesLeaderboard([FromQuery] DateTime? start, [FromQuery] DateTime? end)
     {
-        var userId = _userService.GetUserId(User);
-
-        var result = await _service
-            .GetBuddiesLeaderboardAsync(userId, start, end);
-
-        return Ok(result);
+        var userId = userService.GetUserId(User);
+        var response = await mediator.Send(new BuddiesLeaderboardQuery(userId, start, end));
+        return Ok(response);
     }
 }

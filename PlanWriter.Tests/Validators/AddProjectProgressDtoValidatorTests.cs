@@ -3,7 +3,7 @@ using PlanWriter.Application.DTO;
 using PlanWriter.Application.Validators;
 using Xunit;
 
-namespace PlanWriter.Application.Tests.Validators
+namespace PlanWriter.Tests.Validators
 {
     public class AddProjectProgressDtoValidatorTests
     {

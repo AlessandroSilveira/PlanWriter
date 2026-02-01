@@ -12,7 +12,7 @@ namespace PlanWriter.Infrastructure.Repositories;
 
 public class MilestonesRepository(AppDbContext ctx) : IMilestonesRepository
 {
-    public async Task<List<Milestone>> GetByProjectIdAsync(Guid projectId, CancellationToken ct)
+    public async Task<List<Milestone>> GetByProjectIdAsync(Guid projectId)
     {
         return await ctx.Milestones
             .Where(m => m.ProjectId == projectId)
@@ -20,31 +20,31 @@ public class MilestonesRepository(AppDbContext ctx) : IMilestonesRepository
             .ToListAsync();
     }
 
-    public async Task<Milestone> AddAsync(Milestone milestone, CancellationToken ct)
+    public async Task<Milestone> AddAsync(Milestone milestone)
     {
         ctx.Milestones.Add(milestone);
-        await ctx.SaveChangesAsync(ct);
+        await ctx.SaveChangesAsync();
         return milestone;
     }
 
-    public async Task DeleteAsync(Guid milestoneId, Guid userId, CancellationToken ct)
+    public async Task DeleteAsync(Guid milestoneId, Guid userId)
     {
         var m = await ctx.Milestones
             .Where(x => x.Id == milestoneId)
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync();
 
         if (m == null)
             return;
 
         ctx.Milestones.Remove(m);
-        await ctx.SaveChangesAsync(ct);
+        await ctx.SaveChangesAsync();
     }
 
-    public async Task<int> GetNextOrderAsync(Guid projectId, CancellationToken ct)
+    public async Task<int> GetNextOrderAsync(Guid projectId)
     {
         var lastOrder = await ctx.Milestones
             .Where(m => m.ProjectId == projectId)
-            .MaxAsync(m => (int?)m.Order, ct);
+            .MaxAsync(m => (int?)m.Order);
 
         return (lastOrder ?? 0) + 1;
     }
