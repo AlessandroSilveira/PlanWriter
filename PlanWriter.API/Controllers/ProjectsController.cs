@@ -5,6 +5,7 @@ using PlanWriter.Application.Interfaces;
 using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Application.Projects.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 
 namespace PlanWriter.API.Controllers
 {

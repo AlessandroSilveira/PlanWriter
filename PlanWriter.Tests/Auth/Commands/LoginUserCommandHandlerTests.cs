@@ -14,7 +14,7 @@ namespace PlanWriter.Tests.Auth.Commands;
 
 public class LoginUserCommandHandlerTests
 {
-    private readonly Mock<IUserRepository> _userRepositoryMock = new();
+    private readonly Mock<IUserAuthReadRepository> _userRepositoryMock = new();
     private readonly Mock<IPasswordHasher<User>> _passwordHasherMock = new();
     private readonly Mock<IJwtTokenGenerator> _tokenGeneratorMock = new();
     private readonly Mock<ILogger<LoginUserCommandHandler>> _loggerMock = new();
@@ -35,7 +35,7 @@ public class LoginUserCommandHandlerTests
         };
 
         _userRepositoryMock
-            .Setup(r => r.GetByEmailAsync(email))
+            .Setup(r => r.GetByEmailAsync(email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         _passwordHasherMock
@@ -66,7 +66,7 @@ public class LoginUserCommandHandlerTests
     {
         // Arrange
         _userRepositoryMock
-            .Setup(r => r.GetByEmailAsync(It.IsAny<string>()))
+            .Setup(r => r.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
         var handler = CreateHandler();
@@ -92,7 +92,7 @@ public class LoginUserCommandHandlerTests
         };
 
         _userRepositoryMock
-            .Setup(r => r.GetByEmailAsync(email))
+            .Setup(r => r.GetByEmailAsync(email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         _passwordHasherMock

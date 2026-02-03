@@ -7,6 +7,7 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 using Xunit;

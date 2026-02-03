@@ -8,6 +8,7 @@ using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 using Xunit;
@@ -19,6 +20,7 @@ public class GetProjectStatsQueryHandlerTests
     private readonly Mock<IProjectReadRepository> _projectRepo = new();
     private readonly Mock<IProjectProgressReadRepository> _progressRepo = new();
     private readonly Mock<ILogger<GetProjectStatsQueryHandler>> _logger = new();
+   
 
     private GetProjectStatsQueryHandler CreateHandler()
         => new(_logger.Object, _projectRepo.Object, _progressRepo.Object);
@@ -27,7 +29,7 @@ public class GetProjectStatsQueryHandlerTests
     public async Task Handle_ShouldReturnNull_WhenProjectNotFound()
     {
         _projectRepo
-            .Setup(r => r.GetUserProjectsAsync(It.IsAny<Guid>()))
+            .Setup(r => r.GetUserProjectsAsync(It.IsAny<Guid>(), new CancellationToken()))
             .ReturnsAsync((List<ProjectDto>?)null);
 
         var handler = CreateHandler();
@@ -50,11 +52,11 @@ public class GetProjectStatsQueryHandlerTests
         };
 
         _projectRepo
-            .Setup(r => r.GetProjectByIdAsync(It.IsAny<Guid>(), It.IsAny<Guid>()))
+            .Setup(r => r.GetProjectByIdAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(project);
 
         _progressRepo
-            .Setup(r => r.GetProgressByDayAsync(It.IsAny<Guid>(), It.IsAny<Guid>()))
+            .Setup(r => r.GetProgressByDayAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProjectProgressDayDto>());
 
         var handler = CreateHandler();
@@ -85,11 +87,11 @@ public class GetProjectStatsQueryHandlerTests
         };
 
         _projectRepo
-            .Setup(r => r.GetProjectByIdAsync(It.IsAny<Guid>(), It.IsAny<Guid>()))
+            .Setup(r => r.GetProjectByIdAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(project);
 
         _progressRepo
-            .Setup(r => r.GetProgressByDayAsync(It.IsAny<Guid>(), It.IsAny<Guid>()))
+            .Setup(r => r.GetProgressByDayAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(entries);
 
         var handler = CreateHandler();

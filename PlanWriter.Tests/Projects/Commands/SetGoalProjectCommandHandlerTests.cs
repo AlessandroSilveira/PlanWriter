@@ -11,138 +11,107 @@ namespace PlanWriter.Tests.Projects.Commands;
 
 public class SetGoalProjectCommandHandlerTests
 {
-    private readonly Mock<IProjectRepository> _projectRepositoryMock = new();
-    private readonly Mock<ILogger<SetGoalProjectCommandHandler>> _loggerMock = new();
+    private readonly Mock<IProjectRepository> _projectRepo = new();
+    private readonly Mock<ILogger<SetGoalProjectCommandHandler>> _logger = new();
 
     private SetGoalProjectCommandHandler CreateHandler()
-        => new(_loggerMock.Object, _projectRepositoryMock.Object);
+        => new(_logger.Object, _projectRepo.Object);
 
     [Fact]
-    public async Task Handle_ShouldReturnTrue_WhenGoalIsSetSuccessfully()
+    public async Task Handle_ShouldReturnTrue_WhenRepositoryUpdates()
     {
         // Arrange
-        var userId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var deadline = DateTime.Now.AddDays(10);
 
-        var requestDto = new SetFlexibleGoalDto
+        var dto = new SetFlexibleGoalDto
         {
             GoalAmount = 50000,
-            Deadline = DateTime.UtcNow.AddMonths(1)
+            Deadline = deadline,
+
         };
+           
+        var cmd = new SetGoalProjectCommand(projectId, userId, dto);
 
-        var command = new SetGoalProjectCommand(
-            projectId,
-            userId,
-            requestDto
-        );
-
-        _projectRepositoryMock
-            .Setup(r => r.SetGoalAsync(
-                projectId,
-                userId,
-                requestDto.GoalAmount,
-                requestDto.Deadline))
+        _projectRepo
+            .Setup(r => r.SetGoalAsync(projectId, userId, dto.GoalAmount, dto.Deadline, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var handler = CreateHandler();
 
         // Act
-        var result = await handler.Handle(command, CancellationToken.None);
+        var result = await handler.Handle(cmd, CancellationToken.None);
 
         // Assert
         result.Should().BeTrue();
 
-        _projectRepositoryMock.Verify(
-            r => r.SetGoalAsync(
-                projectId,
-                userId,
-                requestDto.GoalAmount,
-                requestDto.Deadline),
+        _projectRepo.Verify(
+            r => r.SetGoalAsync(projectId, userId, dto.GoalAmount, dto.Deadline, It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnFalse_WhenRepositoryReturnsFalse()
+    public async Task Handle_ShouldReturnFalse_WhenProjectNotFoundOrNotOwned()
     {
         // Arrange
-        var userId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
-
-        var requestDto = new SetFlexibleGoalDto
+        var userId = Guid.NewGuid();
+        
+        var dto = new SetFlexibleGoalDto
         {
-            GoalAmount = 10000,
+            GoalAmount = 30000,
             Deadline = null
         };
+        var cmd = new SetGoalProjectCommand(projectId, userId, dto);
 
-        var command = new SetGoalProjectCommand(
-            projectId,
-            userId,
-            requestDto
-        );
-
-        _projectRepositoryMock
-            .Setup(r => r.SetGoalAsync(
-                projectId,
-                userId,
-                requestDto.GoalAmount,
-                requestDto.Deadline))
+        _projectRepo
+            .Setup(r => r.SetGoalAsync(projectId, userId, dto.GoalAmount, dto.Deadline, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         var handler = CreateHandler();
 
         // Act
-        var result = await handler.Handle(command, CancellationToken.None);
+        var result = await handler.Handle(cmd, CancellationToken.None);
 
         // Assert
         result.Should().BeFalse();
 
-        _projectRepositoryMock.Verify(
-            r => r.SetGoalAsync(
-                projectId,
-                userId,
-                requestDto.GoalAmount,
-                requestDto.Deadline),
+        _projectRepo.Verify(
+            r => r.SetGoalAsync(projectId, userId, dto.GoalAmount, dto.Deadline, It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
 
     [Fact]
-    public async Task Handle_ShouldPropagateException_WhenRepositoryThrows()
+    public async Task Handle_ShouldThrow_WhenGoalAmountIsInvalid()
     {
         // Arrange
-        var userId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
-
-        var requestDto = new SetFlexibleGoalDto
+        var userId = Guid.NewGuid();
+       
+        var dto = new SetFlexibleGoalDto
         {
-            GoalAmount = 5000,
-            Deadline = DateTime.UtcNow
+            GoalAmount = 0,
+            Deadline = null
         };
-
-        var command = new SetGoalProjectCommand(
-            projectId,
-            userId,
-            requestDto
-        );
-
-        _projectRepositoryMock
-            .Setup(r => r.SetGoalAsync(
-                projectId,
-                userId,
-                requestDto.GoalAmount,
-                requestDto.Deadline))
-            .ThrowsAsync(new InvalidOperationException("Invalid goal"));
+        
+        var cmd = new SetGoalProjectCommand(projectId, userId, dto);
 
         var handler = CreateHandler();
 
         // Act
-        Func<Task> act = async () =>
-            await handler.Handle(command, CancellationToken.None);
+        Func<Task> act = async () => await handler.Handle(cmd, CancellationToken.None);
 
         // Assert
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Invalid goal");
+            .WithMessage("GoalAmount must be greater than zero.");
+
+        _projectRepo.Verify(
+            r => r.SetGoalAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
     }
 }

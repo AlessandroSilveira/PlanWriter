@@ -24,10 +24,10 @@ namespace PlanWriter.Domain.Entities
         public void MakeAdmin()
         {
             IsAdmin = true;
-            MustChangePassword = true; // admin SEMPRE troca senha inicial
+            MustChangePassword = true; 
         }
 
-        // 👤 garante usuário comum
+       
         public void MakeRegularUser()
         {
             IsAdmin = false;
@@ -38,7 +38,7 @@ namespace PlanWriter.Domain.Entities
         {
             PasswordHash = newHash;
 
-            // ✅ só admin controla essa flag
+           
             if (IsAdmin)
                 MustChangePassword = false;
         }
@@ -49,4 +49,4 @@ namespace PlanWriter.Domain.Entities
         public ICollection<Project> Projects { get; set; } = new List<Project>();
 
     }
-}// Entidade de usuário
+}

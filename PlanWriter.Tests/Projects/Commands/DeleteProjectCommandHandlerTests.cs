@@ -10,14 +10,11 @@ namespace PlanWriter.Tests.Projects.Commands;
 
 public class DeleteProjectCommandHandlerTests
 {
-    private readonly Mock<IProjectRepository> _projectRepositoryMock = new();
-    private readonly Mock<ILogger<DeleteProjectCommandHandler>> _loggerMock = new();
+    private readonly Mock<IProjectRepository> _projectRepository = new();
+    private readonly Mock<ILogger<DeleteProjectCommandHandler>> _logger = new();
 
     private DeleteProjectCommandHandler CreateHandler()
-        => new(
-            _loggerMock.Object,
-            _projectRepositoryMock.Object
-        );
+        => new(_logger.Object, _projectRepository.Object);
 
     [Fact]
     public async Task Handle_ShouldReturnTrue_WhenProjectIsDeleted()
@@ -25,48 +22,50 @@ public class DeleteProjectCommandHandlerTests
         // Arrange
         var projectId = Guid.NewGuid();
         var userId = Guid.NewGuid();
+        var ct = CancellationToken.None;
 
-        _projectRepositoryMock
-            .Setup(r => r.DeleteProjectAsync(projectId, userId))
+        _projectRepository
+            .Setup(r => r.DeleteProjectAsync(projectId, userId, ct))
             .ReturnsAsync(true);
 
         var handler = CreateHandler();
         var command = new DeleteProjectCommand(projectId, userId);
 
         // Act
-        var result = await handler.Handle(command, CancellationToken.None);
+        var result = await handler.Handle(command, ct);
 
         // Assert
         result.Should().BeTrue();
 
-        _projectRepositoryMock.Verify(
-            r => r.DeleteProjectAsync(projectId, userId),
+        _projectRepository.Verify(
+            r => r.DeleteProjectAsync(projectId, userId, ct),
             Times.Once
         );
     }
 
     [Fact]
-    public async Task Handle_ShouldReturnFalse_WhenProjectDoesNotExistOrUserHasNoAccess()
+    public async Task Handle_ShouldReturnFalse_WhenProjectDoesNotExistOrIsNotOwned()
     {
         // Arrange
         var projectId = Guid.NewGuid();
         var userId = Guid.NewGuid();
+        var ct = CancellationToken.None;
 
-        _projectRepositoryMock
-            .Setup(r => r.DeleteProjectAsync(projectId, userId))
+        _projectRepository
+            .Setup(r => r.DeleteProjectAsync(projectId, userId, ct))
             .ReturnsAsync(false);
 
         var handler = CreateHandler();
         var command = new DeleteProjectCommand(projectId, userId);
 
         // Act
-        var result = await handler.Handle(command, CancellationToken.None);
+        var result = await handler.Handle(command, ct);
 
         // Assert
         result.Should().BeFalse();
 
-        _projectRepositoryMock.Verify(
-            r => r.DeleteProjectAsync(projectId, userId),
+        _projectRepository.Verify(
+            r => r.DeleteProjectAsync(projectId, userId, ct),
             Times.Once
         );
     }

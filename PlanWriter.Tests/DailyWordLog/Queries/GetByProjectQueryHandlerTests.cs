@@ -4,6 +4,7 @@ using Moq;
 using PlanWriter.Application.DailyWordLogs.Dtos.Queries;
 using PlanWriter.Application.DailyWordLogs.Queries;
 using PlanWriter.Domain.Dtos.Projects;
+using PlanWriter.Domain.Interfaces.ReadModels.DailyWordLogWrite;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -11,7 +12,7 @@ namespace PlanWriter.Tests.DailyWordLog.Queries;
 
 public class GetByProjectQueryHandlerTests
 {
-    private readonly Mock<IDailyWordLogRepository> _dailyWordLogRepoMock = new();
+    private readonly Mock<IDailyWordLogReadRepository> _readRepositoryMock = new();
     private readonly Mock<ILogger<GetByProjectQueryHandler>> _loggerMock = new();
 
     [Fact]
@@ -22,26 +23,22 @@ public class GetByProjectQueryHandlerTests
         var userId = Guid.NewGuid();
         var ct = CancellationToken.None;
 
-        var logs = new List<Domain.Entities.DailyWordLog>
+        var logs = new List<DailyWordLogDto>
         {
-            new Domain.Entities.DailyWordLog
+            new()
             {
-                ProjectId = projectId,
-                UserId = userId,
                 Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
                 WordsWritten = 500
             },
-            new Domain.Entities.DailyWordLog
+            new()
             {
-                ProjectId = projectId,
-                UserId = userId,
                 Date = DateOnly.FromDateTime(DateTime.UtcNow),
                 WordsWritten = 800
             }
         };
 
-        _dailyWordLogRepoMock
-            .Setup(r => r.GetByProjectAsync(projectId, userId))
+        _readRepositoryMock
+            .Setup(r => r.GetByProjectAsync(projectId, userId, ct))
             .ReturnsAsync(logs);
 
         var handler = CreateHandler();
@@ -52,20 +49,7 @@ public class GetByProjectQueryHandlerTests
 
         // Assert
         result.Should().HaveCount(2);
-
-        result.Should().BeEquivalentTo(new[]
-        {
-            new DailyWordLogDto
-            {
-                Date = logs[0].Date,
-                WordsWritten = 500
-            },
-            new DailyWordLogDto
-            {
-                Date = logs[1].Date,
-                WordsWritten = 800
-            }
-        });
+        result.Should().BeEquivalentTo(logs);
     }
 
     [Fact]
@@ -76,9 +60,9 @@ public class GetByProjectQueryHandlerTests
         var userId = Guid.NewGuid();
         var ct = CancellationToken.None;
 
-        _dailyWordLogRepoMock
-            .Setup(r => r.GetByProjectAsync(projectId, userId))
-            .ReturnsAsync(new List<Domain.Entities.DailyWordLog>());
+        _readRepositoryMock
+            .Setup(r => r.GetByProjectAsync(projectId, userId, ct))
+            .ReturnsAsync(new List<DailyWordLogDto>());
 
         var handler = CreateHandler();
         var query = new GetByProjectQuery(projectId, userId);
@@ -91,13 +75,11 @@ public class GetByProjectQueryHandlerTests
         result.Should().BeEmpty();
     }
 
-
+    /* ===================== HELPERS ===================== */
 
     private GetByProjectQueryHandler CreateHandler()
-    {
-        return new GetByProjectQueryHandler(
-            _dailyWordLogRepoMock.Object,
+        => new(
+            _readRepositoryMock.Object,
             _loggerMock.Object
         );
-    }
 }

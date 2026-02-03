@@ -4,17 +4,22 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.AdminEvents.Commands;
 using PlanWriter.Application.AdminEvents.Dtos.Commands;
+using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.Repositories.Events.Admin;
 using PlanWriter.Domain.Requests;
 using Xunit;
 
 namespace PlanWriter.Tests.AdminEvents.Commands;
 
-public class UpdateEventCommandHandlerTests
+public class UpdateAdminEventCommandHandlerTests
 {
-    private readonly Mock<IEventRepository> _repositoryMock = new();
-    private readonly Mock<ILogger<UpdateEventCommandHandler>> _loggerMock = new();
+    private readonly Mock<IAdminEventRepository> _repositoryMock = new();
+    private readonly Mock<IAdminEventReadRepository> _repositoryReadMock = new();
+    private readonly Mock<ILogger<UpdateAdminEventCommandHandler>> _loggerMock = new();
 
     [Fact]
     public async Task Handle_ShouldUpdateEvent_WhenEventExists()
@@ -23,17 +28,17 @@ public class UpdateEventCommandHandlerTests
         var eventId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
-        var existingEvent = new Event
-        {
-            Id = eventId,
-            Name = "Evento Antigo",
-            Slug = "evento-antigo",
-            Type = EventType.Nanowrimo,
-            StartsAtUtc = now.AddDays(-10),
-            EndsAtUtc = now.AddDays(10),
-            IsActive = true,
-            DefaultTargetWords = 50000
-        };
+        var existingEvent = new EventDto
+        (
+            eventId,
+            "Evento Antigo",
+            "evento-antigo",
+            EventType.Nanowrimo.ToString(),
+            now.AddDays(-10),
+            now.AddDays(10),
+            50000,
+            true
+        );
 
         var command = BuildCommand(
             eventId,
@@ -42,12 +47,12 @@ public class UpdateEventCommandHandlerTests
             isActive: false
         );
 
-        _repositoryMock
-            .Setup(r => r.GetEventById(eventId))
+        _repositoryReadMock
+            .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingEvent);
 
         _repositoryMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Event>(), eventId))
+            .Setup(r => r.UpdateAsync( eventId, existingEvent, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
@@ -60,11 +65,11 @@ public class UpdateEventCommandHandlerTests
 
         existingEvent.Name.Should().Be("Evento Atualizado");
         existingEvent.Slug.Should().Be("evento-atualizado");
-        existingEvent.Type.Should().Be(EventType.Nanowrimo);
+        existingEvent.Type.Should().Be(EventType.Nanowrimo.ToString());
         existingEvent.IsActive.Should().BeFalse();
 
         _repositoryMock.Verify(
-            r => r.UpdateAsync(existingEvent, eventId),
+            r => r.UpdateAsync(eventId,existingEvent,  It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -77,9 +82,9 @@ public class UpdateEventCommandHandlerTests
 
         var command = BuildCommand(eventId);
 
-        _repositoryMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync((Event?)null);
+        _repositoryReadMock
+            .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EventDto?)null);
 
         var handler = CreateHandler();
 
@@ -93,7 +98,7 @@ public class UpdateEventCommandHandlerTests
             .WithMessage("Error updating event");
 
         _repositoryMock.Verify(
-            r => r.UpdateAsync(It.IsAny<Event>(), It.IsAny<Guid>()),
+            r => r.UpdateAsync( It.IsAny<Guid>(), It.IsAny<EventDto>(),It.IsAny<CancellationToken>()),
             Times.Never
         );
     }
@@ -105,16 +110,17 @@ public class UpdateEventCommandHandlerTests
         var eventId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
-        var existingEvent = new Event
-        {
-            Id = eventId,
-            Name = "Evento",
-            Slug = "evento",
-            Type = EventType.Nanowrimo,
-            StartsAtUtc = now.AddDays(-5),
-            EndsAtUtc = now.AddDays(5),
-            IsActive = true
-        };
+        var existingEvent = new EventDto
+        (
+            eventId,
+            "Evento",
+            "evento",
+            EventType.Nanowrimo.ToString(),
+            now.AddDays(-5),
+            now.AddDays(5),
+            100,
+            true
+        );
 
         var command = BuildCommand(
             eventId,
@@ -122,12 +128,12 @@ public class UpdateEventCommandHandlerTests
             type: "TipoInvalido"
         );
 
-        _repositoryMock
-            .Setup(r => r.GetEventById(eventId))
+        _repositoryReadMock
+            .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingEvent);
 
         _repositoryMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Event>(), eventId))
+            .Setup(r => r.UpdateAsync(eventId, It.IsAny<EventDto>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
@@ -136,7 +142,7 @@ public class UpdateEventCommandHandlerTests
         await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        existingEvent.Type.Should().Be(EventType.Nanowrimo);
+        existingEvent.Type.Should().Be(EventType.Nanowrimo.ToString());
     }
 
     [Fact]
@@ -146,8 +152,8 @@ public class UpdateEventCommandHandlerTests
         var eventId = Guid.NewGuid();
         var command = BuildCommand(eventId);
 
-        _repositoryMock
-            .Setup(r => r.GetEventById(eventId))
+        _repositoryReadMock
+            .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("DB error"));
 
         var handler = CreateHandler();
@@ -164,21 +170,22 @@ public class UpdateEventCommandHandlerTests
 
     /* ===================== HELPERS ===================== */
 
-    private UpdateEventCommandHandler CreateHandler()
+    private UpdateAdminEventCommandHandler CreateHandler()
     {
-        return new UpdateEventCommandHandler(
+        return new UpdateAdminEventCommandHandler(
+            _repositoryReadMock.Object,
             _repositoryMock.Object,
             _loggerMock.Object
         );
     }
 
-    private static UpdateEventCommand BuildCommand(
+    private static UpdateAdminEventCommand BuildCommand(
         Guid eventId,
         string name = "Evento Atualizado",
         string type = "Nanowrimo",
         bool isActive = true)
     {
-        return new UpdateEventCommand(
+        return new UpdateAdminEventCommand(
             new UpdateEventDto
             {
                 Name = name,

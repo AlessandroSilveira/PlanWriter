@@ -1,11 +1,7 @@
-using System.Security.Claims;
+using System;
 using MediatR;
 using PlanWriter.Domain.Dtos.Projects;
 
 namespace PlanWriter.Application.DailyWordLogs.Dtos.Commands;
 
-public class UpsertDailyWordLogCommand(CreateDailyWordLogRequest req, ClaimsPrincipal user) : IRequest<Unit>
-{
-    public CreateDailyWordLogRequest Req { get; } = req;
-    public ClaimsPrincipal User { get; } = user;
-}
+public record UpsertDailyWordLogCommand(Guid UserId, UpsertDailyWordLogRequest Req) : IRequest<Unit>;

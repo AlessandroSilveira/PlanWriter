@@ -7,14 +7,17 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Profile.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Events;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Profile.Queries;
 
 public class GetPublicProfileQueryHandler(IUserRepository userRepository, IEventRepository eventRepository,
     IProjectRepository projectRepository, IProjectEventsRepository projectEventsRepository,
-    IProjectProgressRepository projectProgressRepository, ILogger<GetPublicProfileQueryHandler> logger)
+    IProjectProgressRepository projectProgressRepository, ILogger<GetPublicProfileQueryHandler> logger, IProjectProgressReadRepository projectProgressReadRepository)
     : IRequestHandler<GetPublicProfileQuery, PublicProfileDto>
 {
     public async Task<PublicProfileDto> Handle(GetPublicProfileQuery request, CancellationToken cancellationToken)
@@ -83,7 +86,7 @@ public class GetPublicProfileQueryHandler(IUserRepository userRepository, IEvent
         {
             eventTargetWords = projectEvent.TargetWords ?? activeEvent.DefaultTargetWords ?? 50000;
             var totalsByUser =
-                await projectProgressRepository.GetTotalWordsByUsersAsync(userIds, activeEvent.StartsAtUtc, activeEvent.EndsAtUtc);
+                await projectProgressReadRepository.GetTotalWordsByUsersAsync(userIds, activeEvent.StartsAtUtc, activeEvent.EndsAtUtc);
            
             eventTotalWritten = totalsByUser.TryGetValue(userId, out var total) ? total : 0;
             eventPercent = eventTargetWords > 0 ? (int)Math.Min(100, Math.Round(100.0 * eventTotalWritten.Value / eventTargetWords.Value)) : 0;

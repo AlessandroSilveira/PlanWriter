@@ -6,50 +6,47 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Auth.Dtos.Commands;
 using PlanWriter.Domain.Entities;
-using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.Auth.Regsitration;
 
 namespace PlanWriter.Application.Auth.Commands;
 
-public class RegisterUserCommandHandler(IUserRepository userRepository, ILogger<RegisterUserCommandHandler> logger, 
-    IPasswordHasher<User> passwordHasher) 
+public class RegisterUserCommandHandler(IUserRegistrationReadRepository readRepository, IUserRegistrationRepository writeRepository,
+    IPasswordHasher<User> passwordHasher, ILogger<RegisterUserCommandHandler> logger)
     : IRequestHandler<RegisterUserCommand, bool>
 {
-    public async Task<bool> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+    public async Task<bool> Handle(RegisterUserCommand request, CancellationToken ct)
     {
-        if (await userRepository.GetByEmailAsync(request.Request.Email) != null)
+        var email = request.Request.Email.Trim().ToLowerInvariant();
+
+        if (await readRepository.EmailExistsAsync(email, ct))
         {
-            logger.LogWarning("User {Email} already exists", request.Request.Email);
-            throw new InvalidOperationException("E-mail já cadastrado.");
+            logger.LogWarning("Register failed: email {Email} already exists", email);
+
+            throw new InvalidOperationException($"Register failed: email {email} already exists");
         }
 
-        var user = MapRequestToUser(request);
-        
-        ApplyPasswordHashToUser(request, user);
-        
+        var user = MapRequestToUser(request, email);
+
+        user.ChangePassword(passwordHasher.HashPassword(user, request.Request.Password));
+
         user.MakeRegularUser();
 
-        await userRepository.AddAsync(user);
-        
-        logger.LogInformation("User {Email} created", request.Request.Email);
+        await writeRepository.CreateAsync(user, ct);
+
+        logger.LogInformation("User {Email} created with id {UserId}", email, user.Id);
+
         return true;
     }
 
-    private void ApplyPasswordHashToUser(RegisterUserCommand request, User user)
+    private static User MapRequestToUser(RegisterUserCommand request, string normalizedEmail)
     {
-        user.ChangePassword(
-            passwordHasher.HashPassword(user, request.Request.Password)
-        );
-    }
-
-    private static User MapRequestToUser(RegisterUserCommand request)
-    {
-        var user = new User
+        return new User
         {
+            Id = Guid.NewGuid(),
             FirstName = request.Request.FirstName,
             LastName = request.Request.LastName,
             DateOfBirth = request.Request.DateOfBirth,
-            Email = request.Request.Email
+            Email = normalizedEmail
         };
-        return user;
     }
 }

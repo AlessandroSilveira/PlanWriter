@@ -1,26 +1,33 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using PlanWriter.Application.AdminEvents.Dtos.Queries;
+using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
-using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Dtos.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 
 namespace PlanWriter.Application.AdminEvents.Queries;
 
-public class GetActiveQueryHandler(IEventRepository eventRepository, ILogger<GetActiveQueryHandler> logger) : IRequestHandler<GetActiveQuery, List<EventDto>>
+public class GetActiveEventsQueryHandler(IEventReadRepository eventReadRepository, ILogger<GetActiveEventsQueryHandler> logger)
+    : IRequestHandler<GetActiveEventsQuery, IReadOnlyList<EventDto>>
 {
-    public async Task<List<EventDto>> Handle(GetActiveQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<EventDto>> Handle(GetActiveEventsQuery request, CancellationToken cancellationToken)
     {
-        var eventsList = await eventRepository.GetActiveEvents();
+        logger.LogInformation("Getting active events");
 
-        if (eventsList.Count == 0)
+        var events = await eventReadRepository
+            .GetActiveAsync(cancellationToken);
+
+        if (events.Count == 0)
         {
-            logger.LogWarning("No active events found");
-            return [];
+            logger.LogInformation("No active events found");
+            return Array.Empty<EventDto>();
         }
-        logger.LogWarning("Active events found");
-        return eventsList;
+
+        logger.LogInformation("Found {Count} active events", events.Count);
+        return events;
     }
 }

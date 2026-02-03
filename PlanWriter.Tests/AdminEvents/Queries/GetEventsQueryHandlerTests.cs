@@ -4,7 +4,10 @@ using Moq;
 using PlanWriter.Application.AdminEvents.Dtos.Queries;
 using PlanWriter.Application.AdminEvents.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.Repositories.Events.Admin;
 using Xunit;
 
 namespace PlanWriter.Tests.AdminEvents.Queries;
@@ -15,19 +18,20 @@ public class GetEventsQueryHandlerTests
     public async Task Handle_ShouldReturnEmptyList_WhenRepositoryReturnsEmptyList()
     {
         // Arrange
-        var repositoryMock = new Mock<IEventRepository>();
-        var loggerMock = new Mock<ILogger<GetEventQueryHandler>>();
+        var repositoryMock = new Mock<IAdminEventRepository>();
+        var repositoryReadMock = new Mock<IAdminEventReadRepository>();
+        var loggerMock = new Mock<ILogger<GetAdminEventQueryHandler>>();
 
-        repositoryMock
-            .Setup(r => r.GetAllAsync())
+        repositoryReadMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<EventDto>());
 
-        var handler = new GetEventQueryHandler(
-            repositoryMock.Object,
+        var handler = new GetAdminEventQueryHandler(
+            repositoryReadMock.Object,
             loggerMock.Object
         );
 
-        var query = new GetEventsQuery();
+        var query = new GetAdminEventsQuery();
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);
@@ -36,8 +40,8 @@ public class GetEventsQueryHandlerTests
         result.Should().NotBeNull();
         result.Should().BeEmpty();
 
-        repositoryMock.Verify(
-            r => r.GetAllAsync(),
+        repositoryReadMock.Verify(
+            r => r.GetAllAsync(It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -72,19 +76,19 @@ public class GetEventsQueryHandlerTests
             )
         };
 
-        var repositoryMock = new Mock<IEventRepository>();
-        var loggerMock = new Mock<ILogger<GetEventQueryHandler>>();
+        var repositoryMock = new Mock<IAdminEventReadRepository>();
+        var loggerMock = new Mock<ILogger<GetAdminEventQueryHandler>>();
 
         repositoryMock
-            .Setup(r => r.GetAllAsync())
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(events);
 
-        var handler = new GetEventQueryHandler(
+        var handler = new GetAdminEventQueryHandler(
             repositoryMock.Object,
             loggerMock.Object
         );
 
-        var query = new GetEventsQuery();
+        var query = new GetAdminEventsQuery();
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);
@@ -95,7 +99,7 @@ public class GetEventsQueryHandlerTests
         result.Should().BeEquivalentTo(events);
 
         repositoryMock.Verify(
-            r => r.GetAllAsync(),
+            r => r.GetAllAsync(It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -104,19 +108,19 @@ public class GetEventsQueryHandlerTests
     public async Task Handle_ShouldReturnNull_WhenRepositoryReturnsNull()
     {
         // Arrange
-        var repositoryMock = new Mock<IEventRepository>();
-        var loggerMock = new Mock<ILogger<GetEventQueryHandler>>();
+        var repositoryMock = new Mock<IAdminEventReadRepository>();
+        var loggerMock = new Mock<ILogger<GetAdminEventQueryHandler>>();
 
         repositoryMock
-            .Setup(r => r.GetAllAsync())
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((List<EventDto>?)null);
 
-        var handler = new GetEventQueryHandler(
+        var handler = new GetAdminEventQueryHandler(
             repositoryMock.Object,
             loggerMock.Object
         );
 
-        var query = new GetEventsQuery();
+        var query = new GetAdminEventsQuery();
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);
@@ -125,7 +129,7 @@ public class GetEventsQueryHandlerTests
         result.Should().BeNull();
 
         repositoryMock.Verify(
-            r => r.GetAllAsync(),
+            r => r.GetAllAsync(It.IsAny<CancellationToken>()),
             Times.Once
         );
     }

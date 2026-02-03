@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Buddies;
 
 namespace PlanWriter.Domain.Interfaces.Repositories;
 

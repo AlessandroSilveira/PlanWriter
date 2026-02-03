@@ -6,30 +6,33 @@ using System.Threading.Tasks;
 using MediatR;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Badges;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Badges.Handlers;
 
-public class AssignBadgesOnProgressHandler(IProjectRepository projectRepository, IProjectProgressRepository progressRepository, IBadgeRepository badgeRepository)
+public class AssignBadgesOnProgressHandler(IProjectRepository projectRepository, IProjectProgressRepository progressRepository, IBadgeRepository badgeRepository, 
+    IProjectReadRepository  projectReadRepository, IProjectProgressReadRepository progressReadRepository, IBadgeReadRepository badgeReadRepository)
     : INotificationHandler<ProjectProgressAdded>
 {
     public async Task Handle(ProjectProgressAdded notification, CancellationToken ct)
     {
         // 1️⃣ Projeto (garante ownership)
-        var project = await projectRepository.GetUserProjectByIdAsync(notification.ProjectId, notification.UserId);
+        var project = await projectReadRepository.GetUserProjectByIdAsync(notification.ProjectId, notification.UserId, ct);
 
         if (project == null)
             return;
 
         // 2️⃣ Progresso
-        var entries = (await progressRepository.GetProgressByProjectIdAsync(notification.ProjectId, notification.UserId))
+        var entries = (await progressReadRepository.GetProgressByProjectIdAsync(notification.ProjectId, notification.UserId))
             .ToList();
 
         if (entries.Count == 0)
             return;
 
         // 3️⃣ Badges já existentes
-        var existingBadgeNames = (await badgeRepository.GetByProjectIdAsync(notification.ProjectId)).Select(b => b.Name)
+        var existingBadgeNames = (await badgeReadRepository.GetByProjectIdAsync(notification.ProjectId, notification.UserId, ct)).Select(b => b.Name)
             .ToHashSet();
 
         var newBadges = new List<Badge>();

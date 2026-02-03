@@ -5,7 +5,9 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Projects.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 
 namespace PlanWriter.Application.Projects.Queries;
@@ -17,7 +19,7 @@ public class GetProjectByIdQueryHandler(ILogger<GetProjectByIdQueryHandler> logg
     {
         logger.LogInformation("Getting project {ProjectId} for user {UserId}", request.Id, request.UserId);
 
-        var project = await projectRepository.GetProjectByIdAsync(request.Id, request.UserId)
+        var project = await projectRepository.GetProjectByIdAsync(request.Id, request.UserId, cancellationToken)
             ?? throw new KeyNotFoundException("Project not found");
 
         logger.LogInformation("Access granted to project {ProjectId} for user {UserId}", request.Id, request.UserId

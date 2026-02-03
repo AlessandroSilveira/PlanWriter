@@ -8,8 +8,10 @@ using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
+using AddProjectProgressDto = PlanWriter.Domain.Dtos.Projects.AddProjectProgressDto;
 
 namespace PlanWriter.Tests.Projects.Commands;
 
@@ -19,9 +21,10 @@ public class AddProjectProgressCommandHandlerTests
     private readonly Mock<IProjectProgressRepository> _progressRepo = new();
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<ILogger<AddProjectProgressCommandHandler>> _logger = new ();
+    private readonly Mock<IProjectReadRepository> _projectReadRepo = new();
 
     private AddProjectProgressCommandHandler CreateHandler()
-        => new(_projectRepo.Object, _progressRepo.Object, _mediator.Object, _logger.Object);
+        => new(_projectRepo.Object, _progressRepo.Object, _mediator.Object, _logger.Object, _projectReadRepo.Object);
 
     [Fact]
     public async Task Handle_ShouldAddProgress_AndPublishEvent()
@@ -37,8 +40,8 @@ public class AddProjectProgressCommandHandlerTests
             CurrentWordCount = 1000
         };
 
-        _projectRepo
-            .Setup(r => r.GetUserProjectByIdAsync(projectId, userId))
+        _projectReadRepo
+            .Setup(r => r.GetUserProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(project);
 
         _progressRepo
@@ -55,7 +58,7 @@ public class AddProjectProgressCommandHandlerTests
 
         var command = new AddProjectProgressCommand(
             project.Id,
-            new PlanWriter.Domain.Dtos.AddProjectProgressDto
+            new AddProjectProgressDto
                 {
                     ProjectId = projectId,
                 WordsWritten = 200
@@ -88,7 +91,7 @@ public class AddProjectProgressCommandHandlerTests
 
         var command = new AddProjectProgressCommand(
             Guid.NewGuid(),
-            new  PlanWriter.Domain.Dtos.AddProjectProgressDto { ProjectId = Guid.NewGuid() },
+            new  AddProjectProgressDto { ProjectId = Guid.NewGuid() },
             Guid.NewGuid()
         );
 

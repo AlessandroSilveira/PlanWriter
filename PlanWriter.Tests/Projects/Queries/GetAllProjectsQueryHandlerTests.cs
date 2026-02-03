@@ -4,7 +4,9 @@ using Moq;
 using PlanWriter.Application.Projects.Dtos.Queries;
 using PlanWriter.Application.Projects.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 using Xunit;
 
@@ -46,7 +48,7 @@ public class GetAllProjectsQueryHandlerTests
         };
 
         _projectRepositoryMock
-            .Setup(r => r.GetUserProjectsAsync(userId))
+            .Setup(r => r.GetUserProjectsAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projects);
 
         var handler = CreateHandler();
@@ -74,7 +76,7 @@ public class GetAllProjectsQueryHandlerTests
         var userId = Guid.NewGuid();
 
         _projectRepositoryMock
-            .Setup(r => r.GetUserProjectsAsync(userId))
+            .Setup(r => r.GetUserProjectsAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         var handler = CreateHandler();

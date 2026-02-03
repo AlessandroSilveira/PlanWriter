@@ -5,6 +5,7 @@ using PlanWriter.Application.EventValidation.Dtos.Queries;
 using PlanWriter.Application.EventValidation.Queries;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -17,6 +18,7 @@ public class PreviewQueryHandlerTests
     private readonly Mock<IProjectRepository> _projectRepoMock = new();
     private readonly Mock<IProjectEventsRepository> _projectEventsRepoMock = new();
     private readonly Mock<ILogger<PreviewQueryHandler>> _loggerMock = new();
+    private readonly Mock<IProjectProgressReadRepository> _progressReadRepoMock = new();
 
     private PreviewQueryHandler CreateHandler()
         => new(
@@ -24,7 +26,8 @@ public class PreviewQueryHandlerTests
             _eventRepoMock.Object,
             _projectRepoMock.Object,
             _projectEventsRepoMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _progressReadRepoMock.Object
         );
 
     [Fact]
@@ -69,7 +72,7 @@ public class PreviewQueryHandlerTests
             .Setup(r => r.GetProjectEventByProjectIdAndEventId(projectId, eventId))
             .ReturnsAsync(projectEvent);
 
-        _progressRepoMock
+        _progressReadRepoMock
             .Setup(r => r.GetProgressByProjectIdAsync(projectId, userId))
             .ReturnsAsync(progress);
 

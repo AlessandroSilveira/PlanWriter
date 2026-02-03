@@ -1,4 +1,4 @@
-using System.Data;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -6,10 +6,9 @@ namespace PlanWriter.Infrastructure.Data;
 
 public interface IDbExecutor
 {
-    Task<int> ExecuteAsync(
-        IDbConnection connection,
-        string sql,
-        object? param,
-        IDbTransaction? transaction,
-        CancellationToken ct);
+    Task<IReadOnlyList<T>> QueryAsync<T>(string sql, object? param = null, CancellationToken ct = default);
+
+    Task<T?> QueryFirstOrDefaultAsync<T>(string sql, object? param = null, CancellationToken ct = default);
+
+    Task<int> ExecuteAsync(string sql, object? param = null, CancellationToken ct = default);
 }

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Events.Dtos.Commands;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Application.Interfaces;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 
 

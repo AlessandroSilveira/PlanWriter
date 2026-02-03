@@ -4,6 +4,7 @@ using Moq;
 using PlanWriter.Application.Badges.Dtos.Queries;
 using PlanWriter.Application.Badges.Queries;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Badges;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -12,12 +13,14 @@ namespace PlanWriter.Tests.Badges.Queries;
 public class GetByProjectIdQueryHandlerTests
 {
     private readonly Mock<IBadgeRepository> _badgeRepositoryMock = new();
-    private readonly Mock<ILogger<GetByProjectIdQueryHandler>> _loggerMock = new();
+    private readonly Mock<ILogger<GetBadgesByProjectIdQueryHandler>> _loggerMock = new();
+    private readonly Mock<IBadgeReadRepository> _badgeReadRepositoryMock = new();
+    private readonly Mock<IBadgeRepository> _badgeRepository = new();
 
-    private GetByProjectIdQueryHandler CreateHandler()
+    private GetBadgesByProjectIdQueryHandler CreateHandler()
         => new(
-            _loggerMock.Object,
-            _badgeRepositoryMock.Object
+            _badgeReadRepositoryMock.Object,
+            _loggerMock.Object
         );
 
     [Fact]
@@ -25,6 +28,7 @@ public class GetByProjectIdQueryHandlerTests
     {
         // Arrange
         var projectId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
 
         var badges = new List<Badge>
         {
@@ -32,12 +36,12 @@ public class GetByProjectIdQueryHandlerTests
             new Badge { ProjectId = projectId, Name = "Cem Palavras" }
         };
 
-        _badgeRepositoryMock
-            .Setup(r => r.GetByProjectIdAsync(projectId))
+        _badgeReadRepositoryMock
+            .Setup(r => r.GetByProjectIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(badges);
 
         var handler = CreateHandler();
-        var query = new GetByProjectIdQuery(projectId);
+        var query = new GetBadgesByProjectIdQuery(projectId, userId);
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);
@@ -53,13 +57,14 @@ public class GetByProjectIdQueryHandlerTests
     {
         // Arrange
         var projectId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
 
-        _badgeRepositoryMock
-            .Setup(r => r.GetByProjectIdAsync(projectId))
+        _badgeReadRepositoryMock
+            .Setup(r => r.GetByProjectIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Badge>());
 
         var handler = CreateHandler();
-        var query = new GetByProjectIdQuery(projectId);
+        var query = new GetBadgesByProjectIdQuery(projectId, userId);
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);

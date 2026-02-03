@@ -11,32 +11,9 @@ namespace PlanWriter.Infrastructure.Repositories;
 
 public class BadgeRepository(AppDbContext context) : IBadgeRepository
 {
-    public async Task<IEnumerable<Badge>> GetByProjectIdAsync(Guid projectId)
-    {
-        return await context.Set<Badge>()
-            .Where(b => b.ProjectId == projectId)
-            .ToListAsync();
-    }
+   
 
-    public async Task<bool> HasFirstStepsBadge(Guid projectId)
-    {
-        return await context.Set<Badge>()
-            .AnyAsync(b =>
-                b.ProjectId == projectId &&
-                b.Name == "First Steps");
-    }
-
-    public async Task<bool> ExistsAsync(
-        Guid projectId,
-        Guid eventId,
-        string name)
-    {
-        return await context.Set<Badge>()
-            .AnyAsync(b =>
-                b.ProjectId == projectId &&
-                b.EventId == eventId &&
-                b.Name.Contains(name));
-    }
+   
 
     public async Task SaveAsync(IEnumerable<Badge> badges)
     {

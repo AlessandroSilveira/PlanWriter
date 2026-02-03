@@ -4,8 +4,10 @@ using Moq;
 using PlanWriter.Application.Profile.Dtos.Queries;
 using PlanWriter.Application.Profile.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -19,6 +21,7 @@ public class GetPublicProfileQueryHandlerTests
     private readonly Mock<IProjectEventsRepository> _projectEventsRepositoryMock = new();
     private readonly Mock<IProjectProgressRepository> _projectProgressRepositoryMock = new();
     private readonly Mock<ILogger<GetPublicProfileQueryHandler>> _loggerMock = new();
+    private readonly Mock<IProjectProgressReadRepository> _projectProgressReadRepositoryMock = new();
 
     private GetPublicProfileQueryHandler CreateHandler()
         => new(
@@ -27,7 +30,8 @@ public class GetPublicProfileQueryHandlerTests
             _projectRepositoryMock.Object,
             _projectEventsRepositoryMock.Object,
             _projectProgressRepositoryMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _projectProgressReadRepositoryMock.Object
         );
 
     [Fact]
@@ -91,7 +95,7 @@ public class GetPublicProfileQueryHandlerTests
             .Setup(r => r.GetProjectEventByProjectIdAndEventId(project.Id, activeEvent.Id))
             .ReturnsAsync(projectEvent);
 
-        _projectProgressRepositoryMock
+        _projectProgressReadRepositoryMock
             .Setup(r => r.GetTotalWordsByUsersAsync(
                 It.IsAny<IEnumerable<Guid>>(),
                 activeEvent.StartsAtUtc,

@@ -5,15 +5,14 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Projects.Commands;
 
-public class CreateProjectCommandHandler(
-    ILogger<CreateProjectCommandHandler> logger,
-    IProjectRepository projectRepository)
+public sealed class CreateProjectCommandHandler(ILogger<CreateProjectCommandHandler> logger, IProjectRepository projectRepository)
     : IRequestHandler<CreateProjectCommand, ProjectDto>
 {
     public async Task<ProjectDto> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
@@ -21,66 +20,54 @@ public class CreateProjectCommandHandler(
         if (request.Project is null)
             throw new ArgumentNullException(nameof(request.Project));
 
-        logger.LogInformation("Creating project. UserId={UserId} Title={Title}", request.UserId, request.Project.Title);
+        var userId = request.UserId;
+        var rawTitle = request.Project.Title;
+        var normalizedTitle = rawTitle?.Trim();
 
-        var projectEntity = CreateProjectEntity(request);
-
-        await projectRepository.CreateAsync(projectEntity , cancellationToken);
-
-        logger.LogInformation("Project created. ProjectId={ProjectId} UserId={UserId}", projectEntity.Id, request.UserId);
-
-        var projectDto = MapToDto(projectEntity);
-
-        logger.LogInformation("Returning created project DTO. ProjectId={ProjectId} GoalTarget={GoalTarget} ProgressPercent={ProgressPercent}",
-            projectDto.Id, projectDto.WordCountGoal, projectDto.ProgressPercent);
-
-        return projectDto;
-    }
-    
-    private static Project CreateProjectEntity(CreateProjectCommand request)
-    {
-        var nowUtc = DateTime.UtcNow;
-
-        var title = request.Project.Title?.Trim();
-        if (string.IsNullOrWhiteSpace(title))
+        if (string.IsNullOrWhiteSpace(normalizedTitle))
             throw new InvalidOperationException("Title is required.");
 
-        var description = request.Project.Description?.Trim();
+        logger.LogInformation(
+            "Creating project. UserId={UserId} Title={Title}",
+            userId,
+            normalizedTitle
+        );
 
-        var wordCountGoal = request.Project.WordCountGoal;
-        var goalAmount = wordCountGoal ?? 0;
+        var nowUtc = DateTime.UtcNow;
 
-        var startDateUtc = request.Project.StartDate ?? nowUtc;
-
-        return new Project
+        var projectEntity = new Project
         {
             Id = Guid.NewGuid(),
-            UserId = request.UserId,
+            UserId = userId,
 
-            Title = title,
-            Description = description,
+            Title = normalizedTitle,
+            Description = request.Project.Description?.Trim(),
             Genre = request.Project.Genre,
 
-            WordCountGoal = wordCountGoal,
-            GoalAmount = goalAmount,
+            WordCountGoal = request.Project.WordCountGoal,
+            GoalAmount = request.Project.WordCountGoal ?? 0,
             GoalUnit = GoalUnit.Words,
 
-            StartDate = startDateUtc,
+            StartDate = request.Project.StartDate ?? nowUtc,
             Deadline = request.Project.Deadline,
 
             CreatedAt = nowUtc,
             CurrentWordCount = 0
         };
+
+        await projectRepository.CreateAsync(projectEntity, cancellationToken);
+
+        logger.LogInformation("Project created. ProjectId={ProjectId} UserId={UserId}", projectEntity.Id, userId);
+
+        return MapToDto(projectEntity);
     }
 
     private static ProjectDto MapToDto(Project project)
     {
         var goalTarget = ResolveGoalTarget(project);
-
-        var progressPercent =
-            goalTarget.HasValue && goalTarget.Value > 0
-                ? (double)project.CurrentWordCount / goalTarget.Value * 100
-                : 0;
+        var progressPercent = goalTarget is > 0
+            ? (double)project.CurrentWordCount / goalTarget.Value * 100
+            : 0;
 
         return new ProjectDto
         {
@@ -99,10 +86,7 @@ public class CreateProjectCommandHandler(
     }
 
     private static int? ResolveGoalTarget(Project project)
-    {
-        if (project.WordCountGoal.HasValue && project.WordCountGoal.Value > 0)
-            return project.WordCountGoal.Value;
-
-        return project.GoalAmount > 0 ? project.GoalAmount : null;
-    }
+        => project.WordCountGoal is > 0
+            ? project.WordCountGoal
+            : (project.GoalAmount > 0 ? project.GoalAmount : null);
 }

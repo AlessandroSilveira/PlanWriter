@@ -6,8 +6,10 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Projects.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 
@@ -20,7 +22,7 @@ public class GetAllProjectsQueryHandler(ILogger<GetAllProjectsQueryHandler> logg
     {
         logger.LogInformation("Getting projects for user {UserId}", request.UserId);
 
-        var userProjects = await projectRepository.GetUserProjectsAsync(request.UserId);
+        var userProjects = await projectRepository.GetUserProjectsAsync(request.UserId, cancellationToken);
 
         var enumerable = userProjects.ToList();
         logger.LogInformation("Found {Count} projects for user {UserId}", enumerable.Count, request.UserId);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MediatR;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Buddies;
 
 namespace PlanWriter.Application.Buddies.Dtos.Queries;
 

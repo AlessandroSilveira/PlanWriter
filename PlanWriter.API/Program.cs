@@ -17,12 +17,23 @@ using PlanWriter.Application.Validators;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Helpers;
 using PlanWriter.Domain.Interfaces.Auth;
-using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.Auth.Regsitration;
+using PlanWriter.Domain.Interfaces.ReadModels.Auth;
+using PlanWriter.Domain.Interfaces.ReadModels.Certificates;
+using PlanWriter.Domain.Interfaces.ReadModels.DailyWordLogWrite;
+using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.Auth;
 using PlanWriter.Infrastructure.Data;
+using PlanWriter.Infrastructure.ReadModels.Auth;
+using PlanWriter.Infrastructure.ReadModels.Certificates;
+using PlanWriter.Infrastructure.ReadModels.DailyWordLogWrite;
+using PlanWriter.Infrastructure.ReadModels.Events;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 using PlanWriter.Infrastructure.Repositories;
+using PlanWriter.Infrastructure.Repositories.Auth;
+using PlanWriter.Infrastructure.Repositories.Auth.Register;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -112,10 +123,20 @@ builder.Services.AddScoped<IDailyWordLogRepository, DailyWordLogRepository>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IProjectReadRepository, ProjectReadRepository>();
 builder.Services.AddScoped<IProjectProgressReadRepository, ProjectProgressReadRepository>();
+builder.Services.AddScoped<IEventReadRepository, EventReadRepository>();
+builder.Services.AddScoped<IUserReadRepository, UserReadRepository>();
+builder.Services.AddScoped<IUserPasswordRepository, UserPasswordRepository>();
+builder.Services.AddScoped<IUserAuthReadRepository, UserAuthReadRepository>();
+builder.Services.AddScoped<IUserRegistrationReadRepository, UserRegistrationReadRepository>();
+builder.Services.AddScoped<IUserRegistrationRepository, UserRegistrationRepository>();
+builder.Services.AddScoped<ICertificateReadRepository, CertificateReadRepository>();
+builder.Services.AddScoped<IDailyWordLogReadRepository, DailyWordLogReadRepository>();
 
 builder.Services.AddScoped<IDbConnection>(sp =>
     new SqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<IDbConnectionFactory, SqlConnectionFactory>();
+builder.Services.AddScoped<IDbExecutor, DapperDbExecutor>();
 
 builder.Services.AddHttpContextAccessor();
 

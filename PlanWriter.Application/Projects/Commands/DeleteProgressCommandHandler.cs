@@ -5,12 +5,13 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Projects.Commands;
 
 public class DeleteProgressCommandHandler(ILogger<DeleteProgressCommandHandler> logger, IProjectProgressReadRepository progressReadRepository,   
-    IProjectProgressRepository progressWriteRepository, IProjectRepository projectRepository)                   
+    IProjectProgressRepository progressWriteRepository, IProjectRepository projectRepository, IProjectReadRepository projectReadRepository)                   
     : IRequestHandler<DeleteProgressCommand, bool>
 {
     public async Task<bool> Handle(DeleteProgressCommand request, CancellationToken cancellationToken)
@@ -36,7 +37,7 @@ public class DeleteProgressCommandHandler(ILogger<DeleteProgressCommandHandler> 
 
         var lastTotal = await progressReadRepository.GetLastTotalBeforeAsync(projectId, request.UserId, progressDate, cancellationToken);
 
-        var project = await projectRepository.GetUserProjectByIdAsync(projectId, request.UserId);
+        var project = await projectReadRepository.GetUserProjectByIdAsync(projectId, request.UserId, cancellationToken);
         if (project is null)
         {
             logger.LogWarning("Project {ProjectId} not found for user {UserId} during recalculation", projectId, request.UserId);
@@ -44,7 +45,7 @@ public class DeleteProgressCommandHandler(ILogger<DeleteProgressCommandHandler> 
         }
 
         project.CurrentWordCount = lastTotal;
-        await projectRepository.UpdateAsync(project);
+        await projectRepository.UpdateAsync(project, cancellationToken);
 
         logger.LogInformation("Progress {ProgressId} deleted; project {ProjectId} recalculated to {Total}", request.ProgressId, projectId, lastTotal);
 

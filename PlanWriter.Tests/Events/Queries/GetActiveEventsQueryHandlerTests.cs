@@ -4,14 +4,17 @@ using Moq;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Application.Events.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
+using GetActiveEventsQueryHandler = PlanWriter.Application.AdminEvents.Queries.GetActiveEventsQueryHandler;
 
 namespace PlanWriter.Tests.Events.Queries;
 
 public class GetActiveEventsQueryHandlerTests
 {
-    private readonly Mock<IEventRepository> _eventRepositoryMock = new();
+    private readonly Mock<IEventReadRepository> _eventRepositoryMock = new();
     private readonly Mock<ILogger<GetActiveEventsQueryHandler>> _loggerMock = new();
 
     [Fact]
@@ -43,7 +46,7 @@ public class GetActiveEventsQueryHandlerTests
         };
 
         _eventRepositoryMock
-            .Setup(r => r.GetActiveEvents())
+            .Setup(r => r.GetActiveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(events);
 
         var handler = CreateHandler();
@@ -57,7 +60,7 @@ public class GetActiveEventsQueryHandlerTests
         result.Should().HaveCount(2);
         result.Should().BeEquivalentTo(events);
 
-        _eventRepositoryMock.Verify(r => r.GetActiveEvents(), Times.Once);
+        _eventRepositoryMock.Verify(r => r.GetActiveAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -65,7 +68,7 @@ public class GetActiveEventsQueryHandlerTests
     {
         // Arrange
         _eventRepositoryMock
-            .Setup(r => r.GetActiveEvents())
+            .Setup(r => r.GetActiveAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<EventDto>());
 
         var handler = CreateHandler();
@@ -78,7 +81,7 @@ public class GetActiveEventsQueryHandlerTests
         result.Should().NotBeNull();
         result.Should().BeEmpty();
 
-        _eventRepositoryMock.Verify(r => r.GetActiveEvents(), Times.Once);
+        _eventRepositoryMock.Verify(r => r.GetActiveAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     /* ===================== HELPERS ===================== */

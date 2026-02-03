@@ -4,6 +4,7 @@ using Moq;
 using PlanWriter.Application.Projects.Commands;
 using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.Repositories;

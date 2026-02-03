@@ -4,6 +4,7 @@ using Moq;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Application.Events.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;

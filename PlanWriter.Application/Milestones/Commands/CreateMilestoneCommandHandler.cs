@@ -8,18 +8,19 @@ using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Milestones.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Milestones.Commands;
 
 public class GetProjectMilestonesQueryHandler(ILogger<GetProjectMilestonesQueryHandler> logger, IProjectRepository projectRepository,
-    IMilestonesRepository milestonesRepository) : IRequestHandler<GetProjectMilestonesQuery, List<MilestoneDto>>
+    IMilestonesRepository milestonesRepository, IProjectReadRepository projectReadRepository) : IRequestHandler<GetProjectMilestonesQuery, List<MilestoneDto>>
 {
     public async Task<List<MilestoneDto>> Handle(GetProjectMilestonesQuery request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Getting milestones for Project {ProjectId} and User {UserId}", request.ProjectId, request.UserId);
         
-        var project = await projectRepository.GetUserProjectByIdAsync(request.ProjectId, request.UserId)
+        var project = await projectReadRepository.GetUserProjectByIdAsync(request.ProjectId, request.UserId, cancellationToken)
             ?? throw new UnauthorizedAccessException("Projeto não encontrado.");
 
         logger.LogInformation("Access to Project {ProjectId} granted for User {UserId}", request.ProjectId, request.UserId);

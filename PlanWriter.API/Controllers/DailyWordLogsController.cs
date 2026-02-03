@@ -14,9 +14,10 @@ namespace PlanWriter.API.Controllers;
 public class DailyWordLogsController(Mediator mediator, IUserService userService) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> Upsert(CreateDailyWordLogRequest req)
+    public async Task<IActionResult> Upsert(UpsertDailyWordLogRequest req)
     {
-        await mediator.Send(new UpsertDailyWordLogCommand(req, User));
+        var userId = userService.GetUserId(User);
+        await mediator.Send(new UpsertDailyWordLogCommand(userId, req));
         return NoContent();
     }
 

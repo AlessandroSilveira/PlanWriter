@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using PlanWriter.API.Security;
 using PlanWriter.Application.AdminEvents.Dtos.Commands;
 using PlanWriter.Application.AdminEvents.Dtos.Queries;
+using PlanWriter.Domain.Dtos.AdminEvents;
 using PlanWriter.Domain.Requests;
-using CreateEventRequest = PlanWriter.Domain.Dtos.CreateEventRequest;
+using CreateEventRequest = PlanWriter.Domain.Dtos.Events.CreateEventRequest;
 
 namespace PlanWriter.API.Controllers;
 
@@ -27,7 +28,7 @@ public class AdminEventsController(IMediator mediator) : ControllerBase
     [HttpGet("{eventId:guid}")]
     public async Task<IActionResult> GetById(Guid eventId)
     {
-        var eventDto = await mediator.Send(new GetEventByIdQuery(eventId));
+        var eventDto = await mediator.Send(new GetAdminEventByIdQuery(eventId));
         return eventDto is null
             ? NotFound(new { message = "Evento não encontrado." })
             : Ok(eventDto);
@@ -39,7 +40,7 @@ public class AdminEventsController(IMediator mediator) : ControllerBase
     [HttpGet()]
     public async Task<IActionResult> GetEvents()
     {
-        var allEvents = await mediator.Send(new GetEventsQuery());
+        var allEvents = await mediator.Send(new GetAdminEventsQuery());
         return allEvents is null
             ? NotFound(new { message = "Event not found." })
             : Ok(allEvents);
@@ -49,9 +50,9 @@ public class AdminEventsController(IMediator mediator) : ControllerBase
     /// Criar novo evento (ADMIN)
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateEventRequest req)
+    public async Task<IActionResult> Create([FromBody] CreateAdminEventRequest req)
     {
-        var ev =  await mediator.Send(new CreateEventCommand(req));
+        var ev =  await mediator.Send(new CreateAdminEventCommand(req));
          return ev is null 
              ? BadRequest(new { message = "Could not create event." }) : 
              CreatedAtAction(nameof(GetById), new { eventId = ev.Id }, ev);
@@ -63,7 +64,7 @@ public class AdminEventsController(IMediator mediator) : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateEvent(Guid id, UpdateEventDto request)
     {
-       await mediator.Send(new UpdateEventCommand(request, id));
+       await mediator.Send(new UpdateAdminEventCommand(request, id));
        return NoContent();
     }
     
@@ -73,7 +74,7 @@ public class AdminEventsController(IMediator mediator) : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        await mediator.Send(new DeleteEventCommand(id));
+        await mediator.Send(new DeleteAdminEventCommand(id));
         return NoContent();
     }
 }

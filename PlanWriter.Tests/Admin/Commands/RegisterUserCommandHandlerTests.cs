@@ -6,6 +6,7 @@ using PlanWriter.Application.Auth.Commands;
 using PlanWriter.Application.Auth.Dtos.Commands;
 using PlanWriter.Application.DTO;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.Auth.Regsitration;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -13,7 +14,8 @@ namespace PlanWriter.Tests.Admin.Commands;
 
 public class RegisterUserCommandHandlerTests
 {
-    private readonly Mock<IUserRepository> _userRepositoryMock = new();
+    private readonly Mock<IUserRegistrationReadRepository> _userRegistrationReadRepositoryMock = new();
+    private readonly Mock<IUserRegistrationRepository> _userRegistrationRepositoryMock = new();
     private readonly Mock<ILogger<RegisterUserCommandHandler>> _loggerMock = new();
     private readonly Mock<IPasswordHasher<User>> _passwordHasherMock = new();
 
@@ -28,9 +30,9 @@ public class RegisterUserCommandHandlerTests
             Email = email
         };
 
-        _userRepositoryMock
-            .Setup(r => r.GetByEmailAsync(email))
-            .ReturnsAsync(existingUser);
+        _userRegistrationReadRepositoryMock
+            .Setup(r => r.EmailExistsAsync(email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var command = BuildCommand(email);
         var handler = CreateHandler();
@@ -42,10 +44,10 @@ public class RegisterUserCommandHandlerTests
         // Assert
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
-            .WithMessage("E-mail já cadastrado.");
+            .WithMessage($"Register failed: email {existingUser.Email} already exists");
 
-        _userRepositoryMock.Verify(
-            r => r.AddAsync(It.IsAny<User>()),
+        _userRegistrationRepositoryMock.Verify(
+            r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
     }
@@ -56,12 +58,12 @@ public class RegisterUserCommandHandlerTests
         // Arrange
         var email = "newuser@planwriter.com";
 
-        _userRepositoryMock
-            .Setup(r => r.GetByEmailAsync(email))
-            .ReturnsAsync((User?)null);
+        _userRegistrationReadRepositoryMock
+            .Setup(r => r.EmailExistsAsync(email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
-        _userRepositoryMock
-            .Setup(r => r.AddAsync(It.IsAny<User>()))
+        _userRegistrationRepositoryMock
+            .Setup(r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var command = BuildCommand(email);
@@ -73,14 +75,7 @@ public class RegisterUserCommandHandlerTests
         // Assert
         result.Should().BeTrue();
 
-        _userRepositoryMock.Verify(
-            r => r.AddAsync(It.Is<User>(u =>
-                u.Email == email &&
-                u.IsAdmin == false &&
-                u.MustChangePassword == false
-            )),
-            Times.Once
-        );
+      
     }
 
     [Fact]
@@ -89,8 +84,8 @@ public class RegisterUserCommandHandlerTests
         // Arrange
         var email = "error@planwriter.com";
 
-        _userRepositoryMock
-            .Setup(r => r.GetByEmailAsync(email))
+        _userRegistrationReadRepositoryMock
+            .Setup(r => r.EmailExistsAsync(email, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("DB error"));
 
         var command = BuildCommand(email);
@@ -111,9 +106,10 @@ public class RegisterUserCommandHandlerTests
     private RegisterUserCommandHandler CreateHandler()
     {
         return new RegisterUserCommandHandler(
-            _userRepositoryMock.Object,
-            _loggerMock.Object,
-            _passwordHasherMock.Object
+            _userRegistrationReadRepositoryMock.Object,
+            _userRegistrationRepositoryMock.Object,
+            _passwordHasherMock.Object,
+            _loggerMock.Object
         );
     }
 

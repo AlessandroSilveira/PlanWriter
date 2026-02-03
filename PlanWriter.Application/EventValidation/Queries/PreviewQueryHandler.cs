@@ -7,12 +7,13 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.EventValidation.Dtos.Queries;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.EventValidation.Queries;
 
 public class PreviewQueryHandler(IProjectProgressRepository projectProgressRepository, IEventRepository eventRepository,
-    IProjectRepository projectRepository, IProjectEventsRepository projectEventsRepository, ILogger<PreviewQueryHandler> logger)
+    IProjectRepository projectRepository, IProjectEventsRepository projectEventsRepository, ILogger<PreviewQueryHandler> logger, IProjectProgressReadRepository projectProgressReadRepository)
     : IRequestHandler<PreviewQuery, (int TargetWords, int TotalWords)>
 {
     public async Task<(int TargetWords, int TotalWords)> Handle(PreviewQuery request, CancellationToken cancellationToken)
@@ -50,7 +51,7 @@ public class PreviewQueryHandler(IProjectProgressRepository projectProgressRepos
 
     private async Task<int> CalculateTotalWordsAsync(Guid projectId, Guid userId, Event eventEntity)
     {
-        var progressEntries = await projectProgressRepository.GetProgressByProjectIdAsync(projectId, userId);
+        var progressEntries = await projectProgressReadRepository.GetProgressByProjectIdAsync(projectId, userId);
 
         var total =
             progressEntries

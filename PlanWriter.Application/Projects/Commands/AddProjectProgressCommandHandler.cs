@@ -9,12 +9,13 @@ using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Projects.Commands;
 
 public class AddProjectProgressCommandHandler(IProjectRepository projectRepository, IProjectProgressRepository projectProgressRepository,
-    IMediator mediator, ILogger<AddProjectProgressCommandHandler> logger)
+    IMediator mediator, ILogger<AddProjectProgressCommandHandler> logger, IProjectReadRepository projectReadRepository)
     : IRequestHandler<AddProjectProgressCommand, bool>
 {
     public async Task<bool> Handle(AddProjectProgressCommand request, CancellationToken cancellationToken)
@@ -26,7 +27,7 @@ public class AddProjectProgressCommandHandler(IProjectRepository projectReposito
         var projectId = request.Request.ProjectId;
         var userId = request.UserId;
 
-        var project = await projectRepository.GetUserProjectByIdAsync(projectId, userId) ?? throw new KeyNotFoundException("Project not found");
+        var project = await projectReadRepository.GetUserProjectByIdAsync(projectId, userId, cancellationToken) ?? throw new KeyNotFoundException("Project not found");
 
         logger.LogInformation(
             "Project loaded. ProjectId={ProjectId} GoalUnit={GoalUnit} CurrentWordCount={CurrentWordCount}",
@@ -134,7 +135,8 @@ public class AddProjectProgressCommandHandler(IProjectRepository projectReposito
             RemainingWords = remainingWords,
             RemainingPercentage = remainingPercent,
             Date = effectiveDate,
-            Notes = request.Request.Notes
+            Notes = request.Request.Notes,
+            TimeSpentInMinutes = request.Request.Minutes ?? 0
         };
     }
 

@@ -9,24 +9,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Infrastructure.Repositories
 {
-    public class ProjectRepository(AppDbContext context, IDbConnectionFactory connectionFactory, IDbExecutor db) : Repository<Project>(context), IProjectRepository
-
+    public class ProjectRepository(AppDbContext context, IDbConnectionFactory connectionFactory, IDbExecutor db)
+        : Repository<Project>(context), IProjectRepository
     {
-        // public async Task<Project> CreateAsync(Project project)
-        // {
-        //     project.Id = Guid.NewGuid();
-        //     project.CreatedAt = DateTime.UtcNow;
-        //
-        //     await DbSet.AddAsync(project);
-        //     await Context.SaveChangesAsync();
-        //
-        //     return project;
-        // }
+       
         public async Task<Project> CreateAsync(Project project, CancellationToken ct)
         {
             const string sql = @"
@@ -67,11 +59,7 @@ namespace PlanWriter.Infrastructure.Repositories
                     @IsPublic
                 );";
 
-            using var conn = connectionFactory.CreateConnection();
-            if (conn.State != ConnectionState.Open) conn.Open();
-            
             var affected = await db.ExecuteAsync(
-                conn,
                 sql,
                 new
                 {
@@ -91,13 +79,13 @@ namespace PlanWriter.Infrastructure.Repositories
                     project.CoverUpdatedAt,
                     project.IsPublic
                 },
-                transaction: null,
                 ct
             );
 
             return affected != 1 ? throw new InvalidOperationException($"Insert Projects expected 1 row, affected={affected}.") : project;
         }
-        
+
+
         public async Task<IEnumerable<Project>> GetUserProjectsAsync(Guid userId)
         {
             return await DbSet
@@ -112,30 +100,28 @@ namespace PlanWriter.Infrastructure.Repositories
                 .Include(p => p.ProgressEntries)
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         }
-        
-        // public async Task<Project> GetUserProjectByIdAsync(Guid id, Guid userId)
-        // {
-        //     return await DbSet
-        //         .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-        // }
-        
-        public async Task<bool> SetGoalAsync(Guid projectId, Guid userId, int wordCountGoal, DateTime? deadline = null)
+
+      
+
+
+        public async Task<bool> SetGoalAsync(Guid projectId, Guid userId, int goalAmount, DateTime? deadline, CancellationToken ct)
         {
-            var project = await DbSet
-                .FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
+            const string sql = @"
+                UPDATE Projects
+                SET
+                    WordCountGoal = @goalAmount,
+                    GoalAmount    = @goalAmount,
+                    Deadline      = @deadline
+                WHERE Id = @projectId
+                  AND UserId = @userId;
+            ";
 
-            if (project == null)
-                return false;
+            var affected = await db.ExecuteAsync(sql, new { projectId, userId, goalAmount, deadline }, ct);
 
-            project.WordCountGoal = wordCountGoal;
-            project.Deadline = deadline;
-
-            Context.Update(project);
-            await Context.SaveChangesAsync();
-
-            return true;
+            return affected == 1;
         }
-        
+
+
         public async Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, Guid userId)
         {
             var project = await DbSet
@@ -175,27 +161,63 @@ namespace PlanWriter.Infrastructure.Repositories
                 DaysRemaining = daysRemaining
             };
         }
-        
-        public async Task<bool> DeleteProjectAsync(Guid projectId, Guid userId)
+
+        public async Task<bool> DeleteProjectAsync(Guid projectId, Guid userId, CancellationToken ct)
         {
-            var project = await DbSet
-                .Include(p => p.ProgressEntries)
-                .FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
+            using var conn = connectionFactory.CreateConnection();
+            if (conn.State != ConnectionState.Open)
+                conn.Open();
 
-            if (project == null)
-                return false;
+            using var tx = conn.BeginTransaction();
 
-            DbSet.Remove(project);
-            await Context.SaveChangesAsync();
+            try
+            {
+                const string deleteProgressSql = @"
+                    DELETE pp
+                    FROM ProjectProgresses pp
+                    INNER JOIN Projects p ON p.Id = pp.ProjectId
+                    WHERE pp.ProjectId = @ProjectId
+                      AND p.UserId = @UserId;
+                ";
 
-            return true;
+                await conn.ExecuteAsync(new CommandDefinition(deleteProgressSql, new { ProjectId = projectId, UserId = userId }, transaction: tx, cancellationToken: ct));
+
+                const string deleteProjectEventsSql = @"
+                    DELETE pe
+                    FROM ProjectEvents pe
+                    INNER JOIN Projects p ON p.Id = pe.ProjectId
+                    WHERE pe.ProjectId = @ProjectId
+                      AND p.UserId = @UserId;
+                ";
+
+                await conn.ExecuteAsync(new CommandDefinition(deleteProjectEventsSql, new { ProjectId = projectId, UserId = userId }, transaction: tx, cancellationToken: ct));
+
+                const string deleteProjectSql = @"
+                    DELETE FROM Projects
+                    WHERE Id = @ProjectId
+                      AND UserId = @UserId;
+                ";
+
+                var affected = await conn.ExecuteAsync(new CommandDefinition(deleteProjectSql, new { ProjectId = projectId, UserId = userId }, transaction: tx, cancellationToken: ct)
+                );
+
+                tx.Commit();
+                return affected == 1;
+            }
+            catch
+            {
+                try { tx.Rollback(); } catch { /* ignore */ }
+                throw;
+            }
         }
+
+
         public async Task<Project?> GetProjectById(Guid id)
         {
             return await DbSet
-                .FirstOrDefaultAsync(p => p.Id == id) ;
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
-        
+
         public async Task ApplyValidationAsync(Guid projectId, ValidationResultDto res, CancellationToken ct)
         {
             var p = await DbSet.FirstOrDefaultAsync(x => x.Id == projectId, ct)
@@ -207,7 +229,7 @@ namespace PlanWriter.Infrastructure.Repositories
 
             await Context.SaveChangesAsync(ct);
         }
-        
+
         public async Task<(int? goalWords, string? title)> GetGoalAndTitleAsync(Guid projectId, CancellationToken ct)
         {
             var proj = await DbSet
@@ -215,10 +237,13 @@ namespace PlanWriter.Infrastructure.Repositories
                 .Select(p => new { p.WordCountGoal, p.Title })
                 .FirstOrDefaultAsync(ct);
 
-            return proj is null ? throw new KeyNotFoundException("Projeto não encontrado.") : (proj.WordCountGoal, proj.Title);
+            return proj is null
+                ? throw new KeyNotFoundException("Projeto não encontrado.")
+                : (proj.WordCountGoal, proj.Title);
         }
 
-        public async Task SaveValidationAsync(Guid projectId, int words, bool passed, DateTime utcNow, CancellationToken ct)
+        public async Task SaveValidationAsync(Guid projectId, int words, bool passed, DateTime utcNow,
+            CancellationToken ct)
         {
             var proj = await DbSet.FirstOrDefaultAsync(p => p.Id == projectId, ct)
                        ?? throw new KeyNotFoundException("Projeto não encontrado.");
@@ -229,7 +254,7 @@ namespace PlanWriter.Infrastructure.Repositories
 
             await Context.SaveChangesAsync(ct);
         }
-        
+
         public async Task<(int goalAmount, GoalUnit unit)> GetGoalAsync(Guid projectId, CancellationToken ct)
         {
             var row = await DbSet
@@ -246,13 +271,14 @@ namespace PlanWriter.Infrastructure.Repositories
             // ^ ajuste 'UserId' se seu Project usa outro campo para dono
         }
 
-        public async Task UpdateFlexibleGoalAsync(Guid projectId, int goalAmount, GoalUnit unit, DateTime? deadline, CancellationToken ct)
+        public async Task UpdateFlexibleGoalAsync(Guid projectId, int goalAmount, GoalUnit unit, DateTime? deadline,
+            CancellationToken ct)
         {
             var p = await DbSet.FirstOrDefaultAsync(x => x.Id == projectId, ct)
                     ?? throw new KeyNotFoundException("Projeto não encontrado.");
 
             p.GoalAmount = goalAmount;
-            p.GoalUnit   = unit;
+            p.GoalUnit = unit;
             if (deadline.HasValue) p.Deadline = deadline.Value; // ajuste o nome do campo se diferente
 
             await Context.SaveChangesAsync(ct);
@@ -261,78 +287,39 @@ namespace PlanWriter.Infrastructure.Repositories
         public async Task<List<Project>> GetByUserIdAsync(Guid userId)
         {
             return await DbSet
-                .Where(p =>  p.UserId == userId)
+                .Where(p => p.UserId == userId)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<Project>> GetPublicProjectsByUserIdAsync(Guid userId)
         {
             return await DbSet
-                .Where(p =>  p.UserId == userId && p.IsPublic == true)
+                .Where(p => p.UserId == userId && p.IsPublic == true)
                 .ToListAsync();
         }
 
-        public async Task<Project?> GetUserProjectByIdAsync(Guid projectId, Guid userId)
-        {
-            const string sql = @"
-            SELECT TOP 1
-                p.Id,
-                p.UserId,
-                p.Title,
-                p.Description,
-                p.CurrentWordCount,
-                p.WordCountGoal,
-                p.GoalAmount,
-                p.GoalUnit,
-                p.StartDate,
-                p.Deadline,
-                p.Genre,
-                p.CoverUpdatedAt
-            FROM Projects p
-            WHERE p.Id = @projectId
-              AND p.UserId = @userId;
-            ";
-
-            return await connection.QueryFirstOrDefaultAsync<Project>(sql, new { projectId, userId });
-        }
-
-        // public async Task UpdateAsync(Project project)
-        // {
-        //     // aqui atualizo o necessário pro handler
-        //     const string sql = @"
-        //         UPDATE Projects
-        //         SET CurrentWordCount = @CurrentWordCount
-        //         WHERE Id = @Id;
-        //         ";
-        //
-        //     await connection.ExecuteAsync(sql, new { project.Id, project.CurrentWordCount });
-        // }
-        
         public async Task UpdateAsync(Project project, CancellationToken ct)
         {
-            // 🔐 Ownership garantido pelo WHERE UserId
             const string sql = @"
                 UPDATE Projects
                 SET
-                    Title               = @Title,
-                    Description         = @Description,
-                    Genre               = @Genre,
-                    WordCountGoal       = @WordCountGoal,
-                    GoalAmount          = @GoalAmount,
-                    GoalUnit            = @GoalUnit,
-                    StartDate           = @StartDate,
-                    Deadline            = @Deadline,
-                    CurrentWordCount    = @CurrentWordCount,
-                    CoverUpdatedAt      = @CoverUpdatedAt
-                WHERE Id = @Id
-                  AND UserId = @UserId;
-                ";
+                    Title = @Title,
+                    Description = @Description,
+                    Genre = @Genre,
+                    WordCountGoal = @WordCountGoal,
+                    GoalAmount = @GoalAmount,
+                    GoalUnit = @GoalUnit,
+                    StartDate = @StartDate,
+                    Deadline = @Deadline,
+                    CurrentWordCount = @CurrentWordCount,
+                    CoverBytes = @CoverBytes,
+                    CoverUpdatedAt = @CoverUpdatedAt,
+                    IsPublic = @IsPublic
+                WHERE
+                    Id = @Id
+                    AND UserId = @UserId;";
 
-            using var conn = connectionFactory.CreateConnection();
-            if (conn.State != ConnectionState.Open) conn.Open();
-            
             var affected = await db.ExecuteAsync(
-                conn,
                 sql,
                 new
                 {
@@ -351,14 +338,12 @@ namespace PlanWriter.Infrastructure.Repositories
                     project.CoverUpdatedAt,
                     project.IsPublic
                 },
-                transaction: null,
                 ct
             );
 
-            if (affected == 0)
-            {
-                throw new InvalidOperationException("Project not found or not owned by user.");
-            }
+            if (affected != 1)
+                throw new InvalidOperationException($"Update Projects expected 1 row, affected={affected}.");
         }
+
     }
 }

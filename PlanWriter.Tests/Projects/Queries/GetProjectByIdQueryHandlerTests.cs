@@ -4,8 +4,10 @@ using Moq;
 using PlanWriter.Application.Projects.Dtos.Queries;
 using PlanWriter.Application.Projects.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 using Xunit;
 
@@ -35,7 +37,7 @@ public class GetProjectByIdQueryHandlerTests
         };
 
         _projectRepositoryMock
-            .Setup(r => r.GetProjectByIdAsync(projectId, userId))
+            .Setup(r => r.GetProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(project);
 
         var handler = CreateHandler();
@@ -60,7 +62,7 @@ public class GetProjectByIdQueryHandlerTests
         var projectId = Guid.NewGuid();
 
         _projectRepositoryMock
-            .Setup(r => r.GetProjectByIdAsync(projectId, userId))
+            .Setup(r => r.GetProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ProjectDto?)null);
 
         var handler = CreateHandler();
@@ -91,7 +93,7 @@ public class GetProjectByIdQueryHandlerTests
         };
 
         _projectRepositoryMock
-            .Setup(r => r.GetProjectByIdAsync(projectId, userId))
+            .Setup(r => r.GetProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(project);
 
         var handler = CreateHandler();

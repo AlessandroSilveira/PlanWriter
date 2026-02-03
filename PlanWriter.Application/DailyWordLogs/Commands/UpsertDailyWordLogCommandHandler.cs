@@ -4,49 +4,43 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.DailyWordLogs.Dtos.Commands;
-using PlanWriter.Application.Interfaces;
-using PlanWriter.Domain.Entities;
-using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.ReadModels.DailyWordLogWrite;
+using PlanWriter.Domain.Interfaces.Repositories.DailyWordLogWrite;
 
 namespace PlanWriter.Application.DailyWordLogs.Commands;
 
-public class UpsertDailyWordLogCommandHandler(IUserService userService, IDailyWordLogRepository dailyWordLogRepository,
-    ILogger<UpsertDailyWordLogCommandHandler> logger)
-    : IRequestHandler<UpsertDailyWordLogCommand, Unit>
+public class UpsertDailyWordLogCommandHandler(IDailyWordLogWriteRepository writeRepository, ILogger<UpsertDailyWordLogCommandHandler> logger
+) : IRequestHandler<UpsertDailyWordLogCommand, Unit>
 {
-
-    public async Task<Unit> Handle(UpsertDailyWordLogCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(UpsertDailyWordLogCommand request, CancellationToken ct)
     {
-        var userId = userService.GetUserId(request.User);
+        Validate(request);
 
-        var existing = await dailyWordLogRepository
-            .GetByProjectAndDateAsync(request.Req.ProjectId, request.Req.Date, userId);
+        logger.LogInformation(
+            "Upserting DailyWordLog. ProjectId={ProjectId} UserId={UserId} Date={Date} Words={WordsWritten}",
+            request.Req.ProjectId,
+            request.UserId,
+            request.Req.Date,
+            request.Req.WordsWritten
+        );
 
-        if (existing is null)
-            await InsertAsync(request, userId);
-        else
-            await UpdateAsync(existing, request.Req.WordsWritten);
+        await writeRepository.UpsertAsync(request.Req.ProjectId, request.UserId, request.Req.Date, request.Req.WordsWritten, ct);
 
         return Unit.Value;
     }
-    
-    private Task InsertAsync(UpsertDailyWordLogCommand request, Guid userId)
-    {
-        var log = new DailyWordLog
-        {
-            Id = Guid.NewGuid(),
-            ProjectId = request.Req.ProjectId,
-            UserId = userId,
-            Date = request.Req.Date,
-            WordsWritten = request.Req.WordsWritten
-        };
 
-        return dailyWordLogRepository.AddAsync(log);
-    }
-
-    private Task UpdateAsync(DailyWordLog existing, int wordsWritten)
+    private static void Validate(UpsertDailyWordLogCommand request)
     {
-        existing.WordsWritten = wordsWritten;
-        return dailyWordLogRepository.UpdateAsync(existing);
+        if (request.UserId == Guid.Empty)
+            throw new InvalidOperationException("UserId inválido.");
+
+        if (request.Req.ProjectId == Guid.Empty)
+            throw new InvalidOperationException("ProjectId inválido.");
+
+        if (request.Req.WordsWritten < 0)
+            throw new InvalidOperationException("WordsWritten não pode ser negativo.");
+
+        if (request.Req.Date == default)
+            throw new InvalidOperationException("Date inválida.");
     }
 }

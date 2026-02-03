@@ -1,3 +1,5 @@
+using PlanWriter.Domain.Dtos.Projects;
+
 namespace PlanWriter.Domain.Dtos;
 
 public record PublicProfileDto(

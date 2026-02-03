@@ -7,12 +7,13 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Buddies.Dtos.Queries;
 using PlanWriter.Domain.Dtos.Buddies;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Buddies.Queries;
 
 public class BuddiesLeaderboardQueryHandler(IUserFollowRepository userFollowRepository, IUserRepository userRepository,
-    IProjectProgressRepository projectProgressRepository, ILogger<BuddiesLeaderboardQueryHandler> logger
+    IProjectProgressRepository projectProgressRepository, ILogger<BuddiesLeaderboardQueryHandler> logger, IProjectProgressReadRepository projectProgressReadRepository
 ) : IRequestHandler<BuddiesLeaderboardQuery, List<BuddyLeaderboardRowDto>>
 {
     public async Task<List<BuddyLeaderboardRowDto>> Handle(BuddiesLeaderboardQuery request, CancellationToken cancellationToken)
@@ -23,7 +24,7 @@ public class BuddiesLeaderboardQueryHandler(IUserFollowRepository userFollowRepo
 
         var buddyIds = await GetBuddyIdsAsync(request.UserId, cancellationToken);
 
-        var totals = await projectProgressRepository
+        var totals = await projectProgressReadRepository
             .GetTotalWordsByUsersAsync(buddyIds, startDate, endDate);
 
         var myTotal = GetTotalForUser(totals, request.UserId);

@@ -4,6 +4,7 @@ using Moq;
 using PlanWriter.Application.Buddies.Dtos.Queries;
 using PlanWriter.Application.Buddies.Queries;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -15,6 +16,7 @@ public class BuddiesLeaderboardQueryHandlerTests
     private readonly Mock<IUserRepository> _userRepositoryMock = new();
     private readonly Mock<IProjectProgressRepository> _projectProgressRepositoryMock = new();
     private readonly Mock<ILogger<BuddiesLeaderboardQueryHandler>> _loggerMock = new();
+    private readonly Mock<IProjectProgressReadRepository> _progressReadRepo = new();
 
     [Fact]
     public async Task Handle_ShouldReturnLeaderboard_WithTotalsAndPaceDelta()
@@ -37,7 +39,7 @@ public class BuddiesLeaderboardQueryHandlerTests
             { buddy, 1500 }
         };
 
-        _projectProgressRepositoryMock
+        _progressReadRepo
             .Setup(r => r.GetTotalWordsByUsersAsync(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<DateTime>(),
@@ -95,7 +97,7 @@ public class BuddiesLeaderboardQueryHandlerTests
             { me, 800 }
         };
 
-        _projectProgressRepositoryMock
+        _progressReadRepo
             .Setup(r => r.GetTotalWordsByUsersAsync(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<DateTime>(),
@@ -152,7 +154,7 @@ public class BuddiesLeaderboardQueryHandlerTests
             { me, 500 }
         };
 
-        _projectProgressRepositoryMock
+        _progressReadRepo
             .Setup(r => r.GetTotalWordsByUsersAsync(
                 It.IsAny<List<Guid>>(),
                 It.IsAny<DateTime>(),
@@ -186,7 +188,8 @@ public class BuddiesLeaderboardQueryHandlerTests
             _userFollowRepositoryMock.Object,
             _userRepositoryMock.Object,
             _projectProgressRepositoryMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+        _progressReadRepo.Object
         );
     }
 }

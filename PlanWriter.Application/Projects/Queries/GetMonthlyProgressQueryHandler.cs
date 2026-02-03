@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Projects.Dtos.Queries;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 
 namespace PlanWriter.Application.Projects.Queries;
 

@@ -6,14 +6,16 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Projects.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 
 namespace PlanWriter.Application.Projects.Queries;
 
 public class GetProjectProgressHistoryQueryHandler(ILogger<GetProjectProgressHistoryQueryHandler> logger, IProjectProgressReadRepository projectProgressReadRepository)
-    : IRequestHandler<GetProjectProgressHistoryQuery, IEnumerable<ProgressHistoryDto>>
+    : IRequestHandler<GetProjectProgressHistoryQuery, IReadOnlyList<ProgressHistoryDto>>
 {
-    public async Task<IEnumerable<ProgressHistoryDto>> Handle(GetProjectProgressHistoryQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ProgressHistoryDto>> Handle(GetProjectProgressHistoryQuery request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Getting progress history for project {ProjectId} and user {UserId}", request.ProjectId, request.UserId);
 

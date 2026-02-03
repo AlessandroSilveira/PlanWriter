@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 
@@ -11,12 +12,10 @@ namespace PlanWriter.Domain.Interfaces.Repositories
     public interface IProjectRepository: IRepository<Project>
     {
         Task<Project> CreateAsync(Project project, CancellationToken ct);
-        Task<IEnumerable<Project>> GetUserProjectsAsync(Guid userId);
         Task<Project> GetProjectWithProgressAsync(Guid id, Guid userId);
-        Task<Project?> GetUserProjectByIdAsync(Guid id, Guid userId);
-        Task<bool> SetGoalAsync(Guid projectId, Guid userId, int wordCountGoal, DateTime? deadline = null);
+        Task<bool> SetGoalAsync(Guid projectId, Guid userId, int wordCountGoal, DateTime? deadline = null, CancellationToken ct = default);
         Task<ProjectStatisticsDto> GetStatisticsAsync(Guid projectId, Guid userId);
-        Task<bool> DeleteProjectAsync(Guid projectId, Guid userId);
+        Task<bool> DeleteProjectAsync(Guid projectId, Guid userId, CancellationToken ct = default);
         Task<Project?> GetProjectById(Guid id);
         Task ApplyValidationAsync(Guid projectId, ValidationResultDto res, CancellationToken ct);
         Task<(int? goalWords, string? title)> GetGoalAndTitleAsync(Guid projectId, CancellationToken ct);
@@ -26,9 +25,7 @@ namespace PlanWriter.Domain.Interfaces.Repositories
         Task UpdateFlexibleGoalAsync(Guid projectId, int goalAmount, GoalUnit unit, DateTime? deadline, CancellationToken ct);
         Task<List<Project>> GetByUserIdAsync(Guid userId);
         Task<IEnumerable<Project>> GetPublicProjectsByUserIdAsync(Guid userId);
-       
-       
-        Task UpdateAsync(Project project);
+        Task UpdateAsync(Project project, CancellationToken ct);
     }
         
 

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Buddies;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.Data;
 

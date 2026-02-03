@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -12,15 +13,39 @@ public class SetGoalProjectCommandHandler(ILogger<SetGoalProjectCommandHandler> 
 {
     public async Task<bool> Handle(SetGoalProjectCommand request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Setting goal for project {ProjectId} by user {UserId}", request.ProjectId, request.UserId);
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.Request is null) throw new ArgumentNullException(nameof(request.Request));
 
-        var goalAmount = request.Request.GoalAmount;
-        var deadline = request.Request.Deadline;
+        logger.LogInformation(
+            "Setting goal for project. ProjectId={ProjectId} UserId={UserId} GoalAmount={GoalAmount} Deadline={Deadline}",
+            request.ProjectId, request.UserId, request.Request.GoalAmount, request.Request.Deadline);
 
-        var result = await projectRepository.SetGoalAsync(request.ProjectId, request.UserId, goalAmount, deadline);
+        Validate(request);
 
-        logger.LogInformation("Goal set result for project {ProjectId}: {Result}", request.ProjectId, result);
+        var updated = await projectRepository.SetGoalAsync(request.ProjectId, request.UserId, request.Request.GoalAmount,
+            request.Request.Deadline, cancellationToken);
 
-        return result;
+        if (updated)
+        {
+            logger.LogInformation("Goal updated successfully. ProjectId={ProjectId} UserId={UserId}",
+                request.ProjectId, request.UserId);
+        }
+        else
+        {
+            logger.LogWarning("Goal update failed (project not found or not owned by user). ProjectId={ProjectId} UserId={UserId}",
+                request.ProjectId, request.UserId);
+        }
+
+        return updated;
+    }
+
+    private static void Validate(SetGoalProjectCommand request)
+    {
+        if (request.Request.GoalAmount <= 0)
+            throw new InvalidOperationException("GoalAmount must be greater than zero.");
+
+        //opcional (se quiser): não permitir deadline no passado
+        if (request.Request.Deadline.HasValue && request.Request.Deadline.Value.Date < DateTime.UtcNow.Date)
+            throw new InvalidOperationException("Deadline cannot be in the past.");
     }
 }

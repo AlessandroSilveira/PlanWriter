@@ -11,6 +11,7 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.ReadModels;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 
 namespace PlanWriter.Application.Projects.Queries;
@@ -22,7 +23,7 @@ public class GetProjectStatsQueryHandler(ILogger<GetProjectStatsQueryHandler> lo
     {
         logger.LogInformation("Getting stats for project {ProjectId} and user {UserId}", request.ProjectId, request.UserId);
         var project =
-            await projectRepository.GetProjectByIdAsync(request.ProjectId, request.UserId);
+            await projectRepository.GetProjectByIdAsync(request.ProjectId, request.UserId,cancellationToken);
 
         if (project is null)
             return null;
@@ -33,7 +34,7 @@ public class GetProjectStatsQueryHandler(ILogger<GetProjectStatsQueryHandler> lo
         var endDate = project.Deadline?.Date;
         var daysTotal = ResolveTotalDays(startDate, endDate);
 
-        var dailyProgress = (await projectProgressRepository.GetProgressByDayAsync(request.ProjectId, request.UserId))
+        var dailyProgress = (await projectProgressRepository.GetProgressByDayAsync(request.ProjectId, request.UserId, cancellationToken))
             .ToList();
 
         if (!dailyProgress.Any())
