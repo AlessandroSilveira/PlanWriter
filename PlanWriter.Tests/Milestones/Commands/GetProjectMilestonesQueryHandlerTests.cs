@@ -123,8 +123,6 @@ public class GetProjectMilestonesQueryHandlerTests
         return new GetProjectMilestonesQueryHandler(
             _loggerMock.Object, 
             _milestonesReadRepositoryMock.Object, 
-            _projectRepositoryMock.Object, 
-            
             _projectReadRepositoryMock.Object
             );
     }

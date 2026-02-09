@@ -24,7 +24,7 @@ public class DeleteMilestoneCommandHandlerTests
         var projectId = Guid.NewGuid();
 
         _milestonesRepositoryMock
-            .Setup(r => r.DeleteAsync(milestoneId, userId))
+            .Setup(r => r.DeleteAsync(milestoneId, userId, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
@@ -37,7 +37,7 @@ public class DeleteMilestoneCommandHandlerTests
         result.Should().Be(Unit.Value);
 
         _milestonesRepositoryMock.Verify(
-            r => r.DeleteAsync(milestoneId, userId),
+            r => r.DeleteAsync(milestoneId, userId, It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -52,7 +52,7 @@ public class DeleteMilestoneCommandHandlerTests
         var ct = CancellationToken.None;
 
         _milestonesRepositoryMock
-            .Setup(r => r.DeleteAsync(milestoneId, userId))
+            .Setup(r => r.DeleteAsync(milestoneId, userId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("DB error"));
 
         var handler = CreateHandler();

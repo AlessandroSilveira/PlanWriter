@@ -7,7 +7,9 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -20,6 +22,9 @@ public class JoinEventCommandHandlerTests
     private readonly Mock<IProjectEventsRepository> _projectEventsRepositoryMock = new();
     private readonly Mock<IProjectEventsReadRepository> _projectEventsReadRepositoryMock = new();
     private readonly Mock<ILogger<JoinEventCommandHandler>> _loggerMock = new();
+    private readonly Mock<IEventReadRepository> _eventReadRepositoryMock = new();
+    private readonly Mock<IProjectReadRepository> _projectReadRepositoryMock = new();
+    
 
     [Fact]
     public async Task Handle_ShouldCreateProjectEvent_WhenNotAlreadyJoined()
@@ -235,7 +240,9 @@ public class JoinEventCommandHandlerTests
             _projectRepositoryMock.Object,
             _projectEventsRepositoryMock.Object,
             _projectEventsReadRepositoryMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _eventReadRepositoryMock.Object,
+            _projectReadRepositoryMock.Object
         );
     }
 

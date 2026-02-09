@@ -168,9 +168,11 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var cancellationToken = new CancellationToken();
+    var usersRead = scope.ServiceProvider.GetRequiredService<IUserReadRepository>();
     var users = scope.ServiceProvider.GetRequiredService<IUserRepository>();
     var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
-    var admin = await users.GetByEmailAsync("admin@admin.com");
+    var admin = await usersRead.GetByEmailAsync("admin@admin.com", cancellationToken);
 
     if (admin == null)
     {
@@ -186,7 +188,7 @@ using (var scope = app.Services.CreateScope())
             hasher.HashPassword(user, "admin")
         );
         user.MakeAdmin();
-        await users.AddAsync(user);
+        await users.CreateAsync(user, cancellationToken);
     }
 }
 

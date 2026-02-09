@@ -3,6 +3,7 @@ using Moq;
 using PlanWriter.Application.Milestones.Handlers;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -11,9 +12,10 @@ namespace PlanWriter.Tests.Milestones.Handlers;
 public class CompleteMilestonesOnProgressHandlerTests
 {
     private readonly Mock<IMilestonesRepository> _repo = new();
+    private readonly Mock<IMilestonesReadRepository> _milestonesReadRepository = new();
 
     private CompleteMilestonesOnProgressHandler CreateHandler()
-        => new(_repo.Object);
+        => new( _milestonesReadRepository.Object, _repo.Object);
 
     [Fact]
     public async Task Handle_ShouldCompleteMilestones_WhenTargetReached()
@@ -27,8 +29,7 @@ public class CompleteMilestonesOnProgressHandlerTests
             Completed = false
         };
 
-        _repo.Setup(r => r.GetByProjectIdAsync(projectId))
-            .ReturnsAsync(new List<Milestone> { milestone });
+  
 
         _repo.Setup(r => r.UpdateAsync(milestone, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
