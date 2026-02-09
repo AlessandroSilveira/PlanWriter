@@ -9,6 +9,7 @@ using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 using GetActiveEventsQueryHandler = PlanWriter.Application.AdminEvents.Queries.GetActiveEventsQueryHandler;
+using IEventReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Events.IEventReadRepository;
 
 namespace PlanWriter.Tests.Events.Queries;
 

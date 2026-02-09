@@ -3,24 +3,33 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.Profile.Commands;
 using PlanWriter.Application.Profile.Dtos.Commands;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Requests;
 using Xunit;
+using System.Threading;
 
 namespace PlanWriter.Tests.Profile.Commands;
 
 public class UpdateProfileCommandHandlerTests
 {
+    private readonly Mock<IUserReadRepository> _userReadRepositoryMock = new();
     private readonly Mock<IUserRepository> _userRepositoryMock = new();
     private readonly Mock<IProjectRepository> _projectRepositoryMock = new();
+    private readonly Mock<IProjectReadRepository> _projectReadRepositoryMock = new();
     private readonly Mock<ILogger<UpdateProfileCommandHandler>> _loggerMock = new();
+    
 
     private UpdateProfileCommandHandler CreateHandler()
         => new(
+            _userReadRepositoryMock.Object,
             _userRepositoryMock.Object,
             _projectRepositoryMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _projectReadRepositoryMock.Object
         );
 
     [Fact]
@@ -28,6 +37,8 @@ public class UpdateProfileCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        
 
         var user = new User
         {
@@ -39,17 +50,17 @@ public class UpdateProfileCommandHandlerTests
             IsProfilePublic = false
         };
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         _userRepositoryMock
-            .Setup(r => r.UpdateAsync(user))
+            .Setup(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _projectRepositoryMock
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(new List<Project>());
+        _projectReadRepositoryMock
+            .Setup(r => r.GetUserProjectsAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(It.IsAny<IReadOnlyList<ProjectDto>>());
 
         var command = new UpdateProfileCommand(
             userId,
@@ -77,7 +88,7 @@ public class UpdateProfileCommandHandlerTests
         result.DisplayName.Should().Be("New Name");
 
         _userRepositoryMock.Verify(
-            r => r.UpdateAsync(user),
+            r => r.UpdateAsync(user, It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -95,21 +106,21 @@ public class UpdateProfileCommandHandlerTests
             Slug = null
         };
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
-        _userRepositoryMock
-            .Setup(r => r.SlugExistsAsync(It.IsAny<string>(), userId))
+        _userReadRepositoryMock
+            .Setup(r => r.SlugExistsAsync(It.IsAny<string>(), userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
         _userRepositoryMock
-            .Setup(r => r.UpdateAsync(user))
+            .Setup(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _projectRepositoryMock
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(new List<Project>());
+        _projectReadRepositoryMock
+            .Setup(r => r.GetUserProjectsAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(It.IsAny<IReadOnlyList<ProjectDto>>());
 
         var command = new UpdateProfileCommand(
             userId,
@@ -140,8 +151,8 @@ public class UpdateProfileCommandHandlerTests
 
         var user = new User { Id = userId };
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         var command = new UpdateProfileCommand(
@@ -173,12 +184,12 @@ public class UpdateProfileCommandHandlerTests
 
         var user = new User { Id = userId };
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
-        _userRepositoryMock
-            .Setup(r => r.SlugExistsAsync("meu-slug", userId))
+        _userReadRepositoryMock
+            .Setup(r => r.SlugExistsAsync("meu-slug", userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var command = new UpdateProfileCommand(
@@ -211,23 +222,27 @@ public class UpdateProfileCommandHandlerTests
 
         var user = new User { Id = userId };
 
-        var project1 = new Project { Id = Guid.NewGuid(), UserId = userId, IsPublic = false };
-        var project2 = new Project { Id = Guid.NewGuid(), UserId = userId, IsPublic = true };
+        var project1 = new ProjectDto { Id = Guid.NewGuid() };
+        var project2 = new ProjectDto { Id = Guid.NewGuid() };
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         _userRepositoryMock
-            .Setup(r => r.UpdateAsync(user))
+            .Setup(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _projectRepositoryMock
-            .Setup(r => r.GetByUserIdAsync(userId))
-            .ReturnsAsync(new List<Project> { project1, project2 });
+        _projectReadRepositoryMock
+            .Setup(r => r.GetUserProjectsAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                project1,
+                project2
+            });
 
         _projectRepositoryMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Project>()))
+            .Setup(r => r.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var command = new UpdateProfileCommand(
@@ -245,30 +260,35 @@ public class UpdateProfileCommandHandlerTests
         var handler = CreateHandler();
 
         // Act
-        var result = await handler.Handle(command, CancellationToken.None);
+        await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        project1.IsPublic.Should().BeTrue();
-        project2.IsPublic.Should().BeFalse();
 
         _projectRepositoryMock.Verify(
-            r => r.UpdateAsync(project1),
+            r => r.UpdateAsync(It.Is<Project>(p =>
+                p.Id == project1.Id &&
+                p.IsPublic == true
+            ), It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _projectRepositoryMock.Verify(
-            r => r.UpdateAsync(project2),
+            r => r.UpdateAsync(It.Is<Project>(p =>
+                p.Id == project2.Id &&
+                p.IsPublic == false
+            ), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
+
 
     [Fact]
     public async Task Handle_ShouldThrow_WhenUserDoesNotExist()
     {
         var userId = Guid.NewGuid();
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
         var command = new UpdateProfileCommand(

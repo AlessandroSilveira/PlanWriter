@@ -54,7 +54,7 @@ public class AddProjectProgressCommandHandler(IProjectRepository projectReposito
         var progressEntity = CreateProgressEntity(project, request, newTotal);
 
         await projectProgressRepository.AddProgressAsync(progressEntity, cancellationToken);
-        await projectRepository.UpdateAsync(project);
+        await projectRepository.UpdateAsync(project, cancellationToken);
 
         logger.LogInformation("Progress persisted. ProgressId={ProgressId} ProjectId={ProjectId}",
             progressEntity.Id, projectId);

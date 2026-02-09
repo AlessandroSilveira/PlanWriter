@@ -5,6 +5,7 @@ using PlanWriter.Application.Buddies.Dtos.Queries;
 using PlanWriter.Application.Buddies.Queries;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -14,6 +15,7 @@ public class BuddiesLeaderboardQueryHandlerTests
 {
     private readonly Mock<IUserFollowRepository> _userFollowRepositoryMock = new();
     private readonly Mock<IUserRepository> _userRepositoryMock = new();
+    private readonly Mock<IUserReadRepository> _userReadRepositoryMock = new();
     private readonly Mock<IProjectProgressRepository> _projectProgressRepositoryMock = new();
     private readonly Mock<ILogger<BuddiesLeaderboardQueryHandler>> _loggerMock = new();
     private readonly Mock<IProjectProgressReadRepository> _progressReadRepo = new();
@@ -46,8 +48,8 @@ public class BuddiesLeaderboardQueryHandlerTests
                 It.IsAny<DateTime>()))
             .ReturnsAsync(totals);
 
-        _userRepositoryMock
-            .Setup(r => r.GetUsersByIdsAsync(It.IsAny<List<Guid>>()))
+        _userReadRepositoryMock
+            .Setup(r => r.GetUsersByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<User>
             {
                 new User { Id = me, FirstName = "Me", LastName = "User", DisplayName = "Me" },
@@ -104,8 +106,8 @@ public class BuddiesLeaderboardQueryHandlerTests
                 It.IsAny<DateTime>()))
             .ReturnsAsync(totals);
 
-        _userRepositoryMock
-            .Setup(r => r.GetUsersByIdsAsync(It.IsAny<List<Guid>>()))
+        _userReadRepositoryMock
+            .Setup(r => r.GetUsersByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<User>
             {
                 new User { Id = me, FirstName = "Me", LastName = "User", DisplayName = "Me" },
@@ -161,8 +163,8 @@ public class BuddiesLeaderboardQueryHandlerTests
                 It.IsAny<DateTime>()))
             .ReturnsAsync(totals);
 
-        _userRepositoryMock
-            .Setup(r => r.GetUsersByIdsAsync(It.IsAny<List<Guid>>()))
+        _userReadRepositoryMock
+            .Setup(r => r.GetUsersByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<User>
             {
                 new User { Id = me, FirstName = "Me", LastName = "User", DisplayName = "Me" }
@@ -186,10 +188,9 @@ public class BuddiesLeaderboardQueryHandlerTests
     {
         return new BuddiesLeaderboardQueryHandler(
             _userFollowRepositoryMock.Object,
-            _userRepositoryMock.Object,
-            _projectProgressRepositoryMock.Object,
+            _userReadRepositoryMock.Object,
             _loggerMock.Object,
-        _progressReadRepo.Object
+            _progressReadRepo.Object
         );
     }
 }

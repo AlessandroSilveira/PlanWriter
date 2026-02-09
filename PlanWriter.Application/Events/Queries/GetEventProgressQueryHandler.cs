@@ -8,20 +8,25 @@ using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Events.Queries;
 
-public class GetEventProgressQueryHandler(IProjectEventsRepository projectEventsRepository,
-    IProjectProgressRepository projectProgressRepository, ILogger<GetEventProgressQueryHandler> logger)
+public class GetEventProgressQueryHandler(
+    IProjectEventsRepository projectEventsRepository,
+    IProjectProgressRepository projectProgressRepository, 
+    ILogger<GetEventProgressQueryHandler> logger, 
+    IProjectEventsReadRepository projectEventsReadRepository)
     : IRequestHandler<GetEventProgressQuery, EventProgressDto?>
 {
     public async Task<EventProgressDto?> Handle(GetEventProgressQuery request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Getting event progress for project {ProjectId} and event {EventId}", request.ProjectId, request.EventId);
 
-        var projectEvent = await projectEventsRepository
-            .GetProjectEventByProjectIdAndEventId(request.ProjectId, request.EventId) 
+        var projectEvent = await projectEventsReadRepository
+            .GetByProjectAndEventWithEventAsync(request.ProjectId, request.EventId, cancellationToken) 
                            ?? throw new KeyNotFoundException("Inscrição do projeto no evento não encontrada.");
 
         var ev = projectEvent.Event!;
@@ -51,11 +56,11 @@ public class GetEventProgressQueryHandler(IProjectEventsRepository projectEvents
 
     private async Task<int> GetTotalWordsInEventAsync(Guid projectId, Domain.Events.Event ev)
     {
-        var entries = await projectProgressRepository.FindAsync(w =>
-            w.ProjectId == projectId &&
-            w.CreatedAt >= ev.StartsAtUtc &&
-            w.CreatedAt < ev.EndsAtUtc
-        );
+        var entries = await projectProgressRepository.GetByProjectAndDateRangeAsync(
+            projectId,
+            ev.StartsAtUtc,
+            ev.EndsAtUtc,
+            cancellationToken);
 
         return entries.Sum(w => w.WordsWritten);
     }

@@ -7,7 +7,9 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -15,23 +17,22 @@ namespace PlanWriter.Tests.Profile.Queries;
 
 public class GetPublicProfileQueryHandlerTests
 {
-    private readonly Mock<IUserRepository> _userRepositoryMock = new();
+    private readonly Mock<IUserReadRepository> _userReadRepositoryMock = new();
     private readonly Mock<IEventRepository> _eventRepositoryMock = new();
     private readonly Mock<IProjectRepository> _projectRepositoryMock = new();
     private readonly Mock<IProjectEventsRepository> _projectEventsRepositoryMock = new();
-    private readonly Mock<IProjectProgressRepository> _projectProgressRepositoryMock = new();
     private readonly Mock<ILogger<GetPublicProfileQueryHandler>> _loggerMock = new();
     private readonly Mock<IProjectProgressReadRepository> _projectProgressReadRepositoryMock = new();
+    private readonly Mock<IProjectEventsReadRepository> _projectEventsReadRepositoryMock = new();
 
     private GetPublicProfileQueryHandler CreateHandler()
         => new(
-            _userRepositoryMock.Object,
+            _userReadRepositoryMock.Object,
             _eventRepositoryMock.Object,
             _projectRepositoryMock.Object,
-            _projectEventsRepositoryMock.Object,
-            _projectProgressRepositoryMock.Object,
             _loggerMock.Object,
-            _projectProgressReadRepositoryMock.Object
+            _projectProgressReadRepositoryMock.Object,
+            _projectEventsReadRepositoryMock.Object
         );
 
     [Fact]
@@ -79,8 +80,8 @@ public class GetPublicProfileQueryHandlerTests
             TargetWords = 50000
         };
 
-        _userRepositoryMock
-            .Setup(r => r.GetBySlugAsync(slug))
+        _userReadRepositoryMock
+            .Setup(r => r.GetBySlugAsync(slug, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         _eventRepositoryMock
@@ -92,7 +93,7 @@ public class GetPublicProfileQueryHandlerTests
             .ReturnsAsync(new List<Project> { project });
 
         _projectEventsRepositoryMock
-            .Setup(r => r.GetProjectEventByProjectIdAndEventId(project.Id, activeEvent.Id))
+            .Setup(r => r.GetByProjectAndEventAsync(project.Id, activeEvent.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         _projectProgressReadRepositoryMock
@@ -105,10 +106,9 @@ public class GetPublicProfileQueryHandlerTests
                 { userId, 20000 }
             });
 
-        _projectEventsRepositoryMock
-            .Setup(r => r.GetMostRecentWinByUserIdAsync(userId))
-            .ReturnsAsync((ProjectEvent?)null);
-
+        
+        
+       
         var handler = CreateHandler();
         var query = new GetPublicProfileQuery(slug);
 
@@ -138,8 +138,8 @@ public class GetPublicProfileQueryHandlerTests
             IsProfilePublic = false
         };
 
-        _userRepositoryMock
-            .Setup(r => r.GetBySlugAsync("private-user"))
+        _userReadRepositoryMock
+            .Setup(r => r.GetBySlugAsync("private-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         var handler = CreateHandler();
@@ -156,8 +156,8 @@ public class GetPublicProfileQueryHandlerTests
     [Fact]
     public async Task Handle_ShouldThrow_WhenUserDoesNotExist()
     {
-        _userRepositoryMock
-            .Setup(r => r.GetBySlugAsync("unknown"))
+        _userReadRepositoryMock
+            .Setup(r => r.GetBySlugAsync("unknown", It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
         var handler = CreateHandler();
@@ -186,8 +186,8 @@ public class GetPublicProfileQueryHandlerTests
 
         var winEvent = new Event { Name = "NaNoWriMo" };
 
-        _userRepositoryMock
-            .Setup(r => r.GetBySlugAsync(slug))
+        _userReadRepositoryMock
+            .Setup(r => r.GetBySlugAsync(slug, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         _eventRepositoryMock
@@ -198,12 +198,7 @@ public class GetPublicProfileQueryHandlerTests
             .Setup(r => r.GetPublicProjectsByUserIdAsync(userId))
             .ReturnsAsync(new List<Project>());
 
-        _projectEventsRepositoryMock
-            .Setup(r => r.GetMostRecentWinByUserIdAsync(userId))
-            .ReturnsAsync(new ProjectEvent
-            {
-                Event = winEvent
-            });
+      
 
         var handler = CreateHandler();
         var query = new GetPublicProfileQuery(slug);

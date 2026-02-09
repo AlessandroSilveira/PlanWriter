@@ -6,13 +6,14 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Profile.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Profile.Queries;
 
 public class GetMineProfileQueryHandler(
     ILogger<GetMineProfileQueryHandler> logger,
-    IUserRepository userRepository,
+    IUserReadRepository userReadRepository,
     IProjectRepository projectRepository)
     : IRequestHandler<GetMineProfileQuery, MyProfileDto>
 {
@@ -20,10 +21,10 @@ public class GetMineProfileQueryHandler(
     {
         logger.LogInformation("Getting profile for user {UserId}", request.UserId);
 
-        var user = await userRepository.GetByIdAsync(request.UserId)
+        var user = await userReadRepository.GetByIdAsync(request.UserId, cancellationToken)
             ?? throw new InvalidOperationException("Usuário não encontrado.");
 
-        var allProjects = await projectRepository.GetAllAsync();
+        var allProjects = await projectRepository.GetAllAsync(cancellationToken);
 
         var publicProjectIds = allProjects
             .Where(project =>

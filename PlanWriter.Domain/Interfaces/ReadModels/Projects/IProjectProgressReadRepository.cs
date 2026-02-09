@@ -16,7 +16,7 @@ public interface IProjectProgressReadRepository
     Task<ProgressRow?> GetByIdAsync(Guid progressId, Guid userId, CancellationToken ct);
     Task<int> GetLastTotalBeforeAsync(Guid projectId, Guid userId, DateTime date, CancellationToken ct);
     Task<IReadOnlyList<ProgressHistoryRow>> GetProgressHistoryAsync(Guid projectId, Guid userId, CancellationToken ct);
-    Task<IEnumerable<ProjectProgress>> GetProgressByProjectIdAsync(Guid projectId, Guid userId);
+    Task<IReadOnlyList<ProjectProgress>> GetProgressByProjectIdAsync(Guid projectId, Guid userId, CancellationToken ct);
     
     Task<List<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, Guid userId);
     //Task<ProjectProgress> GetLastProgressBeforeAsync(Guid projectId, DateTime date);

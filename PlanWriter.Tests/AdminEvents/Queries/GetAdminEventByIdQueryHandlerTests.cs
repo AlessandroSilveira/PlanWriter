@@ -34,12 +34,12 @@ public class GetAdminEventByIdQueryHandlerTests
         );
 
         var repositoryReadMock = new Mock<IAdminEventReadRepository>();
-        var loggerMock = new Mock<ILogger<GetAdminEventByIdQueryHandler>>();
+        var loggerMock = new Mock<ILogger<GetEventByIdQueryHandler>>();
         repositoryReadMock
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(domainEvent);
 
-        var handler = new GetAdminEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
+        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
         var query = new GetAdminEventByIdQuery(eventId);
 
         // Act
@@ -73,12 +73,12 @@ public class GetAdminEventByIdQueryHandlerTests
         var eventId = Guid.NewGuid();
 
         var repositoryReadMock = new Mock<IAdminEventReadRepository>();
-        var loggerMock = new Mock<ILogger<GetAdminEventByIdQueryHandler>>();
+        var loggerMock = new Mock<ILogger<GetEventByIdQueryHandler>>();
         repositoryReadMock
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((EventDto?)null);
 
-        var handler = new GetAdminEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
+        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
         var query = new GetAdminEventByIdQuery(eventId);
 
         // Act
@@ -97,12 +97,12 @@ public class GetAdminEventByIdQueryHandlerTests
         var eventId = Guid.NewGuid();
 
         var repositoryReadMock = new Mock<IAdminEventReadRepository>();
-        var loggerMock = new Mock<ILogger<GetAdminEventByIdQueryHandler>>();
+        var loggerMock = new Mock<ILogger<GetEventByIdQueryHandler>>();
         repositoryReadMock
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("DB error"));
 
-        var handler = new GetAdminEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
+        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
         var query = new GetAdminEventByIdQuery(eventId);
 
         // Act

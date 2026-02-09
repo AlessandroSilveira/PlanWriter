@@ -12,6 +12,7 @@ using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 using AddProjectProgressDto = PlanWriter.Domain.Dtos.Projects.AddProjectProgressDto;
+using System.Threading;
 
 namespace PlanWriter.Tests.Projects.Commands;
 
@@ -49,7 +50,7 @@ public class AddProjectProgressCommandHandlerTests
             .ReturnsAsync(It.IsAny<ProjectProgress>());
 
         _projectRepo
-            .Setup(r => r.UpdateAsync(project))
+            .Setup(r => r.UpdateAsync(project, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _mediator

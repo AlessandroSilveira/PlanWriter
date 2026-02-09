@@ -8,36 +8,40 @@ using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Common;
 using PlanWriter.Application.Profile.Dtos.Commands;
 using PlanWriter.Domain.Dtos;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Requests;
 
 namespace PlanWriter.Application.Profile.Commands;
 
-public class UpdateProfileCommandHandler(IUserRepository userRepository, IProjectRepository projectRepository,
-    ILogger<UpdateProfileCommandHandler> logger) : IRequestHandler<UpdateProfileCommand, MyProfileDto>
+public class UpdateProfileCommandHandler(
+    IUserReadRepository userReadRepository,
+    IUserRepository userRepository,
+    IProjectRepository projectRepository,
+    ILogger<UpdateProfileCommandHandler> logger, 
+    IProjectReadRepository projectReadRepository) : IRequestHandler<UpdateProfileCommand, MyProfileDto>
 {
     public async Task<MyProfileDto> Handle(UpdateProfileCommand request, CancellationToken cancellationToken) 
     {
         logger.LogInformation("Updating profile for user {UserId}", request.UserId);
 
-        var user = await userRepository.GetByIdAsync(request.UserId)
-            ?? throw new InvalidOperationException("Usuário não encontrado.");
+        var user = await userReadRepository.GetByIdAsync(request.UserId, cancellationToken)
+            ?? throw new InvalidOperationException("User not found.");
 
         ApplyProfileChanges(user, request.Request);
 
-        await EnsureSlugIsValidAsync(user, request.Request);
+        await EnsureSlugIsValidAsync(user, request.Request, cancellationToken);
 
-        await UpdatePublicProjectsAsync(request.UserId, request.Request);
+        await UpdatePublicProjectsAsync(request.UserId, request.Request, cancellationToken);
 
-        await userRepository.UpdateAsync(user);
+        await userRepository.UpdateAsync(user, cancellationToken);
 
-        logger.LogInformation(
-            "Profile updated for user {UserId}",
-            request.UserId
-        );
+        logger.LogInformation("Profile updated for user {UserId}", request.UserId);
 
-        return MapToProfileDto(user, await projectRepository.GetByUserIdAsync(user.Id));
+        return MapToProfileDto(user, await projectReadRepository.GetUserProjectsAsync(user.Id, cancellationToken));
     }
 
     /* ===================== PRIVATE METHODS ===================== */
@@ -59,7 +63,8 @@ public class UpdateProfileCommandHandler(IUserRepository userRepository, IProjec
             user.IsProfilePublic = request.IsProfilePublic.Value;
     }
 
-    private async Task EnsureSlugIsValidAsync(User user, UpdateMyProfileRequest request)
+    private async Task EnsureSlugIsValidAsync(User user, UpdateMyProfileRequest request,
+        CancellationToken cancellationToken)
     {
         if (request.Slug != null)
         {
@@ -68,7 +73,7 @@ public class UpdateProfileCommandHandler(IUserRepository userRepository, IProjec
             if (string.IsNullOrWhiteSpace(slug))
                 throw new InvalidOperationException("Slug inválido.");
 
-            if (await userRepository.SlugExistsAsync(slug, user.Id))
+            if (await userReadRepository.SlugExistsAsync(slug, user.Id, cancellationToken))
                 throw new InvalidOperationException("Este slug já está em uso.");
 
             user.Slug = slug;
@@ -80,29 +85,44 @@ public class UpdateProfileCommandHandler(IUserRepository userRepository, IProjec
             var slug = baseSlug;
             var i = 2;
 
-            while (await userRepository.SlugExistsAsync(slug, user.Id))
+            while (await userReadRepository.SlugExistsAsync(slug, user.Id, cancellationToken))
                 slug = $"{baseSlug}-{i++}";
 
             user.Slug = slug;
         }
     }
 
-    private async Task UpdatePublicProjectsAsync(Guid userId, UpdateMyProfileRequest request)
+    private async Task UpdatePublicProjectsAsync(Guid userId, UpdateMyProfileRequest request, CancellationToken ct)
     {
         if (request.PublicProjectIds is null)
             return;
 
-        var publicIds = request.PublicProjectIds.Distinct().ToHashSet();
-        var projects = await projectRepository.GetByUserIdAsync(userId);
+        var publicIds = request.PublicProjectIds
+            .Distinct()
+            .ToHashSet();
 
-        foreach (var project in projects)
+        // READ → DTO
+        var projects = await projectReadRepository
+            .GetUserProjectsAsync(userId, ct);
+
+        foreach (var dto in projects)
         {
-            project.IsPublic = publicIds.Contains(project.Id);
-            await projectRepository.UpdateAsync(project);
+            var isPublic = publicIds.Contains(dto.Id);
+
+            // MAP DTO → ENTITY (mínimo necessário pro update)
+            var entity = new Project
+            {
+                Id = dto.Id,
+                UserId = userId,
+                IsPublic = isPublic
+            };
+
+            await projectRepository.UpdateAsync(entity, ct);
         }
     }
 
-    private static MyProfileDto MapToProfileDto(User user, List<Project> projects)
+
+    private static MyProfileDto MapToProfileDto(User user, IReadOnlyList<ProjectDto> projects)
     {
         return new MyProfileDto(
             Email: user.Email!,
@@ -112,7 +132,6 @@ public class UpdateProfileCommandHandler(IUserRepository userRepository, IProjec
             IsProfilePublic: user.IsProfilePublic,
             Slug: user.Slug,
             PublicProjectIds: projects
-                .Where(p => p.IsPublic)
                 .Select(p => p.Id)
                 .ToArray()
         );

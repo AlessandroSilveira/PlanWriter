@@ -5,6 +5,6 @@ using PlanWriter.Domain.Dtos.Events;
 
 namespace PlanWriter.Application.Events.Dtos.Queries;
 
-public class GetActiveEventsQuery : IRequest<List<EventDto>>;
+public class GetActiveEventsQuery : IRequest<IReadOnlyList<EventDto>>;
 
     

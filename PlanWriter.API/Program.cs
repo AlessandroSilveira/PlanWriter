@@ -1,11 +1,8 @@
-using System.Data;
 using System.Text;
 using System.Text.Json.Serialization;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PlanWriter.API.Common.Middleware;
@@ -22,6 +19,8 @@ using PlanWriter.Domain.Interfaces.ReadModels.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Certificates;
 using PlanWriter.Domain.Interfaces.ReadModels.DailyWordLogWrite;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
+using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.Auth;
@@ -30,10 +29,16 @@ using PlanWriter.Infrastructure.ReadModels.Auth;
 using PlanWriter.Infrastructure.ReadModels.Certificates;
 using PlanWriter.Infrastructure.ReadModels.DailyWordLogWrite;
 using PlanWriter.Infrastructure.ReadModels.Events;
+using PlanWriter.Infrastructure.ReadModels.Milestones;
+using PlanWriter.Infrastructure.ReadModels.ProjectEvents;
 using PlanWriter.Infrastructure.ReadModels.Projects;
 using PlanWriter.Infrastructure.Repositories;
 using PlanWriter.Infrastructure.Repositories.Auth;
 using PlanWriter.Infrastructure.Repositories.Auth.Register;
+using PlanWriter.Infrastructure.Repositories.ProjectEvents;
+using IEventReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Events.IEventReadRepository;
+using IUserReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Users.IUserReadRepository;
+using UserReadRepository = PlanWriter.Infrastructure.ReadModels.Users.UserReadRepository;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -103,13 +108,10 @@ builder.Services.AddSwaggerGen(c =>
     c.MapType<TimeOnly?>(() => new OpenApiSchema { Type = "string", Format = "time", Nullable = true });
 });
 
-// ===== EF Core =====
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 // ===== DI =====
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserReadRepository, UserReadRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository>();
 builder.Services.AddScoped<IBadgeRepository, BadgeRepository>(); 
@@ -118,6 +120,7 @@ builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IUserFollowRepository, UserFollowRepository>();
 builder.Services.AddScoped<IBuddiesRepository, BuddiesRepository>();
 builder.Services.AddScoped<IMilestonesRepository, MilestonesRepository>();
+builder.Services.AddScoped<IMilestonesReadRepository, MilestonesReadRepository>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IDailyWordLogRepository, DailyWordLogRepository>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -131,9 +134,8 @@ builder.Services.AddScoped<IUserRegistrationReadRepository, UserRegistrationRead
 builder.Services.AddScoped<IUserRegistrationRepository, UserRegistrationRepository>();
 builder.Services.AddScoped<ICertificateReadRepository, CertificateReadRepository>();
 builder.Services.AddScoped<IDailyWordLogReadRepository, DailyWordLogReadRepository>();
+builder.Services.AddScoped<IProjectEventsReadRepository, ProjectEventsReadRepository>();
 
-builder.Services.AddScoped<IDbConnection>(sp =>
-    new SqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IDbConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddScoped<IDbExecutor, DapperDbExecutor>();

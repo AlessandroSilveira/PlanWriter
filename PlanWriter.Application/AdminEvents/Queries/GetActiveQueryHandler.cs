@@ -8,6 +8,7 @@ using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
+using IEventReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Events.IEventReadRepository;
 
 namespace PlanWriter.Application.AdminEvents.Queries;
 

@@ -4,16 +4,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Milestones.Handlers;
 
-public class CompleteMilestonesOnProgressHandler(IMilestonesRepository milestonesRepository)
+public class CompleteMilestonesOnProgressHandler(IMilestonesReadRepository milestonesReadRepository, IMilestonesRepository  milestonesRepository)
     : INotificationHandler<ProjectProgressAdded>
 {
     public async Task Handle(ProjectProgressAdded notification, CancellationToken ct)
     {
-        var milestones = await milestonesRepository.GetByProjectIdAsync(notification.ProjectId);
+        var milestones = await milestonesReadRepository.GetByProjectIdAsync(notification.ProjectId, ct);
 
         var now = DateTime.UtcNow;
 

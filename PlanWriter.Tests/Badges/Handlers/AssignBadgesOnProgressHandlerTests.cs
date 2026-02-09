@@ -34,7 +34,7 @@ public class AssignBadgesOnProgressHandlerTests
             .ReturnsAsync(new Project { Id = projectId, WordCountGoal = 1000 });
 
         _progressReadRepo
-            .Setup(r => r.GetProgressByProjectIdAsync(projectId, userId))
+            .Setup(r => r.GetProgressByProjectIdAsync(projectId, userId, new CancellationToken()))
             .ReturnsAsync(new List<ProjectProgress>
             {
                 new ProjectProgress { WordsWritten = 50, Date = DateTime.UtcNow }

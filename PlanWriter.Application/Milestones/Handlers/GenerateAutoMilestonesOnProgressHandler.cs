@@ -5,11 +5,15 @@ using System.Threading.Tasks;
 using MediatR;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Milestones.Handlers;
 
-public class GenerateAutoMilestonesOnProgressHandler(IMilestonesRepository milestonesRepository, IProjectRepository projectRepository)
+public class GenerateAutoMilestonesOnProgressHandler(
+    IMilestonesRepository milestonesRepository, 
+    IProjectRepository projectRepository,
+    IMilestonesReadRepository milestonesReadRepository)
     : INotificationHandler<ProjectProgressAdded>
 {
     public async Task Handle(ProjectProgressAdded notification, CancellationToken ct)
@@ -22,8 +26,8 @@ public class GenerateAutoMilestonesOnProgressHandler(IMilestonesRepository miles
         var goal = project.WordCountGoal.Value;
 
         var existing =
-            await milestonesRepository
-                .GetByProjectIdAsync(notification.ProjectId);
+            await milestonesReadRepository
+                .GetByProjectIdAsync(notification.ProjectId, ct);
 
         var now = DateTime.UtcNow;
 
@@ -55,7 +59,7 @@ public class GenerateAutoMilestonesOnProgressHandler(IMilestonesRepository miles
                 CreatedAt = now
             };
 
-            await milestonesRepository.AddAsync(milestone);
+            await milestonesRepository.CreateAsync(milestone, ct);
         }
     }
 }

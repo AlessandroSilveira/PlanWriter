@@ -55,7 +55,7 @@ public class DeleteProgressCommandHandlerTests
         result.Should().BeFalse();
 
         _progressWriteRepo.Verify(w => w.DeleteAsync(It.IsAny<Guid>(), It.IsAny<Guid>()), Times.Never);
-        _projectRepo.Verify(p => p.UpdateAsync(It.IsAny<Project>()), Times.Never);
+        _projectRepo.Verify(p => p.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class DeleteProgressCommandHandlerTests
         result.Should().BeFalse();
 
         _progressReadRepo.Verify(r => r.GetLastTotalBeforeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
-        _projectRepo.Verify(p => p.UpdateAsync(It.IsAny<Project>()), Times.Never);
+        _projectRepo.Verify(p => p.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class DeleteProgressCommandHandlerTests
         // Assert
         result.Should().BeFalse();
 
-        _projectRepo.Verify(p => p.UpdateAsync(It.IsAny<Project>()), Times.Never);
+        _projectRepo.Verify(p => p.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class DeleteProgressCommandHandlerTests
             .ReturnsAsync(project);
 
         _projectRepo
-            .Setup(p => p.UpdateAsync(It.IsAny<Project>()))
+            .Setup(p => p.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
@@ -221,7 +221,7 @@ public class DeleteProgressCommandHandlerTests
             .ReturnsAsync(project);
 
         _projectRepo
-            .Setup(p => p.UpdateAsync(It.IsAny<Project>()))
+            .Setup(p => p.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();

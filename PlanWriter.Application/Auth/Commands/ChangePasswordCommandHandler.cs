@@ -9,6 +9,7 @@ using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Auth;
 using PlanWriter.Domain.Interfaces.Repositories;
+using IUserReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Users.IUserReadRepository;
 
 namespace PlanWriter.Application.Auth.Commands;
 

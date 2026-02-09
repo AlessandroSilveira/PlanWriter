@@ -1,12 +1,13 @@
-using System.Linq.Expressions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Application.Events.Queries;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
+using System.Threading;
 
 namespace PlanWriter.Tests.Events.Queries;
 
@@ -15,6 +16,8 @@ public class GetEventProgressQueryHandlerTests
     private readonly Mock<IProjectEventsRepository> _projectEventsRepoMock = new();
     private readonly Mock<IProjectProgressRepository> _projectProgressRepoMock = new();
     private readonly Mock<ILogger<GetEventProgressQueryHandler>> _loggerMock = new();
+    private readonly Mock<IProjectEventsReadRepository> _projectProgressReadRepoMock = new();
+    
 
     [Fact]
     public async Task Handle_ShouldReturnProgress_WhenProjectEventExists()
@@ -45,24 +48,29 @@ public class GetEventProgressQueryHandlerTests
 
         var entries = new List<ProjectProgress>
         {
-            new ProjectProgress { ProjectId = projectId, WordsWritten = 1000, CreatedAt = now.AddDays(-2) },
-            new ProjectProgress { ProjectId = projectId, WordsWritten = 2000, CreatedAt = now.AddDays(-1) }
+            new() { ProjectId = projectId, WordsWritten = 1000, CreatedAt = now.AddDays(-2) },
+            new() { ProjectId = projectId, WordsWritten = 2000, CreatedAt = now.AddDays(-1) }
         };
 
-        _projectEventsRepoMock
-            .Setup(r => r.GetProjectEventByProjectIdAndEventId(
+        _projectProgressReadRepoMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(
                 It.IsAny<Guid>(),
-                It.IsAny<Guid>()))
+                It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         _projectProgressRepoMock
-            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<ProjectProgress, bool>>>()))
+            .Setup(r => r.GetByProjectAndDateRangeAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(entries);
 
         var handler = new GetEventProgressQueryHandler(
             _projectEventsRepoMock.Object,
             _projectProgressRepoMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _projectProgressReadRepoMock.Object
         );
 
         var query = new GetEventProgressQuery(projectId, eventId);
@@ -84,14 +92,15 @@ public class GetEventProgressQueryHandlerTests
         var projectId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
 
-        _projectEventsRepoMock
-            .Setup(r => r.GetProjectEventByProjectIdAndEventId(projectId, eventId))
+        _projectProgressReadRepoMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PlanWriter.Domain.Events.ProjectEvent?)null);
 
         var handler = new GetEventProgressQueryHandler(
             _projectEventsRepoMock.Object,
             _projectProgressRepoMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _projectProgressReadRepoMock.Object
         );
 
         var query = new GetEventProgressQuery(projectId, eventId);
