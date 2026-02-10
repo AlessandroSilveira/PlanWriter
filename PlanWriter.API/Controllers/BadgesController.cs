@@ -15,7 +15,6 @@ public class BadgesController(IMediator mediator, IUserService userService) : Co
     /// Get Badges by Project Id
     /// </summary>
     [HttpGet("projectId/{projectId:guid}")]
-    [HttpGet("projectid/{projectId:guid}")]
     public async Task<IActionResult> GetById([FromRoute] Guid projectId)
     {
         var userId =  userService.GetUserId(User);
