@@ -7,7 +7,6 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Buddies.Dtos.Queries;
 using PlanWriter.Domain.Dtos.Buddies;
-using PlanWriter.Domain.Interfaces.ReadModels.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;

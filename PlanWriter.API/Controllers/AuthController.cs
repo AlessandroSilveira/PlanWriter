@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Auth.Dtos.Commands;
 using PlanWriter.Application.DTO;
-using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Dtos.Auth;
 
 namespace PlanWriter.API.Controllers;

@@ -2,7 +2,6 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
-using PlanWriter.Application.DTO;
 using PlanWriter.Application.Projects.Commands;
 using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Entities;
@@ -12,7 +11,6 @@ using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 using AddProjectProgressDto = PlanWriter.Domain.Dtos.Projects.AddProjectProgressDto;
-using System.Threading;
 
 namespace PlanWriter.Tests.Projects.Commands;
 

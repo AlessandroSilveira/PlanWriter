@@ -5,13 +5,8 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Projects.Dtos.Queries;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Projects;
-using PlanWriter.Domain.Entities;
-using PlanWriter.Domain.Interfaces.ReadModels;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
-using PlanWriter.Domain.Interfaces.Repositories;
-using PlanWriter.Infrastructure.ReadModels.Projects;
 
 namespace PlanWriter.Application.Projects.Queries;
 

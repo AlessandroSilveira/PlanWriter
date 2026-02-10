@@ -10,7 +10,6 @@ using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Requests;
 using Xunit;
-using System.Threading;
 
 namespace PlanWriter.Tests.Profile.Commands;
 

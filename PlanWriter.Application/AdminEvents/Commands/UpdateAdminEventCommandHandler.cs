@@ -4,10 +4,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.AdminEvents.Dtos.Commands;
-using PlanWriter.Domain.Dtos;
-using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
-using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Interfaces.Repositories.Events.Admin;
 
 namespace PlanWriter.Application.AdminEvents.Commands;

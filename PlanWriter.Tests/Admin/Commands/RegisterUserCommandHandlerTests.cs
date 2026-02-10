@@ -7,7 +7,6 @@ using PlanWriter.Application.Auth.Dtos.Commands;
 using PlanWriter.Application.DTO;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth.Regsitration;
-using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
 namespace PlanWriter.Tests.Admin.Commands;

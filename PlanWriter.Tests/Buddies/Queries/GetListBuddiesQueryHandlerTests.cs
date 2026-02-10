@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.Buddies.Dtos.Queries;
 using PlanWriter.Application.Buddies.Queries;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Buddies;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;

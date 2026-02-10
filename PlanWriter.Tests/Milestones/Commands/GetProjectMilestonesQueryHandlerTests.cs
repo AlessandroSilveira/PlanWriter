@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using PlanWriter.Application.Milestones.Commands;
 using PlanWriter.Application.Milestones.Dtos.Queries;
 using PlanWriter.Application.Milestones.Queries;
 using PlanWriter.Domain.Entities;

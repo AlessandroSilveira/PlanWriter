@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Badges.Dtos.Queries;
 using PlanWriter.Application.Interfaces;
-using PlanWriter.Application.Services;
 
 namespace PlanWriter.API.Controllers;
 

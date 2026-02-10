@@ -10,7 +10,6 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
-using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Milestones.Queries;
 

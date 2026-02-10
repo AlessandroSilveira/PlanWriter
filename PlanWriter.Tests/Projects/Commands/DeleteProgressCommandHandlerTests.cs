@@ -1,15 +1,10 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.Projects.Commands;
 using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
-using PlanWriter.Domain.Interfaces.ReadModels;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;

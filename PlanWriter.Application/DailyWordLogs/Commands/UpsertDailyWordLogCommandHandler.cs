@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.DailyWordLogs.Dtos.Commands;
-using PlanWriter.Domain.Interfaces.ReadModels.DailyWordLogWrite;
 using PlanWriter.Domain.Interfaces.Repositories.DailyWordLogWrite;
 
 namespace PlanWriter.Application.DailyWordLogs.Commands;

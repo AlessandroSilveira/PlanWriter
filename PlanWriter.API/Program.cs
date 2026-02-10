@@ -18,7 +18,6 @@ using PlanWriter.Domain.Interfaces.Auth.Regsitration;
 using PlanWriter.Domain.Interfaces.ReadModels.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Certificates;
 using PlanWriter.Domain.Interfaces.ReadModels.DailyWordLogWrite;
-using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
 using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;

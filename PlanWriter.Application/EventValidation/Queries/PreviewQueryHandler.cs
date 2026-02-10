@@ -11,7 +11,6 @@ using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
-using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.EventValidation.Queries;
 

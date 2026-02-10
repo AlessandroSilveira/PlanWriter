@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Buddies.Dtos.Commands;
 using PlanWriter.Application.Buddies.Dtos.Queries;
 using PlanWriter.Application.Interfaces;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Buddies;
 
 

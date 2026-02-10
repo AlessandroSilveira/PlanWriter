@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using MediatR;
 using PlanWriter.Domain.Dtos.Badges;
-using PlanWriter.Domain.Entities;
 
 namespace PlanWriter.Application.Badges.Dtos.Queries;
 

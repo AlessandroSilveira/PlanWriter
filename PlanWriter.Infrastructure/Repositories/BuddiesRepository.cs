@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Buddies;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.Data;

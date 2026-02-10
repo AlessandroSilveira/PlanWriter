@@ -1,6 +1,5 @@
 using Moq;
 using PlanWriter.Application.Milestones.Handlers;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Milestones;

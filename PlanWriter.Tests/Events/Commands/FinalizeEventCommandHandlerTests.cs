@@ -3,14 +3,12 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.Events.Commands;
 using PlanWriter.Application.Events.Dtos.Commands;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
-using System.Threading;
 
 namespace PlanWriter.Tests.Events.Commands;
 
