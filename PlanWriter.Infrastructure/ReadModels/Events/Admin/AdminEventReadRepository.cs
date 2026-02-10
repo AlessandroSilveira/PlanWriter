@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Infrastructure.Data;

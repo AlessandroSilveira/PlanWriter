@@ -8,8 +8,6 @@ namespace PlanWriter.Domain.Entities
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
-        
-        
         public User User { get; set; } = default!;
         public string? Title { get; set; }
         public string? Genre { get; set; }
@@ -33,8 +31,5 @@ namespace PlanWriter.Domain.Entities
         public DateTime? ValidatedAtUtc { get; set; }
         public bool? ValidationPassed { get; set; }
         public ICollection<Milestone> Milestones { get; set; } = new List<Milestone>();
-        
-
-
     }
 }

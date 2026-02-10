@@ -3,19 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Infrastructure.Data;
-using PlanWriter.Infrastructure.Repositories;
 
 namespace PlanWriter.Infrastructure.ReadModels.Projects;
 
-public class ProjectProgressReadRepository(IDbExecutor db, AppDbContext context) : Repository<ProjectProgress>(context), IProjectProgressReadRepository
+public class ProjectProgressReadRepository(IDbExecutor db) : IProjectProgressReadRepository
 {
+    private sealed record RankRow(int Words, int Rank);
     public Task<IReadOnlyList<ProgressHistoryRow>> GetProgressHistoryAsync(Guid projectId, Guid userId, CancellationToken ct)
     {
         const string sql = """
@@ -112,6 +111,7 @@ public class ProjectProgressReadRepository(IDbExecutor db, AppDbContext context)
               AND pp.[Date] < @Date
             ORDER BY
                 pp.[Date] DESC,
+                pp.CreatedAt DESC,
                 pp.Id DESC;
         """;
 
@@ -119,161 +119,269 @@ public class ProjectProgressReadRepository(IDbExecutor db, AppDbContext context)
 
         return value ?? 0;
     }
-    
+
     public async Task<List<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, Guid userId)
+    {
+        const string sql = @"
+            SELECT
+                pp.Id,
+                pp.ProjectId,
+                pp.TotalWordsWritten,
+                pp.RemainingWords,
+                pp.RemainingPercentage,
+                pp.CreatedAt,
+                pp.[Date],
+                pp.TimeSpentInMinutes,
+                pp.WordsWritten,
+                pp.Notes,
+                pp.Minutes,
+                pp.Pages
+            FROM ProjectProgresses pp
+            INNER JOIN Projects p ON p.Id = pp.ProjectId
+            WHERE pp.ProjectId = @ProjectId
+              AND p.UserId = @UserId
+            ORDER BY pp.[Date] ASC;
+        ";
+
+        var rows = await db.QueryAsync<ProjectProgress>(sql, new { ProjectId = projectId, UserId = userId });
+        return rows.ToList();
+    }
+
+    public Task<ProjectProgress?> GetByIdAsync(Guid id, Guid userId)
+    {
+        const string sql = @"
+            SELECT TOP 1
+                pp.Id,
+                pp.ProjectId,
+                pp.TotalWordsWritten,
+                pp.RemainingWords,
+                pp.RemainingPercentage,
+                pp.CreatedAt,
+                pp.[Date],
+                pp.TimeSpentInMinutes,
+                pp.WordsWritten,
+                pp.Notes,
+                pp.Minutes,
+                pp.Pages
+            FROM ProjectProgresses pp
+            INNER JOIN Projects p ON p.Id = pp.ProjectId
+            WHERE pp.Id = @Id
+              AND p.UserId = @UserId;
+        ";
+
+        return db.QueryFirstOrDefaultAsync<ProjectProgress>(sql, new { Id = id, UserId = userId });
+    }
+
+    public Task<ProjectProgress?> GetLastProgressBeforeAsync(Guid projectId, DateTime date)
+    {
+        const string sql = @"
+            SELECT TOP 1
+                pp.Id,
+                pp.ProjectId,
+                pp.TotalWordsWritten,
+                pp.RemainingWords,
+                pp.RemainingPercentage,
+                pp.CreatedAt,
+                pp.[Date],
+                pp.TimeSpentInMinutes,
+                pp.WordsWritten,
+                pp.Notes,
+                pp.Minutes,
+                pp.Pages
+            FROM ProjectProgresses pp
+            WHERE pp.ProjectId = @ProjectId
+              AND pp.[Date] < @Date
+            ORDER BY pp.[Date] DESC;
+        ";
+
+        return db.QueryFirstOrDefaultAsync<ProjectProgress>(sql, new { ProjectId = projectId, Date = date });
+    }
+
+    public async Task<int> GetAccumulatedAsync(Guid projectId, GoalUnit unit, CancellationToken ct)
+    {
+        var column = unit switch
         {
-            return await DbSet.Include(pp => pp.Project)
-                .Where(pp => pp.ProjectId == projectId && pp.Project.UserId == userId)
-                .OrderBy(pp => pp.Date)
-                .ToListAsync();
-        }
-        public async Task<ProjectProgress> GetByIdAsync(Guid id, Guid userId)
-        {
-            return await DbSet
-                .Include(p => p.Project)
-                .FirstOrDefaultAsync(p => p.Id == id && p.Project.UserId == userId);
-        }
-        
-        public async Task<ProjectProgress> GetLastProgressBeforeAsync(Guid projectId, DateTime date)
-        {
-            return await DbSet
-                .Where(p => p.ProjectId == projectId && p.Date < date)
-                .OrderByDescending(p => p.Date)
-                .FirstOrDefaultAsync();
-        }
-        
-        public async Task<int> GetAccumulatedAsync(Guid projectId, GoalUnit unit, CancellationToken ct)
-        {
-            var q = DbSet.Where(x => x.ProjectId == projectId);
-            return unit switch
-            {
-                GoalUnit.Words   => await q.SumAsync(x => (int?)x.WordsWritten, ct) ?? 0,
-                GoalUnit.Minutes => await q.SumAsync(x => (int?)x.Minutes, ct) ?? 0,
-                GoalUnit.Pages   => await q.SumAsync(x => (int?)x.Pages, ct) ?? 0,
-                _ => 0
-            };
-        }
-        
-        public async Task<Dictionary<Guid, int>> GetTotalWordsByProjectIdsAsync(IEnumerable<Guid> projectIds)
-        {
-            return await DbSet
-                .Where(p => projectIds.Contains(p.ProjectId))
-                .GroupBy(p => p.ProjectId)
-                .Select(g => new
-                {
-                    ProjectId = g.Key,
-                    Total = g.Sum(x => x.WordsWritten)
-                })
-                .ToDictionaryAsync(x => x.ProjectId, x => x.Total);
-        }
-        
-        public async Task<EventProjectProgressDto?> GetEventProjectProgressAsync(Guid eventId, Guid projectId)
-        {
-            // 1️⃣ Carrega o vínculo Projeto ↔ Evento
-            var link = await Context.ProjectEvents
-                .Include(pe => pe.Event)
-                .FirstOrDefaultAsync(pe =>
-                    pe.EventId == eventId &&
-                    pe.ProjectId == projectId
-                );
+            GoalUnit.Minutes => "Minutes",
+            GoalUnit.Pages => "Pages",
+            _ => "WordsWritten"
+        };
 
-            if (link == null)
-                return null;
+        var sql = $@"
+            SELECT COALESCE(SUM({column}), 0)
+            FROM ProjectProgresses
+            WHERE ProjectId = @ProjectId;
+        ";
 
-            var ev = link.Event;
+        return await db.QueryFirstOrDefaultAsync<int>(sql, new { ProjectId = projectId }, ct);
+    }
 
-            var start = ev.StartsAtUtc.Date;
-            var endExclusive = ev.EndsAtUtc.Date.AddDays(1);
+    public async Task<Dictionary<Guid, int>> GetTotalWordsByProjectIdsAsync(IEnumerable<Guid> projectIds)
+    {
+        var ids = projectIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, int>();
 
-            // 2️⃣ Soma progresso do projeto dentro da janela do evento
-            var totalWritten = await DbSet
-                .Where(p =>
-                    p.ProjectId == projectId &&
-                    p.CreatedAt >= start &&
-                    p.CreatedAt < endExclusive
-                )
-                .SumAsync(p => (int?)p.WordsWritten) ?? 0;
+        const string sql = @"
+            SELECT
+                ProjectId,
+                SUM(WordsWritten) AS Total
+            FROM ProjectProgresses
+            WHERE ProjectId IN @ProjectIds
+            GROUP BY ProjectId;
+        ";
 
-            var target = link.TargetWords
-                         ?? ev.DefaultTargetWords
-                         ?? 0;
+        var rows = await db.QueryAsync<(Guid ProjectId, int Total)>(sql, new { ProjectIds = ids });
+        return rows.ToDictionary(x => x.ProjectId, x => x.Total);
+    }
 
-            var percent = target > 0
-                ? Math.Round((double)totalWritten / target * 100, 2)
-                : 0;
+    public async Task<EventProjectProgressDto?> GetEventProjectProgressAsync(Guid eventId, Guid projectId)
+    {
+        const string linkSql = @"
+            SELECT TOP 1
+                pe.TargetWords,
+                e.DefaultTargetWords,
+                e.StartsAtUtc,
+                e.EndsAtUtc
+            FROM ProjectEvents pe
+            INNER JOIN Events e ON e.Id = pe.EventId
+            WHERE pe.EventId = @EventId
+              AND pe.ProjectId = @ProjectId;
+        ";
 
-            // 3️⃣ Ranking (calculado de forma segura)
-            var ranking = await Context.ProjectEvents
-                .Where(pe => pe.EventId == eventId)
-                .Select(pe => new
-                {
+        var link = await db.QueryFirstOrDefaultAsync<(int? TargetWords, int? DefaultTargetWords, DateTime StartsAtUtc, DateTime EndsAtUtc)>(
+            linkSql,
+            new { EventId = eventId, ProjectId = projectId }
+        );
+
+        if (link == default)
+            return null;
+
+        var start = link.StartsAtUtc.Date;
+        var endExclusive = link.EndsAtUtc.Date.AddDays(1);
+
+        const string rankSql = @"
+            WITH Agg AS (
+                SELECT
                     pe.ProjectId,
-                    Words = Context.ProjectProgresses
-                        .Where(p =>
-                            p.ProjectId == pe.ProjectId &&
-                            p.CreatedAt >= start &&
-                            p.CreatedAt < endExclusive
-                        )
-                        .Sum(p => (int?)p.WordsWritten) ?? 0
-                })
-                .OrderByDescending(x => x.Words)
-                .Select((x, index) => new { x.ProjectId, Rank = index + 1 })
-                .FirstOrDefaultAsync(x => x.ProjectId == projectId);
+                    SUM(CASE
+                        WHEN pp.CreatedAt >= @StartUtc AND pp.CreatedAt < @EndUtc THEN pp.WordsWritten
+                        ELSE 0
+                    END) AS Words
+                FROM ProjectEvents pe
+                LEFT JOIN ProjectProgresses pp ON pp.ProjectId = pe.ProjectId
+                WHERE pe.EventId = @EventId
+                GROUP BY pe.ProjectId
+            ),
+            Ranked AS (
+                SELECT
+                    ProjectId,
+                    Words,
+                    ROW_NUMBER() OVER (ORDER BY Words DESC) AS Rank
+                FROM Agg
+            )
+            SELECT TOP 1
+                Words,
+                Rank
+            FROM Ranked
+            WHERE ProjectId = @ProjectId;
+        ";
 
-            return new EventProjectProgressDto
+        var rankRow = await db.QueryFirstOrDefaultAsync<RankRow>(
+            rankSql,
+            new { EventId = eventId, ProjectId = projectId, StartUtc = start, EndUtc = endExclusive }
+        );
+
+        var totalWritten = rankRow?.Words ?? 0;
+        var target = link.TargetWords ?? link.DefaultTargetWords ?? 0;
+
+        var percent = target > 0
+            ? Math.Round((double)totalWritten / target * 100, 2)
+            : 0;
+
+        return new EventProjectProgressDto
+        {
+            EventId = eventId,
+            ProjectId = projectId,
+            TotalWrittenInEvent = totalWritten,
+            TargetWords = target,
+            Percent = percent,
+            Rank = rankRow?.Rank
+        };
+    }
+
+    public async Task<Dictionary<Guid, int>> GetTotalWordsByUsersAsync(IEnumerable<Guid> userIds, DateTime? start, DateTime? end)
+    {
+        var ids = userIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, int>();
+
+        const string sql = @"
+            SELECT
+                p.UserId,
+                SUM(pp.WordsWritten) AS Total
+            FROM ProjectProgresses pp
+            INNER JOIN Projects p ON p.Id = pp.ProjectId
+            WHERE p.UserId IN @UserIds
+              AND (@Start IS NULL OR pp.[Date] >= @Start)
+              AND (@End IS NULL OR pp.[Date] <= @End)
+            GROUP BY p.UserId;
+        ";
+
+        var rows = await db.QueryAsync<(Guid UserId, int Total)>(
+            sql,
+            new { UserIds = ids, Start = start, End = end }
+        );
+
+        return rows.ToDictionary(x => x.UserId, x => x.Total);
+    }
+
+    public async Task<int> GetMonthlyWordsAsync(Guid userId, DateTime start, DateTime end)
+    {
+        const string sql = @"
+            SELECT COALESCE(SUM(pp.WordsWritten), 0)
+            FROM ProjectProgresses pp
+            INNER JOIN Projects p ON p.Id = pp.ProjectId
+            WHERE p.UserId = @UserId
+              AND pp.[Date] >= @Start
+              AND pp.[Date] <  @End;
+        ";
+
+        return await db.QueryFirstOrDefaultAsync<int>(sql, new { UserId = userId, Start = start, End = end });
+    }
+    
+    public Task<IReadOnlyList<ProjectProgress>> GetProgressByProjectIdAsync(
+        Guid projectId,
+        Guid userId,
+        CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT
+                pp.Id,
+                pp.ProjectId,
+                pp.TotalWordsWritten,
+                pp.RemainingWords,
+                pp.RemainingPercentage,
+                pp.CreatedAt,
+                pp.[Date],
+                pp.TimeSpentInMinutes,
+                pp.WordsWritten,
+                pp.Notes,
+                pp.Minutes,
+                pp.Pages
+            FROM ProjectProgresses pp
+            INNER JOIN Projects p ON p.Id = pp.ProjectId
+            WHERE pp.ProjectId = @ProjectId
+              AND p.UserId     = @UserId
+            ORDER BY pp.[Date] ASC;
+        ";
+
+        return db.QueryAsync<ProjectProgress>(sql,
+            new
             {
-                EventId = eventId,
                 ProjectId = projectId,
-                TotalWrittenInEvent = totalWritten,
-                TargetWords = target,
-                Percent = percent,
-                Rank = ranking?.Rank
-            };
-        }
-        public async Task<Dictionary<Guid, int>> GetTotalWordsByUsersAsync(IEnumerable<Guid> userIds, DateTime? start, DateTime? end)
-        {
-            var query = Context.ProjectProgresses
-                .Include(p => p.Project)
-                .Where(p => userIds.Contains<Guid>(p.Project.UserId));
-
-            if (start.HasValue && start.Value > DateTime.MinValue)
-            {
-                query = query.Where(p => p.Date >= start.Value);
-            }
-
-            if (end.HasValue)
-            {
-                query = query.Where(p => p.Date <= end.Value);
-            }
-
-            var result = await query
-                .GroupBy(p => p.Project.UserId)
-                .Select(g => new
-                {
-                    UserId = g.Key,
-                    Total = g.Sum(x => x.WordsWritten)
-                })
-                .ToDictionaryAsync(x => x.UserId, x => x.Total);
-
-            return result;
-        }
-        public async Task<int> GetMonthlyWordsAsync(Guid userId, DateTime start, DateTime end)
-        {
-            return await DbSet
-                .Include(p => p.Project)
-                .Where(p =>
-                    p.Project.UserId == userId &&
-                    p.Date >= start &&
-                    p.Date < end
-                )
-                .SumAsync(p => p.WordsWritten);
-        }
-        
-        public async Task<IEnumerable<ProjectProgress>> GetProgressByProjectIdAsync(Guid projectId, Guid userId)
-        {
-            return await DbSet
-                .Where(p => p.ProjectId == projectId && p.Project.UserId == userId)
-                .OrderBy(p => p.Date)
-                .ToListAsync();
-        }
+                UserId = userId
+            },
+            ct: ct
+        );
+    }
 }

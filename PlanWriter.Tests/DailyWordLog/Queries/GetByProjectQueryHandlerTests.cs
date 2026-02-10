@@ -5,7 +5,6 @@ using PlanWriter.Application.DailyWordLogs.Dtos.Queries;
 using PlanWriter.Application.DailyWordLogs.Queries;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Interfaces.ReadModels.DailyWordLogWrite;
-using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
 namespace PlanWriter.Tests.DailyWordLog.Queries;

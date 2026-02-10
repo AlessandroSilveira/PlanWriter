@@ -6,27 +6,31 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Events.Dtos.Queries;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
+using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Events.Queries;
 
-public class GetEventProgressQueryHandler(IProjectEventsRepository projectEventsRepository,
-    IProjectProgressRepository projectProgressRepository, ILogger<GetEventProgressQueryHandler> logger)
+public class GetEventProgressQueryHandler(
+    IProjectEventsRepository projectEventsRepository,
+    IProjectProgressRepository projectProgressRepository, 
+    ILogger<GetEventProgressQueryHandler> logger, 
+    IProjectEventsReadRepository projectEventsReadRepository)
     : IRequestHandler<GetEventProgressQuery, EventProgressDto?>
 {
     public async Task<EventProgressDto?> Handle(GetEventProgressQuery request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Getting event progress for project {ProjectId} and event {EventId}", request.ProjectId, request.EventId);
 
-        var projectEvent = await projectEventsRepository
-            .GetProjectEventByProjectIdAndEventId(request.ProjectId, request.EventId) 
+        var projectEvent = await projectEventsReadRepository
+            .GetByProjectAndEventWithEventAsync(request.ProjectId, request.EventId, cancellationToken) 
                            ?? throw new KeyNotFoundException("Inscrição do projeto no evento não encontrada.");
 
         var ev = projectEvent.Event!;
-        var target = ResolveTargetWords(projectEvent, ev);
-        var totalInEvent = await GetTotalWordsInEventAsync(request.ProjectId, ev);
+        var target = ResolveTargetWords(projectEvent, ev, cancellationToken);
+        var totalInEvent = await GetTotalWordsInEventAsync(request.ProjectId, ev, cancellationToken);
         var progress = CalculateProgress(target, totalInEvent, ev.StartsAtUtc, ev.EndsAtUtc);
 
         return new EventProgressDto(
@@ -46,16 +50,16 @@ public class GetEventProgressQueryHandler(IProjectEventsRepository projectEvents
         );
     }
 
-    private static int ResolveTargetWords(Domain.Events.ProjectEvent projectEvent, Domain.Events.Event ev) 
+    private static int ResolveTargetWords(ProjectEvent projectEvent, Event ev, CancellationToken cancellationToken) 
         => projectEvent.TargetWords ?? ev.DefaultTargetWords ?? 50000;
 
-    private async Task<int> GetTotalWordsInEventAsync(Guid projectId, Domain.Events.Event ev)
+    private async Task<int> GetTotalWordsInEventAsync(Guid projectId, Event ev, CancellationToken cancellationToken)
     {
-        var entries = await projectProgressRepository.FindAsync(w =>
-            w.ProjectId == projectId &&
-            w.CreatedAt >= ev.StartsAtUtc &&
-            w.CreatedAt < ev.EndsAtUtc
-        );
+        var entries = await projectProgressRepository.GetByProjectAndDateRangeAsync(
+            projectId,
+            ev.StartsAtUtc,
+            ev.EndsAtUtc,
+            cancellationToken);
 
         return entries.Sum(w => w.WordsWritten);
     }

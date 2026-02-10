@@ -18,5 +18,6 @@ public class ProjectDto
     public DateTime? CoverUpdatedAt { get; set; }
     public DateTime StartDate { get; set; }
     public GoalUnit GoalUnit { get; set; } = GoalUnit.Words;
+    public bool IsPublic { get; set; }
     
 }

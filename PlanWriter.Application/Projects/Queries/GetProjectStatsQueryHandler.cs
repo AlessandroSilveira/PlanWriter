@@ -7,12 +7,9 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Projects.Dtos;
 using PlanWriter.Application.Projects.Dtos.Queries;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Enums;
-using PlanWriter.Domain.Interfaces.ReadModels;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
-using PlanWriter.Infrastructure.ReadModels.Projects;
 
 namespace PlanWriter.Application.Projects.Queries;
 

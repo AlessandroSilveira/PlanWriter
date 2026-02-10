@@ -1,0 +1,77 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
+using PlanWriter.Infrastructure.Data;
+
+namespace PlanWriter.Infrastructure.ReadModels.Milestones;
+
+public sealed class MilestonesReadRepository(IDbExecutor db) : IMilestonesReadRepository
+{
+    public async Task<IReadOnlyList<Milestone>> GetByProjectIdAsync(Guid projectId, CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT
+                Id,
+                ProjectId,
+                Name,
+                [Order]
+            FROM Milestones
+            WHERE ProjectId = @ProjectId
+            ORDER BY [Order];
+        ";
+
+        var rows = await db.QueryAsync<Milestone>(
+            sql,
+            new { ProjectId = projectId },
+            ct: ct
+        );
+
+        return rows.ToList();
+    }
+
+    public async Task<int> GetNextOrderAsync(Guid projectId, CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT ISNULL(MAX([Order]), 0)
+            FROM Milestones
+            WHERE ProjectId = @ProjectId;
+        ";
+
+        var last = await db.QueryFirstOrDefaultAsync<int>(
+            sql,
+            new { ProjectId = projectId },
+            ct: ct
+        );
+
+        return last + 1;
+    }
+
+    public Task<bool> ExistsAsync(Guid projectId, string name, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return Task.FromResult(false);
+
+        const string sql = @"
+            SELECT CASE WHEN EXISTS (
+                SELECT 1
+                FROM Milestones
+                WHERE ProjectId = @ProjectId
+                  AND Name = @Name
+            ) THEN 1 ELSE 0 END;
+        ";
+
+        return db.QueryFirstOrDefaultAsync<bool>(
+            sql,
+            new
+            {
+                ProjectId = projectId,
+                Name = name.Trim()
+            },
+            ct: ct
+        );
+    }
+}

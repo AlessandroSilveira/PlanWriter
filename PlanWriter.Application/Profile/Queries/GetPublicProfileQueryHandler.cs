@@ -10,14 +10,20 @@ using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Profile.Queries;
 
-public class GetPublicProfileQueryHandler(IUserRepository userRepository, IEventRepository eventRepository,
-    IProjectRepository projectRepository, IProjectEventsRepository projectEventsRepository,
-    IProjectProgressRepository projectProgressRepository, ILogger<GetPublicProfileQueryHandler> logger, IProjectProgressReadRepository projectProgressReadRepository)
+public class GetPublicProfileQueryHandler(
+    IUserReadRepository userReadRepository,
+    IEventRepository eventRepository,
+    IProjectRepository projectRepository, 
+    ILogger<GetPublicProfileQueryHandler> logger, 
+    IProjectProgressReadRepository projectProgressReadRepository,
+    IProjectEventsReadRepository projectEventsReadRepository)
     : IRequestHandler<GetPublicProfileQuery, PublicProfileDto>
 {
     public async Task<PublicProfileDto> Handle(GetPublicProfileQuery request, CancellationToken cancellationToken)
@@ -28,7 +34,7 @@ public class GetPublicProfileQueryHandler(IUserRepository userRepository, IEvent
         );
 
         // 1️⃣ Usuário
-        var user = await userRepository.GetBySlugAsync(request.Slug)
+        var user = await userReadRepository.GetBySlugAsync(request.Slug, cancellationToken)
             ?? throw new KeyNotFoundException("Perfil não encontrado.");
 
         if (!user.IsProfilePublic)
@@ -49,13 +55,13 @@ public class GetPublicProfileQueryHandler(IUserRepository userRepository, IEvent
             var summary = await BuildProjectSummaryAsync(
                 project,
                 activeEvent,
-                user.Id
+                user.Id, cancellationToken
             );
 
             projectSummaries.Add(summary);
         }
         
-        var highlight = await ResolveHighlightAsync(user.Id);
+        var highlight = await ResolveHighlightAsync(user.Id, cancellationToken);
 
         return new PublicProfileDto(
             DisplayName: user.DisplayName ?? user.Email ?? "Autor(a)",
@@ -69,7 +75,7 @@ public class GetPublicProfileQueryHandler(IUserRepository userRepository, IEvent
 
     /* ===================== PRIVATE METHODS ===================== */
 
- private async Task<PublicProjectSummaryDto> BuildProjectSummaryAsync(Project project, EventDto? activeEvent, Guid userId)
+ private async Task<PublicProjectSummaryDto> BuildProjectSummaryAsync(Project project, EventDto? activeEvent, Guid userId, CancellationToken cancellationToken)
 {
     int? eventPercent = null;
     int? eventTotalWritten = null;
@@ -80,7 +86,7 @@ public class GetPublicProfileQueryHandler(IUserRepository userRepository, IEvent
 
     if (activeEvent != null)
     {
-        var projectEvent = await projectEventsRepository.GetProjectEventByProjectIdAndEventId(project.Id, activeEvent.Id);
+        var projectEvent = await projectEventsReadRepository.GetByProjectAndEventWithEventAsync(project.Id, activeEvent.Id, cancellationToken);
 
         if (projectEvent != null)
         {
@@ -109,10 +115,11 @@ public class GetPublicProfileQueryHandler(IUserRepository userRepository, IEvent
 
 
 
-    private async Task<string?> ResolveHighlightAsync(Guid userId)
+    private async Task<string?> ResolveHighlightAsync(Guid userId, CancellationToken cancellationToken)
     {
         var recentWin =
-            await projectEventsRepository.GetMostRecentWinByUserIdAsync(userId);
+            await projectEventsReadRepository.GetMostRecentWinByUserIdAsync(userId, cancellationToken);
+       
 
         return recentWin != null
             ? $"Winner — {recentWin.Event!.Name}"

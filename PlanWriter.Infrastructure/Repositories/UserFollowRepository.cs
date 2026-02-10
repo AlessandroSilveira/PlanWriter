@@ -5,38 +5,77 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.Data;
 
 namespace PlanWriter.Infrastructure.Repositories;
 
-public class UserFollowRepository(AppDbContext db) : IUserFollowRepository
+public class UserFollowRepository(IDbExecutor db) : IUserFollowRepository
 {
-    public Task<bool> ExistsAsync(Guid followerId, Guid followeeId, CancellationToken ct) =>
-        db.UserFollows.AnyAsync(x => x.FollowerId == followerId && x.FolloweeId == followeeId, ct);
-
-    public async Task AddAsync(UserFollow follow, CancellationToken ct)
+    public async Task<bool> ExistsAsync(Guid followerId, Guid followeeId, CancellationToken ct)
     {
-        db.UserFollows.Add(follow);
-        await db.SaveChangesAsync(ct);
+        const string sql = @"
+            SELECT COUNT(1)
+            FROM UserFollows
+            WHERE FollowerId = @FollowerId
+              AND FolloweeId = @FolloweeId;
+        ";
+
+        var count = await db.QueryFirstOrDefaultAsync<int>(
+            sql,
+            new { FollowerId = followerId, FolloweeId = followeeId },
+            ct
+        );
+
+        return count > 0;
     }
 
-    public async Task RemoveAsync(Guid followerId, Guid followeeId, CancellationToken ct)
+    public Task AddAsync(UserFollow follow, CancellationToken ct)
     {
-        var entity = await db.UserFollows
-            .FirstOrDefaultAsync(x => x.FollowerId == followerId && x.FolloweeId == followeeId, ct);
-        if (entity is not null)
+        const string sql = @"
+            INSERT INTO UserFollows
+            (
+                FollowerId,
+                FolloweeId,
+                CreatedAtUtc
+            )
+            VALUES
+            (
+                @FollowerId,
+                @FolloweeId,
+                @CreatedAtUtc
+            );
+        ";
+
+        return db.ExecuteAsync(sql, new
         {
-            db.UserFollows.Remove(entity);
-            await db.SaveChangesAsync(ct);
-        }
+            follow.FollowerId,
+            follow.FolloweeId,
+            follow.CreatedAtUtc
+        }, ct);
     }
 
-    public Task<List<Guid>> GetFolloweeIdsAsync(Guid followerId, CancellationToken ct) =>
-        db.UserFollows
-            .Where(x => x.FollowerId == followerId)
-            .Select(x => x.FolloweeId)
-            .ToListAsync(ct);
+    public Task RemoveAsync(Guid followerId, Guid followeeId, CancellationToken ct)
+    {
+        const string sql = @"
+            DELETE FROM UserFollows
+            WHERE FollowerId = @FollowerId
+              AND FolloweeId = @FolloweeId;
+        ";
+
+        return db.ExecuteAsync(sql, new { FollowerId = followerId, FolloweeId = followeeId }, ct);
+    }
+
+    public async Task<List<Guid>> GetFolloweeIdsAsync(Guid followerId, CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT FolloweeId
+            FROM UserFollows
+            WHERE FollowerId = @FollowerId;
+        ";
+
+        var rows = await db.QueryAsync<Guid>(sql, new { FollowerId = followerId }, ct);
+        return rows.ToList();
+    }
 }

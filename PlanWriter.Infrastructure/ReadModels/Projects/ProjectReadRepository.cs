@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
@@ -27,7 +26,8 @@ public class ProjectReadRepository(IDbExecutor db) : IProjectReadRepository
                 StartDate,
                 CoverUpdatedAt,
                 GoalUnit,
-                CASE WHEN CoverBytes IS NULL THEN 0 ELSE 1 END AS HasCover
+                CASE WHEN CoverBytes IS NULL THEN 0 ELSE 1 END AS HasCover,
+                IsPublic
             FROM Projects
             WHERE UserId = @UserId
             ORDER BY CreatedAt DESC;

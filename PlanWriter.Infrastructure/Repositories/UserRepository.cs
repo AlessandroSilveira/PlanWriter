@@ -1,49 +1,73 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.Data;
 
 namespace PlanWriter.Infrastructure.Repositories;
 
-public class UserRepository(AppDbContext context) : IUserRepository
+public sealed class UserRepository(IDbExecutor db) : IUserRepository
 {
-    public async Task<bool> EmailExistsAsync(string email) 
-        => await context.Users.AnyAsync(u => u.Email == email);
-
-    public async Task AddAsync(User user)
+    public Task CreateAsync(User user, CancellationToken ct)
     {
-        context.Users.Add(user);
-        await context.SaveChangesAsync();
+        const string sql = @"
+            INSERT INTO Users
+            (
+                Id,
+                FirstName,
+                LastName,
+                DateOfBirth,
+                Email,
+                PasswordHash,
+                Bio,
+                AvatarUrl,
+                IsProfilePublic,
+                Slug,
+                DisplayName,
+                IsAdmin,
+                MustChangePassword
+            )
+            VALUES
+            (
+                @Id,
+                @FirstName,
+                @LastName,
+                @DateOfBirth,
+                @Email,
+                @PasswordHash,
+                @Bio,
+                @AvatarUrl,
+                @IsProfilePublic,
+                @Slug,
+                @DisplayName,
+                @IsAdmin,
+                @MustChangePassword
+            );
+        ";
+
+        return db.ExecuteAsync(sql, user, ct: ct);
     }
-    
-    public async Task<User?> GetByEmailAsync(string email) 
-        => await context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-    public async Task<User?> GetByIdAsync(Guid userId) 
-        => await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-
-    public async Task UpdateAsync(User user)
+    public Task UpdateAsync(User user, CancellationToken ct)
     {
-        context.Users.Update(user);
-        await context.SaveChangesAsync();
-    }
+        const string sql = @"
+            UPDATE Users
+            SET
+                FirstName = @FirstName,
+                LastName = @LastName,
+                DateOfBirth = @DateOfBirth,
+                Email = @Email,
+                PasswordHash = @PasswordHash,
+                Bio = @Bio,
+                AvatarUrl = @AvatarUrl,
+                IsProfilePublic = @IsProfilePublic,
+                Slug = @Slug,
+                DisplayName = @DisplayName,
+                IsAdmin = @IsAdmin,
+                MustChangePassword = @MustChangePassword
+            WHERE Id = @Id;
+        ";
 
-    public async Task<List<User>> GetUsersByIdsAsync(IEnumerable<Guid> buddyIds)
-    {
-        return await context.Users.Where(u => buddyIds.Contains(u.Id)).ToListAsync();
-    }
-
-    public async Task<bool> SlugExistsAsync(string slug, Guid userId)
-    {
-        return await context.Users.AnyAsync(a => a.Id != userId && a.Slug == slug);
-    }
-
-    public Task<User?> GetBySlugAsync(string requestSlug)
-    {
-       return context.Users.FirstOrDefaultAsync(s => s.Slug == requestSlug);
+        return db.ExecuteAsync(sql, user, ct: ct);
     }
 }

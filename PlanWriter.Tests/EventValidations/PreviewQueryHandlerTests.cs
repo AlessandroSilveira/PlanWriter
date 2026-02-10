@@ -3,8 +3,11 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.EventValidation.Dtos.Queries;
 using PlanWriter.Application.EventValidation.Queries;
+using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
@@ -13,21 +16,21 @@ namespace PlanWriter.Tests.EventValidations;
 
 public class PreviewQueryHandlerTests
 {
-    private readonly Mock<IProjectProgressRepository> _progressRepoMock = new();
-    private readonly Mock<IEventRepository> _eventRepoMock = new();
+
+    private readonly Mock<IEventReadRepository> _eventReadRepoMock = new();
     private readonly Mock<IProjectRepository> _projectRepoMock = new();
-    private readonly Mock<IProjectEventsRepository> _projectEventsRepoMock = new();
+    private readonly Mock<IProjectReadRepository> _projectReadRepoMock = new();
     private readonly Mock<ILogger<PreviewQueryHandler>> _loggerMock = new();
     private readonly Mock<IProjectProgressReadRepository> _progressReadRepoMock = new();
+    private readonly Mock<IProjectEventsReadRepository> _projectEventsReadRepoMock = new();
 
     private PreviewQueryHandler CreateHandler()
         => new(
-            _progressRepoMock.Object,
-            _eventRepoMock.Object,
-            _projectRepoMock.Object,
-            _projectEventsRepoMock.Object,
             _loggerMock.Object,
-            _progressReadRepoMock.Object
+            _progressReadRepoMock.Object,
+            _projectEventsReadRepoMock.Object,
+            _eventReadRepoMock.Object,
+            _projectReadRepoMock.Object
         );
 
     [Fact]
@@ -39,13 +42,16 @@ public class PreviewQueryHandlerTests
         var eventId = Guid.NewGuid();
         var now = DateTime.UtcNow;
 
-        var ev = new Event
-        {
-            Id = eventId,
-            StartsAtUtc = now.AddDays(-10),
-            EndsAtUtc = now.AddDays(10),
-            DefaultTargetWords = 50000
-        };
+        var ev = new EventDto(
+            Guid.NewGuid(),
+            "Evento Antigo",
+            "evento-antigo",
+            "Custom",
+            DateTime.UtcNow.AddMonths(-2),
+            DateTime.UtcNow.AddMonths(-1),
+            10000,
+            false
+        );
 
         var projectEvent = new ProjectEvent
         {
@@ -60,20 +66,20 @@ public class PreviewQueryHandlerTests
             new() { ProjectId = projectId, WordsWritten = 2000, CreatedAt = now.AddDays(-1) }
         };
 
-        _eventRepoMock
-            .Setup(r => r.GetEventById(eventId))
+        _eventReadRepoMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ev);
 
         _projectRepoMock
             .Setup(r => r.GetProjectById(projectId))
             .ReturnsAsync(new Project { Id = projectId });
 
-        _projectEventsRepoMock
-            .Setup(r => r.GetProjectEventByProjectIdAndEventId(projectId, eventId))
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         _progressReadRepoMock
-            .Setup(r => r.GetProgressByProjectIdAsync(projectId, userId))
+            .Setup(r => r.GetProgressByProjectIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(progress);
 
         var handler = CreateHandler();
@@ -94,9 +100,9 @@ public class PreviewQueryHandlerTests
         var handler = CreateHandler();
         var query = new PreviewQuery(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
 
-        _eventRepoMock
-            .Setup(r => r.GetEventById(It.IsAny<Guid>()))
-            .ReturnsAsync((Event?)null);
+        _eventReadRepoMock
+            .Setup(r => r.GetEventByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EventDto?)null);
 
         Func<Task> act = async () =>
             await handler.Handle(query, CancellationToken.None);
@@ -113,9 +119,9 @@ public class PreviewQueryHandlerTests
         var projectId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
 
-        _eventRepoMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(new Event());
+        _eventReadRepoMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(It.IsAny<EventDto>());
 
         _projectRepoMock
             .Setup(r => r.GetProjectById(projectId))
@@ -139,16 +145,16 @@ public class PreviewQueryHandlerTests
         var projectId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
 
-        _eventRepoMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(new Event());
+        _eventReadRepoMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(It.IsAny<EventDto>());
 
         _projectRepoMock
             .Setup(r => r.GetProjectById(projectId))
             .ReturnsAsync(new Project { Id = projectId });
 
-        _projectEventsRepoMock
-            .Setup(r => r.GetProjectEventByProjectIdAndEventId(projectId, eventId))
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ProjectEvent?)null);
 
         var handler = CreateHandler();

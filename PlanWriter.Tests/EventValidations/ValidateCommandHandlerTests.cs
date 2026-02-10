@@ -6,6 +6,8 @@ using PlanWriter.Application.EventValidation.Commands;
 using PlanWriter.Application.EventValidation.Dtos.Commands;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -17,13 +19,16 @@ public class ValidateCommandHandlerTests
     private readonly Mock<IProjectRepository> _projectRepositoryMock = new();
     private readonly Mock<IProjectEventsRepository> _projectEventsRepositoryMock = new();
     private readonly Mock<ILogger<ValidateCommandHandler>> _loggerMock = new();
+    private readonly Mock<IProjectEventsReadRepository> _projectEventsReadRepositoryMock = new();
+    private readonly Mock<IEventReadRepository> _eventReadRepositoryMock = new();
 
     private ValidateCommandHandler CreateHandler()
         => new(
             _loggerMock.Object,
-            _eventRepositoryMock.Object,
             _projectRepositoryMock.Object,
-            _projectEventsRepositoryMock.Object
+            _projectEventsRepositoryMock.Object,
+            _projectEventsReadRepositoryMock.Object,
+            _eventReadRepositoryMock.Object
         );
 
     [Fact]
@@ -56,12 +61,12 @@ public class ValidateCommandHandlerTests
             .Setup(r => r.GetProjectById(projectId))
             .ReturnsAsync(new Project { Id = projectId });
 
-        _projectEventsRepositoryMock
-            .Setup(r => r.GetProjectEventByProjectIdAndEventId(projectId, eventId))
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         _projectEventsRepositoryMock
-            .Setup(r => r.UpdateProjectEvent(projectEvent))
+            .Setup(r => r.UpdateProjectEvent(projectEvent, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var command = new ValidateCommand(userId, eventId, projectId, 52000, "manual");
@@ -80,7 +85,7 @@ public class ValidateCommandHandlerTests
         projectEvent.ValidationSource.Should().Be("manual");
 
         _projectEventsRepositoryMock.Verify(
-            r => r.UpdateProjectEvent(projectEvent),
+            r => r.UpdateProjectEvent(projectEvent, It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -114,8 +119,8 @@ public class ValidateCommandHandlerTests
             .Setup(r => r.GetProjectById(projectId))
             .ReturnsAsync(new Project { Id = projectId });
 
-        _projectEventsRepositoryMock
-            .Setup(r => r.GetProjectEventByProjectIdAndEventId(projectId, eventId))
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         var command = new ValidateCommand(userId, eventId, projectId, 1000, "manual");
@@ -133,7 +138,7 @@ public class ValidateCommandHandlerTests
             .WithMessage("Total informado (1000) é menor que a meta (50000).");
 
         _projectEventsRepositoryMock.Verify(
-            r => r.UpdateProjectEvent(It.IsAny<ProjectEvent>()),
+            r => r.UpdateProjectEvent(It.IsAny<ProjectEvent>(), It.IsAny<CancellationToken>()),
             Times.Never
         );
     }
@@ -204,8 +209,8 @@ public class ValidateCommandHandlerTests
             .Setup(r => r.GetProjectById(projectId))
             .ReturnsAsync(new Project { Id = projectId });
 
-        _projectEventsRepositoryMock
-            .Setup(r => r.GetProjectEventByProjectIdAndEventId(projectId, eventId))
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ProjectEvent?)null);
 
         var command = new ValidateCommand(Guid.NewGuid(),  eventId,  projectId,50000, "manual");

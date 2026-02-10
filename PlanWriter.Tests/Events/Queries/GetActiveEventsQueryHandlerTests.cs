@@ -2,13 +2,10 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.Events.Dtos.Queries;
-using PlanWriter.Application.Events.Queries;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
-using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
-using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 using GetActiveEventsQueryHandler = PlanWriter.Application.AdminEvents.Queries.GetActiveEventsQueryHandler;
+using IEventReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Events.IEventReadRepository;
 
 namespace PlanWriter.Tests.Events.Queries;
 

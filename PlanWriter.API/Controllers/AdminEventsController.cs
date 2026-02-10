@@ -5,7 +5,6 @@ using PlanWriter.Application.AdminEvents.Dtos.Commands;
 using PlanWriter.Application.AdminEvents.Dtos.Queries;
 using PlanWriter.Domain.Dtos.AdminEvents;
 using PlanWriter.Domain.Requests;
-using CreateEventRequest = PlanWriter.Domain.Dtos.Events.CreateEventRequest;
 
 namespace PlanWriter.API.Controllers;
 

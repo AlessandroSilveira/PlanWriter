@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Buddies.Dtos.Queries;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Buddies;
 using PlanWriter.Domain.Interfaces.Repositories;
 

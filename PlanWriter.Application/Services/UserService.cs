@@ -1,19 +1,25 @@
 using System;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using PlanWriter.Application.DTO;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Services;
 
-public class UserService(IUserRepository userRepository, IPasswordHasher<User> passwordHasher) : IUserService
+public class UserService(
+    IUserRepository userRepository,
+    IUserReadRepository userReadRepository,
+    IPasswordHasher<User> passwordHasher
+    ) : IUserService
 {
-    public async Task<bool> RegisterUserAsync(RegisterUserDto dto)
+    public async Task<bool> RegisterUserAsync(RegisterUserDto dto, CancellationToken ct)
     {
-        if (await userRepository.GetByEmailAsync(dto.Email) != null)
+        if (await userReadRepository.GetByEmailAsync(dto.Email, ct) != null)
         {
             throw new InvalidOperationException("E-mail já cadastrado.");
         }
@@ -34,7 +40,7 @@ public class UserService(IUserRepository userRepository, IPasswordHasher<User> p
         // 👤 garante usuário comum
         user.MakeRegularUser();
 
-        await userRepository.AddAsync(user);
+        await userRepository.CreateAsync(user, ct);
         return true;
     }
     

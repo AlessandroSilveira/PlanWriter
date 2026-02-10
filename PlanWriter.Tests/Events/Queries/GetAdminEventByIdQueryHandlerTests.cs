@@ -1,9 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using PlanWriter.Application.Events.Dtos.Queries;
-using PlanWriter.Application.Events.Queries;
-using PlanWriter.Domain.Dtos;
+using PlanWriter.Application.AdminEvents.Dtos.Queries;
+using PlanWriter.Application.Events.Queries.Admin;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.Repositories;
@@ -39,7 +38,7 @@ public class GetAdminEventByIdQueryHandlerTests
             .ReturnsAsync(ev);
 
         var handler = CreateHandler();
-        var query = new GetEventByIdQuery(eventId);
+        var query = new GetAdminEventByIdQuery(eventId);
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);
@@ -69,7 +68,7 @@ public class GetAdminEventByIdQueryHandlerTests
             .ReturnsAsync((Event?)null);
 
         var handler = CreateHandler();
-        var query = new GetEventByIdQuery(eventId);
+        var query = new GetAdminEventByIdQuery(eventId);
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);

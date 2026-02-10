@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Events;
 
@@ -6,11 +7,10 @@ namespace PlanWriter.Domain.Interfaces.Repositories;
 
 public interface IProjectEventsRepository
 {
-    Task<ProjectEvent?> GetProjectEventByProjectIdAndEventId(Guid reqProjectId, Guid reqEventId);
-    Task<ProjectEvent> AddProjectEvent(ProjectEvent pe);
-    Task<ProjectEvent?> GetProjectEventByProjectId(Guid projectEventId);
-    Task<ProjectEvent?> GetProjectEventById(Guid projectEventId);
-    Task UpdateProjectEvent(ProjectEvent entity);
-    Task<bool> RemoveByKeys(Guid projectId, Guid eventId);
-    Task<ProjectEvent?> GetMostRecentWinByUserIdAsync(Guid userId);
+    Task<ProjectEvent?> GetByProjectAndEventAsync(Guid projectId, Guid eventId, CancellationToken ct);
+    Task CreateAsync(ProjectEvent entity, CancellationToken ct);
+    Task UpdateTargetWordsAsync(Guid projectEventId, int targetWords, CancellationToken ct);
+    Task<bool> RemoveByKeysAsync(Guid projectId, Guid eventId, CancellationToken ct);
+    Task UpdateProjectEvent(ProjectEvent projectEvent, CancellationToken cancellationToken);
+    Task RemoveByKeys(Guid requestProjectId, Guid requestEventId);
 }

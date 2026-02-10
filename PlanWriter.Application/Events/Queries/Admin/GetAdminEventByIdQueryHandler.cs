@@ -2,17 +2,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using PlanWriter.Application.Events.Dtos.Queries;
-using PlanWriter.Domain.Dtos;
+using PlanWriter.Application.AdminEvents.Dtos.Queries;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.Repositories;
 
-namespace PlanWriter.Application.Events.Queries;
+namespace PlanWriter.Application.Events.Queries.Admin;
 
 public class GetAdminEventByIdQueryHandler(IEventRepository eventRepository, ILogger<GetAdminEventByIdQueryHandler> logger)
-    : IRequestHandler<GetEventByIdQuery, EventDto?>
+    : IRequestHandler<GetAdminEventByIdQuery, EventDto?>
 {
-    public async Task<EventDto?> Handle(GetEventByIdQuery request, CancellationToken cancellationToken)
+    public async Task<EventDto?> Handle(GetAdminEventByIdQuery request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Getting event {EventId}", request.EventId);
 

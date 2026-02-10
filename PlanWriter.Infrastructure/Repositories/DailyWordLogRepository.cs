@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Infrastructure.Data;
@@ -11,21 +10,32 @@ using PlanWriter.Infrastructure.Data;
 
 namespace PlanWriter.Infrastructure.Repositories;
 
-public class DailyWordLogRepository(AppDbContext context) : IDailyWordLogRepository
+public class DailyWordLogRepository(IDbExecutor db) : IDailyWordLogRepository
 {
-    public async Task<DailyWordLog?> GetByProjectAndDateAsync(
+    public Task<DailyWordLog?> GetByProjectAndDateAsync(
         Guid projectId,
         DateOnly date,
         Guid userId
     )
     {
-        return await context.Set<DailyWordLog>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x =>
-                x.ProjectId == projectId &&
-                x.UserId == userId &&
-                x.Date == date
-            );
+        const string sql = @"
+            SELECT TOP 1
+                Id,
+                ProjectId,
+                UserId,
+                [Date],
+                WordsWritten,
+                CreatedAtUtc
+            FROM DailyWordLogs
+            WHERE ProjectId = @ProjectId
+              AND UserId = @UserId
+              AND [Date] = @Date;
+        ";
+
+        return db.QueryFirstOrDefaultAsync<DailyWordLog>(
+            sql,
+            new { ProjectId = projectId, UserId = userId, Date = date }
+        );
     }
 
     public async Task<IEnumerable<DailyWordLog>> GetByProjectAsync(
@@ -33,65 +43,114 @@ public class DailyWordLogRepository(AppDbContext context) : IDailyWordLogReposit
         Guid userId
     )
     {
-        return await context.Set<DailyWordLog>()
-            .AsNoTracking()
-            .Where(x =>
-                x.ProjectId == projectId &&
-                x.UserId == userId
+        const string sql = @"
+            SELECT
+                Id,
+                ProjectId,
+                UserId,
+                [Date],
+                WordsWritten,
+                CreatedAtUtc
+            FROM DailyWordLogs
+            WHERE ProjectId = @ProjectId
+              AND UserId = @UserId
+            ORDER BY [Date];
+        ";
+
+        var rows = await db.QueryAsync<DailyWordLog>(sql, new { ProjectId = projectId, UserId = userId });
+        return rows;
+    }
+
+    public Task AddAsync(DailyWordLog log)
+    {
+        const string sql = @"
+            INSERT INTO DailyWordLogs
+            (
+                Id,
+                ProjectId,
+                UserId,
+                [Date],
+                WordsWritten,
+                CreatedAtUtc
             )
-            .OrderBy(x => x.Date)
-            .ToListAsync();
+            VALUES
+            (
+                @Id,
+                @ProjectId,
+                @UserId,
+                @Date,
+                @WordsWritten,
+                @CreatedAtUtc
+            );
+        ";
+
+        if (log.Id == Guid.Empty)
+            log.Id = Guid.NewGuid();
+
+        return db.ExecuteAsync(sql, new
+        {
+            log.Id,
+            log.ProjectId,
+            log.UserId,
+            log.Date,
+            log.WordsWritten,
+            log.CreatedAtUtc
+        });
     }
 
-    public async Task AddAsync(DailyWordLog log)
+    public Task UpdateAsync(DailyWordLog log)
     {
-        context.Set<DailyWordLog>().Add(log);
-        await context.SaveChangesAsync();
-    }
+        const string sql = @"
+            UPDATE DailyWordLogs
+            SET
+                WordsWritten = @WordsWritten
+            WHERE Id = @Id;
+        ";
 
-    public async Task UpdateAsync(DailyWordLog log)
-    {
-        context.Set<DailyWordLog>().Update(log);
-        await context.SaveChangesAsync();
+        return db.ExecuteAsync(sql, new { log.Id, log.WordsWritten });
     }
     
     public async Task<int> SumWordsAsync(Guid userId, DateTime? start, DateTime? end)
     {
-        var query = context.DailyWordLogs.Where(x => x.UserId == userId);
+        var startDate = start.HasValue ? DateOnly.FromDateTime(start.Value) : (DateOnly?)null;
+        var endDate = end.HasValue ? DateOnly.FromDateTime(end.Value) : (DateOnly?)null;
 
-        if (start.HasValue)
-        {
-            var startDate = DateOnly.FromDateTime(start.Value);
-            query = query.Where(x => x.Date >= startDate);
-        }
+        const string sql = @"
+            SELECT COALESCE(SUM(WordsWritten), 0)
+            FROM DailyWordLogs
+            WHERE UserId = @UserId
+              AND (@Start IS NULL OR [Date] >= @Start)
+              AND (@End IS NULL OR [Date] <= @End);
+        ";
 
-        if (end.HasValue)
-        {
-            var endDate = DateOnly.FromDateTime(end.Value);
-            query = query.Where(x => x.Date <= endDate);
-        }
-
-        return await query.SumAsync(x => (int?)x.WordsWritten) ?? 0;
+        return await db.QueryFirstOrDefaultAsync<int>(
+            sql,
+            new { UserId = userId, Start = startDate, End = endDate }
+        );
     }
 
     public async Task<Dictionary<Guid, int>> GetTotalWordsByUsersAsync(IEnumerable<Guid> userIds, DateOnly? start, DateOnly? end)
     {
-        var query = context.DailyWordLogs
-            .Where(l => userIds.Contains(l.UserId));
+        var ids = userIds.Distinct().ToList();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, int>();
 
-        if (start.HasValue)
-            query = query.Where(l => l.Date >= start.Value);
+        const string sql = @"
+            SELECT
+                UserId,
+                SUM(WordsWritten) AS Total
+            FROM DailyWordLogs
+            WHERE UserId IN @UserIds
+              AND (@Start IS NULL OR [Date] >= @Start)
+              AND (@End IS NULL OR [Date] <= @End)
+            GROUP BY UserId;
+        ";
 
-        if (end.HasValue)
-            query = query.Where(l => l.Date <= end.Value);
+        var rows = await db.QueryAsync<(Guid UserId, int Total)>(
+            sql,
+            new { UserIds = ids, Start = start, End = end }
+        );
 
-        return await query
-            .GroupBy(l => l.UserId)
-            .Select(g => new
-            {
-                UserId = g.Key,
-                Total = g.Sum(x => x.WordsWritten)
-            })
-            .ToDictionaryAsync(x => x.UserId, x => x.Total);
+        return rows.ToDictionary(x => x.UserId, x => x.Total);
     }
 }

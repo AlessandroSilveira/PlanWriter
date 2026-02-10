@@ -1,13 +1,12 @@
-using System.Linq.Expressions;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.Events.Commands;
 using PlanWriter.Application.Events.Dtos.Commands;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -20,6 +19,7 @@ public class FinalizeEventCommandHandlerTests
     private readonly Mock<IProjectProgressRepository> _projectProgressRepoMock = new();
     private readonly Mock<IBadgeRepository> _badgeRepoMock = new();
     private readonly Mock<ILogger<FinalizeEventCommandHandler>> _loggerMock = new();
+    private readonly Mock<IProjectEventsReadRepository> _projectEventsReadRepoMock = new();
 
     private FinalizeEventCommandHandler CreateHandler()
         => new(
@@ -27,7 +27,8 @@ public class FinalizeEventCommandHandlerTests
             _eventRepoMock.Object,
             _projectProgressRepoMock.Object,
             _badgeRepoMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _projectEventsReadRepoMock.Object
         );
 
     [Fact]
@@ -61,16 +62,20 @@ public class FinalizeEventCommandHandlerTests
             new() { ProjectId = projectId, WordsWritten = 25000 }
         };
 
-        _projectEventsRepoMock
-            .Setup(r => r.GetProjectEventByProjectId(projectEventId))
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         _projectProgressRepoMock
-            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<ProjectProgress, bool>>>()))
+            .Setup(r => r.GetByProjectAndDateRangeAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(progressEntries);
 
         _projectEventsRepoMock
-            .Setup(r => r.UpdateProjectEvent(projectEvent))
+            .Setup(r => r.UpdateProjectEvent(projectEvent, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _badgeRepoMock
@@ -92,7 +97,7 @@ public class FinalizeEventCommandHandlerTests
         result.ValidatedAtUtc.Should().NotBeNull();
 
         _projectEventsRepoMock.Verify(
-            r => r.UpdateProjectEvent(projectEvent),
+            r => r.UpdateProjectEvent(projectEvent, It.IsAny<CancellationToken>()),
             Times.Once
         );
 
@@ -134,16 +139,20 @@ public class FinalizeEventCommandHandlerTests
             new() { ProjectId = projectId, WordsWritten = 10000 }
         };
 
-        _projectEventsRepoMock
-            .Setup(r => r.GetProjectEventByProjectId(projectEventId))
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         _projectProgressRepoMock
-            .Setup(r => r.FindAsync(It.IsAny<Expression<Func<ProjectProgress, bool>>>()))
+            .Setup(r => r.GetByProjectAndDateRangeAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(progressEntries);
 
         _projectEventsRepoMock
-            .Setup(r => r.UpdateProjectEvent(projectEvent))
+            .Setup(r => r.UpdateProjectEvent(projectEvent, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _badgeRepoMock
@@ -176,8 +185,8 @@ public class FinalizeEventCommandHandlerTests
         // Arrange
         var projectEventId = Guid.NewGuid();
 
-        _projectEventsRepoMock
-            .Setup(r => r.GetProjectEventByProjectId(projectEventId))
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ProjectEvent?)null);
 
         var handler = CreateHandler();
@@ -208,8 +217,8 @@ public class FinalizeEventCommandHandlerTests
             Event = null
         };
 
-        _projectEventsRepoMock
-            .Setup(r => r.GetProjectEventByProjectId(projectEventId))
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         _eventRepoMock

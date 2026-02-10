@@ -32,7 +32,8 @@ public class EventsController(IUserService userService, IMediator mediator) : Co
     [HttpPost("join")]
     public async Task<ActionResult> Join([FromBody] JoinEventRequest req)
     {
-        var response = await mediator.Send(new JoinEventCommand(req));
+        var userId = userService.GetUserId(User);
+        var response = await mediator.Send(new JoinEventCommand(req, userId));
         return Ok(response);
     }
     

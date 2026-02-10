@@ -24,7 +24,8 @@ public class LeaveEventCommandHandlerTests
 
         _projectEventsRepoMock
             .Setup(r => r.RemoveByKeys(projectId, eventId))
-            .ReturnsAsync(It.IsAny<bool>());
+            .Returns(Task.CompletedTask);
+
 
         var handler = CreateHandler();
         var command = new LeaveEventCommand(projectId, eventId);

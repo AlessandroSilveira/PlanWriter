@@ -8,13 +8,15 @@ using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Milestones.Dtos.Queries;
 using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
-using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Milestones.Queries;
 
-public class GetProjectMilestonesQueryHandler(ILogger<GetProjectMilestonesQueryHandler> logger, IProjectRepository projectRepository,
-    IMilestonesRepository milestonesRepository, IProjectReadRepository projectReadRepository)
+public class GetProjectMilestonesQueryHandler(
+    ILogger<GetProjectMilestonesQueryHandler> logger,
+    IMilestonesReadRepository milestonesReadRepository,
+    IProjectReadRepository projectReadRepository)
     : IRequestHandler<GetProjectMilestonesQuery, List<MilestoneDto>>
 {
     public async Task<List<MilestoneDto>> Handle(GetProjectMilestonesQuery request, CancellationToken cancellationToken)
@@ -26,7 +28,7 @@ public class GetProjectMilestonesQueryHandler(ILogger<GetProjectMilestonesQueryH
 
         logger.LogInformation("Access to Project {ProjectId} granted for User {UserId}", request.ProjectId, request.UserId);
         
-        var projectMilestones = await milestonesRepository.GetByProjectIdAsync(request.ProjectId);
+        var projectMilestones = await milestonesReadRepository.GetByProjectIdAsync(request.ProjectId, cancellationToken);
 
         logger.LogInformation("Found {Count} milestones for Project {ProjectId}", projectMilestones.Count, request.ProjectId);
        

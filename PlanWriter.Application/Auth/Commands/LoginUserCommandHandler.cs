@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Auth.Dtos.Commands;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth;
-using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Auth.Commands;
 

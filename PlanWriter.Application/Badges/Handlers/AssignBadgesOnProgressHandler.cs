@@ -25,7 +25,7 @@ public class AssignBadgesOnProgressHandler(IProjectRepository projectRepository,
             return;
 
         // 2️⃣ Progresso
-        var entries = (await progressReadRepository.GetProgressByProjectIdAsync(notification.ProjectId, notification.UserId))
+        var entries = (await progressReadRepository.GetProgressByProjectIdAsync(notification.ProjectId, notification.UserId, ct))
             .ToList();
 
         if (entries.Count == 0)

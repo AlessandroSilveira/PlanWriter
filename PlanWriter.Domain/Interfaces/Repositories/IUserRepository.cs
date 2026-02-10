@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Entities;
 
@@ -7,12 +6,6 @@ namespace PlanWriter.Domain.Interfaces.Repositories;
 
 public interface IUserRepository
 {
-    Task<bool> EmailExistsAsync(string email);
-    Task AddAsync(User user);
-    Task<User?> GetByEmailAsync(string email);
-    Task<User?> GetByIdAsync(Guid userId);
-    Task UpdateAsync(User user);
-    Task<List<User>> GetUsersByIdsAsync(IEnumerable<Guid> buddyIds);
-    Task<bool> SlugExistsAsync(string slug, Guid userId);
-    Task<User?> GetBySlugAsync(string requestSlug);
+    Task CreateAsync(User user, CancellationToken ct);
+    Task UpdateAsync(User user, CancellationToken ct);
 }

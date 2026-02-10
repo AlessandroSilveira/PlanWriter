@@ -2,7 +2,6 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
-using PlanWriter.Application.DTO;
 using PlanWriter.Application.Projects.Commands;
 using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Entities;
@@ -49,7 +48,7 @@ public class AddProjectProgressCommandHandlerTests
             .ReturnsAsync(It.IsAny<ProjectProgress>());
 
         _projectRepo
-            .Setup(r => r.UpdateAsync(project))
+            .Setup(r => r.UpdateAsync(project, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _mediator

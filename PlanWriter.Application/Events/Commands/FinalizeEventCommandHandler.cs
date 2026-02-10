@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Events.Dtos.Commands;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Events.Commands;
@@ -17,7 +18,7 @@ public class FinalizeEventCommandHandler(
     IEventRepository eventRepository,
     IProjectProgressRepository projectProgressRepository,
     IBadgeRepository badgeRepository,
-    ILogger<FinalizeEventCommandHandler> logger)
+    ILogger<FinalizeEventCommandHandler> logger,IProjectEventsReadRepository projectEventsReadRepository)
     : IRequestHandler<FinalizeEventCommand, ProjectEvent>
 {
     public async Task<ProjectEvent> Handle(FinalizeEventCommand request, CancellationToken cancellationToken)
@@ -25,7 +26,7 @@ public class FinalizeEventCommandHandler(
         logger.LogInformation("Finalizing event participation for ProjectEvent {ProjectEventId}", request.Req.ProjectEventId);
 
         // 1️⃣ Recupera a inscrição do projeto no evento
-        var projectEvent = await projectEventsRepository.GetProjectEventByProjectId(request.Req.ProjectEventId)
+        var projectEvent = await projectEventsReadRepository.GetByIdWithEventAsync(request.Req.ProjectEventId, cancellationToken)
             ?? throw new KeyNotFoundException("Inscrição não encontrada.");
 
         logger.LogInformation("ProjectEvent {ProjectEventId} found for Project {ProjectId}", projectEvent.Id, projectEvent.ProjectId);
@@ -45,11 +46,11 @@ public class FinalizeEventCommandHandler(
         logger.LogInformation("Target word count resolved as {TargetWords} words", targetWordCount);
 
         // 4️⃣ Soma das palavras escritas durante o período do evento
-        var progressEntries = await projectProgressRepository.FindAsync(w =>
-            w.ProjectId == projectEvent.ProjectId &&
-            w.CreatedAt >= eventEntity.StartsAtUtc &&
-            w.CreatedAt < eventEntity.EndsAtUtc
-        );
+        var progressEntries = await projectProgressRepository.GetByProjectAndDateRangeAsync(
+            projectEvent.ProjectId!.Value,
+            eventEntity.StartsAtUtc,
+            eventEntity.EndsAtUtc,
+            cancellationToken);
 
         var totalWordsWrittenInEvent = progressEntries.Sum(w => (int?)w.WordsWritten) ?? 0;
 
@@ -63,7 +64,7 @@ public class FinalizeEventCommandHandler(
 
         logger.LogInformation("ProjectEvent {ProjectEventId} finalized. Won = {Won}", projectEvent.Id, projectEvent.Won);
 
-        await projectEventsRepository.UpdateProjectEvent(projectEvent);
+        await projectEventsRepository.UpdateProjectEvent(projectEvent, cancellationToken);
 
         // 6️⃣ Criação do badge (winner ou participant)
         var badge = CreateEventBadge(

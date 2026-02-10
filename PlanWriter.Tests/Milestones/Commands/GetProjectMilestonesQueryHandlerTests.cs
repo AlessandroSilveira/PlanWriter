@@ -1,9 +1,10 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using PlanWriter.Application.Milestones.Commands;
 using PlanWriter.Application.Milestones.Dtos.Queries;
+using PlanWriter.Application.Milestones.Queries;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
@@ -14,6 +15,7 @@ public class GetProjectMilestonesQueryHandlerTests
 {
     private readonly Mock<IProjectRepository> _projectRepositoryMock = new();
     private readonly Mock<IMilestonesRepository> _milestonesRepositoryMock = new();
+    private readonly Mock<IMilestonesReadRepository> _milestonesReadRepositoryMock = new();
     private readonly Mock<ILogger<GetProjectMilestonesQueryHandler>> _loggerMock = new();
     private readonly Mock<IProjectReadRepository> _projectReadRepositoryMock = new();
 
@@ -47,8 +49,8 @@ public class GetProjectMilestonesQueryHandlerTests
             }
         };
 
-        _milestonesRepositoryMock
-            .Setup(r => r.GetByProjectIdAsync(projectId))
+        _milestonesReadRepositoryMock
+            .Setup(r => r.GetByProjectIdAsync(projectId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(milestones);
 
         var handler = CreateHandler();
@@ -98,8 +100,8 @@ public class GetProjectMilestonesQueryHandlerTests
             .Setup(r => r.GetUserProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Project { Id = projectId });
 
-        _milestonesRepositoryMock
-            .Setup(r => r.GetByProjectIdAsync(projectId))
+        _milestonesReadRepositoryMock
+            .Setup(r => r.GetByProjectIdAsync(projectId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Milestone>());
 
         var handler = CreateHandler();
@@ -117,6 +119,10 @@ public class GetProjectMilestonesQueryHandlerTests
 
     private GetProjectMilestonesQueryHandler CreateHandler()
     {
-        return new GetProjectMilestonesQueryHandler(_loggerMock.Object, _projectRepositoryMock.Object, _milestonesRepositoryMock.Object, _projectReadRepositoryMock.Object);
+        return new GetProjectMilestonesQueryHandler(
+            _loggerMock.Object, 
+            _milestonesReadRepositoryMock.Object, 
+            _projectReadRepositoryMock.Object
+            );
     }
 }

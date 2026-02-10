@@ -1,10 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
-using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Infrastructure.Data;
+using IEventReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Events.IEventReadRepository;
 
 namespace PlanWriter.Infrastructure.ReadModels.Events;
 
@@ -16,17 +16,38 @@ public class EventReadRepository(IDbExecutor db) : IEventReadRepository
             SELECT
                 Id,
                 Name,
-                Description,
-                StartDate,
-                EndDate,
+                Slug,
+                CAST([Type] AS varchar(50)) AS [Type],
+                StartsAtUtc,
+                EndsAtUtc,
+                DefaultTargetWords,
                 IsActive
             FROM Events
             WHERE IsActive = 1
-              AND StartDate <= SYSUTCDATETIME()
-              AND EndDate >= SYSUTCDATETIME()
-            ORDER BY StartDate;
+              AND StartsAtUtc <= SYSUTCDATETIME()
+              AND EndsAtUtc   >= SYSUTCDATETIME()
+            ORDER BY StartsAtUtc;
         ";
 
         return db.QueryAsync<EventDto>(sql, param: null, ct: cancellationToken);
+    }
+
+    public Task<EventDto?> GetEventByIdAsync(Guid requestEventId, CancellationToken cancellationToken)
+    {
+        const string sql = @"
+            SELECT
+                Id,
+                Name,
+                Slug,
+                [Type],
+                StartsAtUtc,
+                EndsAtUtc,
+                DefaultTargetWords,
+                IsActive
+            FROM Events
+            WHERE Id = @EventId;
+        ";
+
+        return db.QueryFirstOrDefaultAsync<EventDto>(sql, new { EventId = requestEventId }, ct: cancellationToken);
     }
 }

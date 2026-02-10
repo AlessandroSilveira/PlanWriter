@@ -8,8 +8,8 @@ using PlanWriter.Domain.Dtos.Auth;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Auth;
-using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
+using IUserReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Users.IUserReadRepository;
 
 namespace PlanWriter.Tests.Admin.Commands;
 

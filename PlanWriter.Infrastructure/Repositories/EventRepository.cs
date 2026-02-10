@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using PlanWriter.Domain.Dtos;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.Repositories;
@@ -11,137 +9,190 @@ using PlanWriter.Infrastructure.Data;
 
 namespace PlanWriter.Infrastructure.Repositories;
 
-public class EventRepository(AppDbContext context) : Repository<Event>(context), IEventRepository
+public class EventRepository(IDbExecutor db) : IEventRepository
 {
+    private sealed record EventRow(
+        Guid Id,
+        string Name,
+        string Slug,
+        int Type,
+        DateTime StartsAtUtc,
+        DateTime EndsAtUtc,
+        int? DefaultTargetWords,
+        bool IsActive);
+
     public async Task<List<EventDto>> GetActiveEvents()
     {
-        try
-        {
-            var now = DateTime.UtcNow;
-            var q = await DbSet
-                .Where(e => e.IsActive && e.StartsAtUtc <= now && e.EndsAtUtc >= now)
-                .Select(e => new EventDto(e.Id, e.Name, e.Slug, e.Type.ToString(),
-                    e.StartsAtUtc, e.EndsAtUtc, e.DefaultTargetWords, e.IsActive))
-                .ToArrayAsync();
-            return q.ToList();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+        var now = DateTime.UtcNow;
+        const string sql = @"
+            SELECT
+                Id,
+                Name,
+                Slug,
+                [Type],
+                StartsAtUtc,
+                EndsAtUtc,
+                DefaultTargetWords,
+                IsActive
+            FROM Events
+            WHERE IsActive = 1
+              AND StartsAtUtc <= @Now
+              AND EndsAtUtc >= @Now;
+        ";
+
+        var rows = await db.QueryAsync<EventRow>(sql, new { Now = now });
+        return rows.Select(ToDto).ToList();
     }
 
-    public Task<bool> GetEventBySlug(string reqSlug)
+    public async Task<bool> GetEventBySlug(string reqSlug)
     {
-        try
-        {
-            return DbSet.AnyAsync(e => e.Slug == reqSlug);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+        const string sql = @"
+            SELECT COUNT(1)
+            FROM Events
+            WHERE Slug = @Slug;
+        ";
+
+        var count = await db.QueryFirstOrDefaultAsync<int>(sql, new { Slug = reqSlug });
+        return count > 0;
     }
 
-    public async Task AddEvent(Event ev)
+    public Task AddEvent(Event ev)
     {
-        try
+        const string sql = @"
+            INSERT INTO Events
+            (
+                Id,
+                Name,
+                Slug,
+                [Type],
+                StartsAtUtc,
+                EndsAtUtc,
+                DefaultTargetWords,
+                IsActive
+            )
+            VALUES
+            (
+                @Id,
+                @Name,
+                @Slug,
+                @Type,
+                @StartsAtUtc,
+                @EndsAtUtc,
+                @DefaultTargetWords,
+                @IsActive
+            );
+        ";
+
+        if (ev.Id == Guid.Empty)
+            ev.Id = Guid.NewGuid();
+
+        return db.ExecuteAsync(sql, new
         {
-            DbSet.Add(ev);
-            await Context.SaveChangesAsync();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+            ev.Id,
+            ev.Name,
+            ev.Slug,
+            Type = (int)ev.Type,
+            ev.StartsAtUtc,
+            ev.EndsAtUtc,
+            ev.DefaultTargetWords,
+            ev.IsActive
+        });
     }
 
-    public async Task<Event?> GetEventById(Guid reqEventId)
+    public Task<Event?> GetEventById(Guid reqEventId)
     {
-        try
-        {
-            return await DbSet.FirstOrDefaultAsync(e => e.Id == reqEventId);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+        const string sql = @"
+            SELECT TOP 1
+                Id,
+                Name,
+                Slug,
+                [Type],
+                StartsAtUtc,
+                EndsAtUtc,
+                DefaultTargetWords,
+                IsActive
+            FROM Events
+            WHERE Id = @Id;
+        ";
+
+        return db.QueryFirstOrDefaultAsync<Event>(sql, new { Id = reqEventId });
     }
 
     public async Task<List<EventDto>?> GetAllAsync()
     {
-        try
-        {
-            return await DbSet.Select(e => new EventDto(e.Id, e.Name, e.Slug, e.Type.ToString(), e.StartsAtUtc, e.EndsAtUtc, e.DefaultTargetWords, e.IsActive)).ToListAsync();
+        const string sql = @"
+            SELECT
+                Id,
+                Name,
+                Slug,
+                [Type],
+                StartsAtUtc,
+                EndsAtUtc,
+                DefaultTargetWords,
+                IsActive
+            FROM Events;
+        ";
 
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+        var rows = await db.QueryAsync<EventRow>(sql);
+        return rows.Select(ToDto).ToList();
     }
 
-    public async Task UpdateAsync(Event ev, Guid id)
+    public Task UpdateAsync(Event ev, Guid id)
     {
-        try
+        const string sql = @"
+            UPDATE Events
+            SET
+                Name = @Name,
+                Slug = @Slug,
+                [Type] = @Type,
+                StartsAtUtc = @StartsAtUtc,
+                EndsAtUtc = @EndsAtUtc,
+                DefaultTargetWords = @DefaultTargetWords,
+                IsActive = @IsActive
+            WHERE Id = @Id;
+        ";
+
+        return db.ExecuteAsync(sql, new
         {
-            DbSet.Update(ev);
-            await Context.SaveChangesAsync();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+            Id = id,
+            ev.Name,
+            ev.Slug,
+            Type = (int)ev.Type,
+            ev.StartsAtUtc,
+            ev.EndsAtUtc,
+            ev.DefaultTargetWords,
+            ev.IsActive
+        });
     }
     
-    public async Task DeleteAsync(Event ev)
+    public Task DeleteAsync(Event ev)
     {
-        try
-        {
-            DbSet.Remove(ev);
-            await Context.SaveChangesAsync();
-            return;
-        }catch(Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-       
+        const string sql = @"
+            DELETE FROM Events
+            WHERE Id = @Id;
+        ";
+
+        return db.ExecuteAsync(sql, new { ev.Id });
     }
 
     public async Task<List<MyEventDto>> GetEventByUserId(Guid userId)
     {
-        try
-        {
-            var query =
-                from pe in context.ProjectEvents
-                join e in DbSet on pe.EventId equals e.Id
-                where pe.Project!.UserId == userId
-                select new MyEventDto
-                {
-                    ProjectId = pe.ProjectId,
-                    EventId = pe.EventId,
-                    EventName = e.Name,
-                    ProjectTitle = pe.Project.Title,
-                    TotalWrittenInEvent = e.DefaultTargetWords,
-                    TargetWords = pe.TargetWords
-                };
+        const string sql = @"
+            SELECT DISTINCT
+                pe.ProjectId,
+                pe.EventId,
+                e.Name AS EventName,
+                p.Title AS ProjectTitle,
+                e.DefaultTargetWords AS TotalWrittenInEvent,
+                pe.TargetWords
+            FROM ProjectEvents pe
+            INNER JOIN Events e ON e.Id = pe.EventId
+            INNER JOIN Projects p ON p.Id = pe.ProjectId
+            WHERE p.UserId = @UserId;
+        ";
 
-            return await query
-                .Distinct()
-                .ToListAsync();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+        var rows = await db.QueryAsync<MyEventDto>(sql, new { UserId = userId });
+        return rows.ToList();
     }
 
     public async Task<List<EventLeaderboardRowDto>> GetLeaderboard(
@@ -150,87 +201,51 @@ public class EventRepository(AppDbContext context) : Repository<Event>(context),
         DateTime winEnd,
         int top)
     {
-        try
-        {
-            // ===============================
-    // 1. AGREGA PROGRESSO (SQL)
-    // ===============================
-    var progressAgg = await context.ProjectProgresses
-        .Where(p =>
-            p.CreatedAt >= winStart &&
-            p.CreatedAt < winEnd.AddDays(1))
-        .GroupBy(p => p.ProjectId)
-        .Select(g => new
-        {
-            ProjectId = g.Key,
-            Words = g.Sum(x => x.WordsWritten)
-        })
-        .ToListAsync();
+        const string sql = @"
+            SELECT
+                pe.ProjectId,
+                p.Title AS ProjectTitle,
+                (u.FirstName + ' ' + u.LastName) AS UserName,
+                COALESCE(agg.Words, 0) AS Words,
+                CASE
+                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) > 0
+                        THEN CAST(COALESCE(agg.Words, 0) * 100.0 / COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) AS float)
+                    ELSE 0
+                END AS Percent,
+                CASE
+                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) > 0
+                         AND COALESCE(agg.Words, 0) >= COALESCE(pe.TargetWords, e.DefaultTargetWords, 0)
+                        THEN CAST(1 AS bit)
+                    ELSE CAST(0 AS bit)
+                END AS Won
+            FROM ProjectEvents pe
+            INNER JOIN Projects p ON p.Id = pe.ProjectId
+            INNER JOIN Users u ON u.Id = p.UserId
+            INNER JOIN Events e ON e.Id = pe.EventId
+            LEFT JOIN (
+                SELECT
+                    ProjectId,
+                    SUM(WordsWritten) AS Words
+                FROM ProjectProgresses
+                WHERE CreatedAt >= @StartUtc
+                  AND CreatedAt <  DATEADD(day, 1, @EndUtc)
+                GROUP BY ProjectId
+            ) agg ON agg.ProjectId = pe.ProjectId
+            WHERE pe.EventId = @EventId;
+        ";
 
-    // ===============================
-    // 2. BASE DO LEADERBOARD (SQL)
-    // ===============================
-    var baseRows = await (
-        from pe in context.ProjectEvents
-        join p in context.Projects
-            on pe.ProjectId equals p.Id
-        join u in context.Users
-            on p.UserId equals u.Id
-        where pe.EventId == ev.Id
-        select new
+        var rows = await db.QueryAsync<EventLeaderboardRowDto>(sql, new
         {
-            pe.ProjectId,
-            pe.TargetWords,
-            ProjectTitle = p.Title,
-            UserName = u.FirstName + " " + u.LastName
-        }
-    ).ToListAsync();
+            EventId = ev.Id,
+            StartUtc = winStart,
+            EndUtc = winEnd,
+            Top = Math.Clamp(top, 1, 200)
+        });
 
-    // ===============================
-    // 3. MERGE + CÁLCULO (MEMÓRIA)
-    // ===============================
-    var rows = baseRows
-        .Select(r =>
-        {
-            var agg = progressAgg.FirstOrDefault(x => x.ProjectId == r.ProjectId);
-            var words = agg?.Words ?? 0;
-            var target = r.TargetWords ?? ev.DefaultTargetWords ?? 0;
-
-            return new EventLeaderboardRowDto
-            {
-                ProjectId = r.ProjectId.Value,
-                ProjectTitle = r.ProjectTitle,
-                UserName = r.UserName,
-                Words = words,
-                Percent = target > 0
-                    ? (double)words / target * 100
-                    : 0,
-                Won = target > 0 && words >= target,
-                Rank = 0
-            };
-        })
-        .OrderByDescending(r => r.Words)
-        .ThenBy(r => r.ProjectTitle)
-        .Take(Math.Clamp(top, 1, 200))
-        .ToList();
-
-    // ===============================
-    // 4. RANK
-    // ===============================
-    for (int i = 0; i < rows.Count; i++)
-        rows[i].Rank = i + 1;
-
-    return rows;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
+        return rows.ToList();
     }
 
-
-
-
-
+    private static EventDto ToDto(EventRow row)
+        => new(row.Id, row.Name, row.Slug, ((EventType)row.Type).ToString(),
+            row.StartsAtUtc, row.EndsAtUtc, row.DefaultTargetWords, row.IsActive);
 }

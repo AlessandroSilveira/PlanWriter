@@ -4,6 +4,7 @@ using Moq;
 using PlanWriter.Application.Profile.Dtos.Queries;
 using PlanWriter.Application.Profile.Queries;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
 
@@ -11,14 +12,14 @@ namespace PlanWriter.Tests.Profile.Queries;
 
 public class GetMineProfileQueryHandlerTests
 {
-    private readonly Mock<IUserRepository> _userRepositoryMock = new();
+    private readonly Mock<IUserReadRepository> _userReadRepositoryMock = new();
     private readonly Mock<IProjectRepository> _projectRepositoryMock = new();
     private readonly Mock<ILogger<GetMineProfileQueryHandler>> _loggerMock = new();
 
     private GetMineProfileQueryHandler CreateHandler()
         => new(
             _loggerMock.Object,
-            _userRepositoryMock.Object,
+            _userReadRepositoryMock.Object,
             _projectRepositoryMock.Object
         );
 
@@ -46,12 +47,12 @@ public class GetMineProfileQueryHandlerTests
             new Project { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), IsPublic = true }
         };
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         _projectRepositoryMock
-            .Setup(r => r.GetAllAsync())
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(projects);
 
         var handler = CreateHandler();
@@ -73,8 +74,8 @@ public class GetMineProfileQueryHandlerTests
         // Arrange
         var userId = Guid.NewGuid();
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
 
         var handler = CreateHandler();
@@ -103,12 +104,12 @@ public class GetMineProfileQueryHandlerTests
             IsProfilePublic = true
         };
 
-        _userRepositoryMock
-            .Setup(r => r.GetByIdAsync(userId))
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
 
         _projectRepositoryMock
-            .Setup(r => r.GetAllAsync())
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Project>());
 
         var handler = CreateHandler();

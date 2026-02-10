@@ -1,21 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using PlanWriter.Domain.Entities;
-using PlanWriter.Infrastructure.Data;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Dapper;
-using PlanWriter.Domain.Dtos.Events;
-using PlanWriter.Domain.Enums;
+using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Infrastructure.Data;
 
 namespace PlanWriter.Infrastructure.Repositories
 {
-    public class ProjectProgressRepository(AppDbContext context, IDbConnection connection)
-        : Repository<ProjectProgress>(context), IProjectProgressRepository
+    public class ProjectProgressRepository(IDbExecutor db)
+        : IProjectProgressRepository
     {
         
         public async Task<ProjectProgress> AddProgressAsync(ProjectProgress entity, CancellationToken ct)
@@ -50,26 +44,24 @@ namespace PlanWriter.Infrastructure.Repositories
                     @Pages
                 );";
 
-            await connection.ExecuteAsync(
-                new CommandDefinition(
-                    sql,
-                    new
-                    {
-                        entity.Id,
-                        entity.ProjectId,
-                        entity.TotalWordsWritten,
-                        entity.RemainingWords,
-                        entity.RemainingPercentage,
-                        entity.CreatedAt,
-                        entity.Date,
-                        entity.TimeSpentInMinutes,
-                        entity.WordsWritten,
-                        entity.Notes,
-                        entity.Minutes,
-                        entity.Pages
-                    },
-                    cancellationToken: ct
-                )
+            await db.ExecuteAsync(
+                sql,
+                new
+                {
+                    entity.Id,
+                    entity.ProjectId,
+                    entity.TotalWordsWritten,
+                    entity.RemainingWords,
+                    entity.RemainingPercentage,
+                    entity.CreatedAt,
+                    entity.Date,
+                    entity.TimeSpentInMinutes,
+                    entity.WordsWritten,
+                    entity.Notes,
+                    entity.Minutes,
+                    entity.Pages
+                },
+                ct
             );
 
             return entity;
@@ -89,8 +81,42 @@ namespace PlanWriter.Infrastructure.Repositories
                   );
                 ";
 
-            var affected = await connection.ExecuteAsync(sql, new { id, userId });
+            var affected = await db.ExecuteAsync(sql, new { id, userId });
             return affected > 0;
+        }
+        
+        public Task<IReadOnlyList<ProjectProgress>> GetByProjectAndDateRangeAsync(Guid projectId, DateTime startUtc, DateTime endUtc, CancellationToken ct)
+        {
+            const string sql = @"
+                SELECT
+                    Id,
+                    ProjectId,
+                    TotalWordsWritten,
+                    RemainingWords,
+                    RemainingPercentage,
+                    CreatedAt,
+                    [Date],
+                    TimeSpentInMinutes,
+                    WordsWritten,
+                    Notes,
+                    Minutes,
+                    Pages
+                FROM ProjectProgresses
+                WHERE ProjectId = @ProjectId
+                  AND CreatedAt >= @StartUtc
+                  AND CreatedAt <  @EndUtc;
+            ";
+
+            return db.QueryAsync<ProjectProgress>(
+                sql,
+                new
+                {
+                    ProjectId = projectId,
+                    StartUtc = startUtc,
+                    EndUtc = endUtc
+                },
+                ct
+            );
         }
         
     }
