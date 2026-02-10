@@ -66,7 +66,8 @@ namespace PlanWriter.API.Controllers
         [HttpPost("{id:guid}/progress")]
         public async Task<IActionResult> AddProgress(Guid id, [FromBody] AddProjectProgressDto request)
         {
-            
+            if (request is null) return BadRequest("Body inválido.");
+            request.ProjectId = id;
             var response = await mediator.Send(new AddProjectProgressCommand(id, request, UserId));
             if (!response) return BadRequest("ProgressAmount deve ser >= 0.");
             return Ok(new { message = "Progress added successfully." });
@@ -115,7 +116,7 @@ namespace PlanWriter.API.Controllers
             return Ok(new { message = "Project deleted successfully." });
         }
 
-        [HttpGet("{projectId}/history")]
+        [HttpGet("{projectId:guid}/history")]
         public async Task<IActionResult> GetHistory(Guid projectId)
         {
             var response = await mediator.Send(new GetProjectProgressHistoryQuery(projectId, UserId));
