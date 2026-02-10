@@ -13,7 +13,7 @@ using PlanWriter.Domain.Interfaces.Repositories;
 namespace PlanWriter.Application.Badges.Handlers;
 
 public class AssignBadgesOnProgressHandler(IProjectRepository projectRepository, IProjectProgressRepository progressRepository, IBadgeRepository badgeRepository, 
-    IProjectReadRepository  projectReadRepository, IProjectProgressReadRepository progressReadRepository, IBadgeReadRepository badgeReadRepository)
+    IProjectReadRepository  projectReadRepository, IProjectProgressReadRepository progressReadRepository, IBadgeReadRepository? badgeReadRepository = null)
     : INotificationHandler<ProjectProgressAdded>
 {
     public async Task Handle(ProjectProgressAdded notification, CancellationToken ct)
@@ -32,8 +32,11 @@ public class AssignBadgesOnProgressHandler(IProjectRepository projectRepository,
             return;
 
         // 3️⃣ Badges já existentes
-        var existingBadgeNames = (await badgeReadRepository.GetByProjectIdAsync(notification.ProjectId, notification.UserId, ct)).Select(b => b.Name)
-            .ToHashSet();
+        var existingBadgeNames = badgeReadRepository is null
+            ? new HashSet<string>()
+            : (await badgeReadRepository.GetByProjectIdAsync(notification.ProjectId, notification.UserId, ct))
+                .Select(b => b.Name)
+                .ToHashSet();
 
         var newBadges = new List<Badge>();
         var now = DateTime.UtcNow;

@@ -40,8 +40,17 @@ public class BuddiesLeaderboardQueryHandler(
         return BuildLeaderboard(users, totals, myTotal, request.UserId);
     }
 
-    private static (DateTime start, DateTime end) ResolveDateRange(BuddiesLeaderboardQuery request)
-        => (request.Start?.Date ?? DateTime.MinValue, request.End?.Date ?? DateTime.MaxValue);
+    private static (DateTime? start, DateTime? end) ResolveDateRange(BuddiesLeaderboardQuery request)
+    {
+        var start = request.Start?.Date;
+        var end = request.End?.Date;
+
+        // Defensive swap if user sends inverted range
+        if (start.HasValue && end.HasValue && start.Value > end.Value)
+            (start, end) = (end, start);
+
+        return (start, end);
+    }
 
     private async Task<List<Guid>> GetBuddyIdsAsync(Guid me, CancellationToken cancellationToken)
     {
