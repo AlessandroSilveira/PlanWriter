@@ -1,5 +1,3 @@
-
-using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +14,7 @@ namespace PlanWriter.API.Controllers;
 [Authorize]
 public class BuddiesController( IUserService userService, IMediator mediator) : ControllerBase
 {
-    private Guid Me => Guid.Parse(User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    private Guid Me => userService.GetUserId(User);
 
     [HttpGet]
     public async Task<ActionResult<List<BuddiesDto.BuddySummaryDto>>> Get()
