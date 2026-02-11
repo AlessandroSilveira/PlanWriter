@@ -193,7 +193,8 @@ using (var scope = app.Services.CreateScope())
             LastName = "System",
             Email = "admin@admin.com",
             IsProfilePublic = false,
-            DisplayName = "Administrador"
+            DisplayName = "Administrador",
+            DateOfBirth = new DateTime(2000, 1, 1)
         };
         user.ChangePassword(
             hasher.HashPassword(user, "admin")

@@ -1,0 +1,7 @@
+.git
+.gitignore
+.idea
+.DS_Store
+**/bin
+**/obj
+PlanWriter.sln.DotSettings.user

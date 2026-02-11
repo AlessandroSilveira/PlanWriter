@@ -26,8 +26,6 @@
     <Folder Include="Badges\Requests\" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Extensions.Identity.Core">
-      <HintPath>..\..\..\..\..\..\usr\local\share\dotnet\shared\Microsoft.AspNetCore.App\9.0.9\Microsoft.Extensions.Identity.Core.dll</HintPath>
-    </Reference>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 </Project>
