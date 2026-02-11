@@ -29,9 +29,11 @@ public class CompleteMilestonesOnProgressHandlerTests
             Completed = false
         };
 
-  
+        _milestonesReadRepository
+            .Setup(r => r.GetByProjectIdAsync(projectId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Milestone> { milestone });
 
-        _repo.Setup(r => r.UpdateAsync(milestone, It.IsAny<CancellationToken>()))
+        _repo.Setup(r => r.UpdateAsync(It.IsAny<Milestone>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
@@ -43,5 +45,13 @@ public class CompleteMilestonesOnProgressHandlerTests
 
         milestone.Completed.Should().BeTrue();
         milestone.CompletedAt.Should().NotBeNull();
+
+        _repo.Verify(
+            r => r.UpdateAsync(
+                It.Is<Milestone>(m => m.ProjectId == projectId && m.Completed),
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Once
+        );
     }
 }

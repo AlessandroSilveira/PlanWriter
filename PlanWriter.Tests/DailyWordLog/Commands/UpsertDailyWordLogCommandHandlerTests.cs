@@ -5,6 +5,10 @@ using Moq;
 using PlanWriter.Application.DailyWordLogs.Commands;
 using PlanWriter.Application.DailyWordLogs.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Projects;
+using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Enums;
+using PlanWriter.Domain.Events;
+using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories.DailyWordLogWrite;
 using Xunit;
 
@@ -13,6 +17,8 @@ namespace PlanWriter.Tests.DailyWordLog.Commands;
 public class UpsertDailyWordLogCommandHandlerTests
 {
     private readonly Mock<IDailyWordLogWriteRepository> _writeRepositoryMock = new();
+    private readonly Mock<IProjectReadRepository> _projectReadRepositoryMock = new();
+    private readonly Mock<IMediator> _mediatorMock = new();
     private readonly Mock<ILogger<UpsertDailyWordLogCommandHandler>> _loggerMock = new();
 
     [Fact]
@@ -34,6 +40,15 @@ public class UpsertDailyWordLogCommandHandlerTests
             requestDto
         );
 
+        _projectReadRepositoryMock
+            .Setup(r => r.GetUserProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Project
+            {
+                Id = projectId,
+                UserId = userId,
+                GoalUnit = GoalUnit.Words
+            });
+
         _writeRepositoryMock
             .Setup(r => r.UpsertAsync(
                 projectId,
@@ -42,6 +57,17 @@ public class UpsertDailyWordLogCommandHandlerTests
                 500,
                 It.IsAny<CancellationToken>()
             ))
+            .Returns(Task.CompletedTask);
+
+        _writeRepositoryMock
+            .Setup(r => r.GetByProjectAsync(projectId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DailyWordLogDto>
+            {
+                new() { Date = date, WordsWritten = 500 }
+            });
+
+        _mediatorMock
+            .Setup(m => m.Publish(It.IsAny<ProjectProgressAdded>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
@@ -58,6 +84,19 @@ public class UpsertDailyWordLogCommandHandlerTests
                 userId,
                 date,
                 500,
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Once
+        );
+
+        _mediatorMock.Verify(
+            m => m.Publish(
+                It.Is<ProjectProgressAdded>(e =>
+                    e.ProjectId == projectId &&
+                    e.UserId == userId &&
+                    e.NewTotal == 500 &&
+                    e.GoalUnit == GoalUnit.Words
+                ),
                 It.IsAny<CancellationToken>()
             ),
             Times.Once
@@ -89,11 +128,45 @@ public class UpsertDailyWordLogCommandHandlerTests
             .WithMessage("WordsWritten não pode ser negativo.");
     }
 
+    [Fact]
+    public async Task Handle_ShouldThrow_WhenProjectDoesNotBelongToUser()
+    {
+        var command = new UpsertDailyWordLogCommand(
+            Guid.NewGuid(),
+            new UpsertDailyWordLogRequest
+            {
+                ProjectId = Guid.NewGuid(),
+                Date = DateOnly.FromDateTime(DateTime.UtcNow),
+                WordsWritten = 100
+            });
+
+        var handler = CreateHandler();
+
+        Func<Task> act = async () => await handler.Handle(command, CancellationToken.None);
+
+        await act.Should()
+            .ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("Project not found.");
+
+        _writeRepositoryMock.Verify(
+            r => r.UpsertAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<DateOnly>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Never
+        );
+    }
+
     /* ===================== HELPERS ===================== */
 
     private UpsertDailyWordLogCommandHandler CreateHandler()
         => new(
             _writeRepositoryMock.Object,
+            _projectReadRepositoryMock.Object,
+            _mediatorMock.Object,
             _loggerMock.Object
         );
 }

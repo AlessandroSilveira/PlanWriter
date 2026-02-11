@@ -57,7 +57,9 @@ public sealed class MilestonesRepository(IDbExecutor db) : IMilestonesRepository
                 TargetAmount = @TargetAmount,
                 DueDate = @DueDate,
                 Notes = @Notes,
-                [Order] = @Order
+                [Order] = @Order,
+                Completed = @Completed,
+                CompletedAt = @CompletedAt
             WHERE Id = @Id;
         ";
 
