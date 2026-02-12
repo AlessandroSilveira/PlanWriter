@@ -550,5 +550,33 @@ namespace PlanWriter.Infrastructure.Repositories
             if (affected != 1)
                 throw new InvalidOperationException($"Update Projects expected 1 row, affected={affected}.");
         }
+
+        public async Task SetProjectVisibilityAsync(Guid projectId, Guid userId, bool isPublic, CancellationToken ct)
+        {
+            const string sql = @"
+                UPDATE Projects
+                SET
+                    IsPublic = @IsPublic
+                WHERE
+                    Id = @ProjectId
+                    AND UserId = @UserId;
+            ";
+
+            var affected = await db.ExecuteAsync(
+                sql,
+                new
+                {
+                    ProjectId = projectId,
+                    UserId = userId,
+                    IsPublic = isPublic
+                },
+                ct
+            );
+
+            if (affected != 1)
+                throw new InvalidOperationException(
+                    $"Update Projects visibility expected 1 row, affected={affected}. ProjectId={projectId}"
+                );
+        }
     }
 }

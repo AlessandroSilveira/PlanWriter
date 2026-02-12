@@ -27,6 +27,7 @@ namespace PlanWriter.Domain.Interfaces.Repositories
         Task<IReadOnlyList<ProjectDto>> GetByUserIdAsync(Guid userId, CancellationToken ct);
         Task<IReadOnlyList<Project>> GetPublicProjectsByUserIdAsync(Guid userId);
         Task<IReadOnlyList<Project>> GetAllAsync(CancellationToken ct = default);
+        Task SetProjectVisibilityAsync(Guid projectId, Guid userId, bool isPublic, CancellationToken ct);
         Task UpdateAsync(Project project, CancellationToken ct);
     }
 }

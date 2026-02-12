@@ -59,7 +59,7 @@ public class UpdateProfileCommandHandlerTests
 
         _projectReadRepositoryMock
             .Setup(r => r.GetUserProjectsAsync(userId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(It.IsAny<IReadOnlyList<ProjectDto>>());
+            .ReturnsAsync(Array.Empty<ProjectDto>());
 
         var command = new UpdateProfileCommand(
             userId,
@@ -119,7 +119,7 @@ public class UpdateProfileCommandHandlerTests
 
         _projectReadRepositoryMock
             .Setup(r => r.GetUserProjectsAsync(userId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(It.IsAny<IReadOnlyList<ProjectDto>>());
+            .ReturnsAsync(Array.Empty<ProjectDto>());
 
         var command = new UpdateProfileCommand(
             userId,
@@ -241,7 +241,7 @@ public class UpdateProfileCommandHandlerTests
             });
 
         _projectRepositoryMock
-            .Setup(r => r.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.SetProjectVisibilityAsync(It.IsAny<Guid>(), userId, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var command = new UpdateProfileCommand(
@@ -264,20 +264,70 @@ public class UpdateProfileCommandHandlerTests
         // Assert
 
         _projectRepositoryMock.Verify(
-            r => r.UpdateAsync(It.Is<Project>(p =>
-                p.Id == project1.Id &&
-                p.IsPublic == true
-            ), It.IsAny<CancellationToken>()),
+            r => r.SetProjectVisibilityAsync(
+                project1.Id,
+                userId,
+                true,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _projectRepositoryMock.Verify(
-            r => r.UpdateAsync(It.Is<Project>(p =>
-                p.Id == project2.Id &&
-                p.IsPublic == false
-            ), It.IsAny<CancellationToken>()),
+            r => r.SetProjectVisibilityAsync(
+                project2.Id,
+                userId,
+                false,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnOnlyPublicProjectIds()
+    {
+        var userId = Guid.NewGuid();
+        var publicProjectId = Guid.NewGuid();
+        var privateProjectId = Guid.NewGuid();
+
+        var user = new User
+        {
+            Id = userId,
+            Email = "user@test.com"
+        };
+
+        _userReadRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        _userRepositoryMock
+            .Setup(r => r.UpdateAsync(user, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _projectReadRepositoryMock
+            .Setup(r => r.GetUserProjectsAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new ProjectDto { Id = publicProjectId, IsPublic = true },
+                new ProjectDto { Id = privateProjectId, IsPublic = false }
+            });
+
+        var command = new UpdateProfileCommand(
+            userId,
+            new UpdateMyProfileRequest(
+                DisplayName: null,
+                Bio: null,
+                AvatarUrl: null,
+                IsProfilePublic: null,
+                Slug: null,
+                PublicProjectIds: null
+            )
+        );
+
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        result.PublicProjectIds.Should().BeEquivalentTo(new[] { publicProjectId });
     }
 
 

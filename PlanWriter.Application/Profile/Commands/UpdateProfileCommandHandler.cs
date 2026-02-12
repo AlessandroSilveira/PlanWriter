@@ -108,16 +108,7 @@ public class UpdateProfileCommandHandler(
         foreach (var dto in projects)
         {
             var isPublic = publicIds.Contains(dto.Id);
-
-            // MAP DTO → ENTITY (mínimo necessário pro update)
-            var entity = new Project
-            {
-                Id = dto.Id,
-                UserId = userId,
-                IsPublic = isPublic
-            };
-
-            await projectRepository.UpdateAsync(entity, ct);
+            await projectRepository.SetProjectVisibilityAsync(dto.Id, userId, isPublic, ct);
         }
     }
 
@@ -132,6 +123,7 @@ public class UpdateProfileCommandHandler(
             IsProfilePublic: user.IsProfilePublic,
             Slug: user.Slug,
             PublicProjectIds: projects
+                .Where(p => p.IsPublic)
                 .Select(p => p.Id)
                 .ToArray()
         );
