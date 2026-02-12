@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <Include>[PlanWriter.API]*,[PlanWriter.Application]*,[PlanWriter.Domain]*,[PlanWriter.Infrastructure]*</Include>
+          <Exclude>[PlanWriter.Application *]*,[PlanWriter.Domain *]*,[PlanWriter.Tests*]*,[xunit.*]*,[*.Tests*]*</Exclude>
+          <ExcludeByFile>**/.nuget/**;**/*.g.cs;**/*.g.i.cs</ExcludeByFile>
+          <ExcludeByAttribute>CompilerGeneratedAttribute,GeneratedCodeAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <SkipAutoProps>true</SkipAutoProps>
+          <DeterministicReport>true</DeterministicReport>
+          <UseSourceLink>false</UseSourceLink>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
