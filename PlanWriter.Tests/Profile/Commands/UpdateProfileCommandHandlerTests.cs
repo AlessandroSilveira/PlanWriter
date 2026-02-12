@@ -359,6 +359,6 @@ public class UpdateProfileCommandHandlerTests
 
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Usuário não encontrado.");
+            .WithMessage("User not found.");
     }
 }

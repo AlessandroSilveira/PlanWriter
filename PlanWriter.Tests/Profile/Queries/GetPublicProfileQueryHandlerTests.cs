@@ -91,8 +91,8 @@ public class GetPublicProfileQueryHandlerTests
             .Setup(r => r.GetPublicProjectsByUserIdAsync(userId))
             .ReturnsAsync(new List<Project> { project });
 
-        _projectEventsRepositoryMock
-            .Setup(r => r.GetByProjectAndEventAsync(project.Id, activeEvent.Id, It.IsAny<CancellationToken>()))
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(project.Id, activeEvent.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(projectEvent);
 
         _projectProgressReadRepositoryMock
@@ -183,8 +183,6 @@ public class GetPublicProfileQueryHandlerTests
             IsProfilePublic = true
         };
 
-        var winEvent = new Event { Name = "NaNoWriMo" };
-
         _userReadRepositoryMock
             .Setup(r => r.GetBySlugAsync(slug, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
@@ -197,7 +195,16 @@ public class GetPublicProfileQueryHandlerTests
             .Setup(r => r.GetPublicProjectsByUserIdAsync(userId))
             .ReturnsAsync(new List<Project>());
 
-      
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetMostRecentWinByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectEvent
+            {
+                Event = new Event
+                {
+                    Name = "NaNoWriMo"
+                }
+            });
+
 
         var handler = CreateHandler();
         var query = new GetPublicProfileQuery(slug);

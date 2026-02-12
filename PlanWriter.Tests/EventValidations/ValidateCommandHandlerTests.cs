@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.EventValidation.Commands;
 using PlanWriter.Application.EventValidation.Dtos.Commands;
+using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events;
@@ -54,8 +55,21 @@ public class ValidateCommandHandlerTests
         };
 
         _eventRepositoryMock
-            .Setup(r => r.GetEventById(eventId))
+            .Setup(r => r.GetEventById(It.IsAny<Guid>()))
             .ReturnsAsync(ev);
+
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventDto(
+                ev.Id,
+                "Evento",
+                "evento",
+                "Nanowrimo",
+                DateTime.UtcNow.AddDays(-1),
+                DateTime.UtcNow.AddDays(10),
+                ev.DefaultTargetWords,
+                true
+            ));
 
         _projectRepositoryMock
             .Setup(r => r.GetProjectById(projectId))
@@ -111,9 +125,18 @@ public class ValidateCommandHandlerTests
             TargetWords = null
         };
 
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(ev);
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventDto(
+                ev.Id,
+                "Evento",
+                "evento",
+                "Nanowrimo",
+                DateTime.UtcNow.AddDays(-1),
+                DateTime.UtcNow.AddDays(10),
+                ev.DefaultTargetWords,
+                true
+            ));
 
         _projectRepositoryMock
             .Setup(r => r.GetProjectById(projectId))
@@ -149,9 +172,9 @@ public class ValidateCommandHandlerTests
         // Arrange
         var command = new ValidateCommand(Guid.NewGuid(),  Guid.NewGuid(),  Guid.NewGuid(),50000, "manual");
        
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(It.IsAny<Guid>()))
-            .ReturnsAsync((Event?)null);
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EventDto?)null);
 
         var handler = CreateHandler();
 
@@ -172,9 +195,18 @@ public class ValidateCommandHandlerTests
         var projectId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
 
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(new Event { Id = eventId });
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventDto(
+                eventId,
+                "Evento",
+                "evento",
+                "Nanowrimo",
+                DateTime.UtcNow.AddDays(-1),
+                DateTime.UtcNow.AddDays(10),
+                50000,
+                true
+            ));
 
         _projectRepositoryMock
             .Setup(r => r.GetProjectById(projectId))
@@ -201,9 +233,18 @@ public class ValidateCommandHandlerTests
         var projectId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
 
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(new Event { Id = eventId });
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventDto(
+                eventId,
+                "Evento",
+                "evento",
+                "Nanowrimo",
+                DateTime.UtcNow.AddDays(-1),
+                DateTime.UtcNow.AddDays(10),
+                50000,
+                true
+            ));
 
         _projectRepositoryMock
             .Setup(r => r.GetProjectById(projectId))

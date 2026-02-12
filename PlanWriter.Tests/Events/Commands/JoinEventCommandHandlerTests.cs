@@ -4,6 +4,7 @@ using Moq;
 using PlanWriter.Application.Events.Commands;
 using PlanWriter.Application.Events.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Events;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events;
@@ -32,31 +33,16 @@ public class JoinEventCommandHandlerTests
         var eventId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
 
-        var ev = new Event
-        {
-            Id = eventId,
-            DefaultTargetWords = 50000
-        };
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateEventDto(eventId, 50000));
 
-        var project = new Project
-        {
-            Id = projectId
-        };
-
-        var pe = new ProjectEvent
-        {
-            ProjectId = projectId,
-            EventId = eventId,
-            TargetWords = 50000
-        };
-
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(ev);
-
-        _projectRepositoryMock
-            .Setup(r => r.GetProjectById(projectId))
-            .ReturnsAsync(project);
+        _projectReadRepositoryMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectDto
+            {
+                Id = projectId
+            });
 
         _projectEventsReadRepositoryMock
             .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
@@ -73,7 +59,9 @@ public class JoinEventCommandHandlerTests
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.Should().Be(pe);
+        result.ProjectId.Should().Be(projectId);
+        result.EventId.Should().Be(eventId);
+        result.TargetWords.Should().Be(50000);
 
         _projectEventsRepositoryMock.Verify(
             r => r.CreateAsync(It.Is<ProjectEvent>(x =>
@@ -91,14 +79,6 @@ public class JoinEventCommandHandlerTests
         var eventId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
 
-        var ev = new Event
-        {
-            Id = eventId,
-            DefaultTargetWords = 50000
-        };
-
-        var project = new Project { Id = projectId };
-
         var existing = new ProjectEvent
         {
             ProjectId = projectId,
@@ -106,13 +86,16 @@ public class JoinEventCommandHandlerTests
             TargetWords = 50000
         };
 
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(ev);
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateEventDto(eventId, 50000));
 
-        _projectRepositoryMock
-            .Setup(r => r.GetProjectById(projectId))
-            .ReturnsAsync(project);
+        _projectReadRepositoryMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectDto
+            {
+                Id = projectId
+            });
 
         _projectEventsReadRepositoryMock
             .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
@@ -140,36 +123,28 @@ public class JoinEventCommandHandlerTests
         var eventId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
 
-        var ev = new Event
-        {
-            Id = eventId,
-            DefaultTargetWords = 50000
-        };
-
-        var project = new Project { Id = projectId };
-
         var existing = new ProjectEvent
         {
+            Id = Guid.NewGuid(),
             ProjectId = projectId,
             EventId = eventId,
             TargetWords = 30000
         };
 
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(ev);
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateEventDto(eventId, 50000));
 
-        _projectRepositoryMock
-            .Setup(r => r.GetProjectById(projectId))
-            .ReturnsAsync(project);
+        _projectReadRepositoryMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectDto
+            {
+                Id = projectId
+            });
 
         _projectEventsReadRepositoryMock
             .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existing);
-
-        _projectEventsRepositoryMock
-            .Setup(r => r.UpdateProjectEvent(existing, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
         var command = CreateCommand(projectId, eventId, 60000);
@@ -182,7 +157,7 @@ public class JoinEventCommandHandlerTests
         existing.TargetWords.Should().Be(60000);
 
         _projectEventsRepositoryMock.Verify(
-            r => r.UpdateProjectEvent(existing, It.IsAny<CancellationToken>()),
+            r => r.UpdateTargetWordsAsync(existing.Id, 60000, It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -193,9 +168,9 @@ public class JoinEventCommandHandlerTests
         var handler = CreateHandler();
         var command = CreateCommand(Guid.NewGuid(), Guid.NewGuid(), null);
 
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(It.IsAny<Guid>()))
-            .ReturnsAsync((Event?)null);
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EventDto?)null);
 
         Func<Task> act = async () =>
             await handler.Handle(command, CancellationToken.None);
@@ -211,13 +186,13 @@ public class JoinEventCommandHandlerTests
         var eventId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
 
-        _eventRepositoryMock
-            .Setup(r => r.GetEventById(eventId))
-            .ReturnsAsync(new Event { Id = eventId });
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateEventDto(eventId, 50000));
 
-        _projectRepositoryMock
-            .Setup(r => r.GetProjectById(projectId))
-            .ReturnsAsync((Project?)null);
+        _projectReadRepositoryMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProjectDto?)null);
 
         var handler = CreateHandler();
         var command = CreateCommand(projectId, eventId, null);
@@ -253,6 +228,20 @@ public class JoinEventCommandHandlerTests
                 eventId,
                 targetWords
             ), Guid.NewGuid()
+        );
+    }
+
+    private static EventDto CreateEventDto(Guid eventId, int? defaultTargetWords)
+    {
+        return new EventDto(
+            eventId,
+            "Evento",
+            "evento",
+            "Nanowrimo",
+            DateTime.UtcNow.AddDays(-1),
+            DateTime.UtcNow.AddDays(10),
+            defaultTargetWords,
+            true
         );
     }
 }

@@ -4,6 +4,7 @@ using Moq;
 using PlanWriter.Application.EventValidation.Dtos.Queries;
 using PlanWriter.Application.EventValidation.Queries;
 using PlanWriter.Domain.Dtos.Events;
+using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events;
@@ -47,8 +48,8 @@ public class PreviewQueryHandlerTests
             "Evento Antigo",
             "evento-antigo",
             "Custom",
-            DateTime.UtcNow.AddMonths(-2),
-            DateTime.UtcNow.AddMonths(-1),
+            DateTime.UtcNow.AddDays(-10),
+            DateTime.UtcNow.AddDays(10),
             10000,
             false
         );
@@ -70,9 +71,12 @@ public class PreviewQueryHandlerTests
             .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(ev);
 
-        _projectRepoMock
-            .Setup(r => r.GetProjectById(projectId))
-            .ReturnsAsync(new Project { Id = projectId });
+        _projectReadRepoMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectDto
+            {
+                Id = projectId
+            });
 
         _projectEventsReadRepoMock
             .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
@@ -90,7 +94,7 @@ public class PreviewQueryHandlerTests
             await handler.Handle(query, CancellationToken.None);
 
         // Assert
-        target.Should().Be(50000);
+        target.Should().Be(10000);
         total.Should().Be(3000);
     }
 
@@ -121,11 +125,20 @@ public class PreviewQueryHandlerTests
 
         _eventReadRepoMock
             .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(It.IsAny<EventDto>());
+            .ReturnsAsync(new EventDto(
+                eventId,
+                "Evento",
+                "evento",
+                "Nanowrimo",
+                DateTime.UtcNow.AddDays(-1),
+                DateTime.UtcNow.AddDays(10),
+                50000,
+                true
+            ));
 
-        _projectRepoMock
-            .Setup(r => r.GetProjectById(projectId))
-            .ReturnsAsync((Project?)null);
+        _projectReadRepoMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProjectDto?)null);
 
         var handler = CreateHandler();
         var query = new PreviewQuery(userId, eventId, projectId);
@@ -147,11 +160,23 @@ public class PreviewQueryHandlerTests
 
         _eventReadRepoMock
             .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(It.IsAny<EventDto>());
+            .ReturnsAsync(new EventDto(
+                eventId,
+                "Evento",
+                "evento",
+                "Nanowrimo",
+                DateTime.UtcNow.AddDays(-1),
+                DateTime.UtcNow.AddDays(10),
+                50000,
+                true
+            ));
 
-        _projectRepoMock
-            .Setup(r => r.GetProjectById(projectId))
-            .ReturnsAsync(new Project { Id = projectId });
+        _projectReadRepoMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectDto
+            {
+                Id = projectId
+            });
 
         _projectEventsReadRepoMock
             .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))

@@ -49,8 +49,10 @@ public class UpdateAdminEventCommandHandlerTests
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingEvent);
 
+        EventDto? updatedEvent = null;
         _repositoryMock
-            .Setup(r => r.UpdateAsync( eventId, existingEvent, It.IsAny<CancellationToken>()))
+            .Setup(r => r.UpdateAsync(eventId, It.IsAny<EventDto>(), It.IsAny<CancellationToken>()))
+            .Callback<Guid, EventDto, CancellationToken>((_, ev, _) => updatedEvent = ev)
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
@@ -61,13 +63,14 @@ public class UpdateAdminEventCommandHandlerTests
         // Assert
         result.Should().Be(Unit.Value);
 
-        existingEvent.Name.Should().Be("Evento Atualizado");
-        existingEvent.Slug.Should().Be("evento-atualizado");
-        existingEvent.Type.Should().Be(EventType.Nanowrimo.ToString());
-        existingEvent.IsActive.Should().BeFalse();
+        updatedEvent.Should().NotBeNull();
+        updatedEvent!.Name.Should().Be("Evento Atualizado");
+        updatedEvent.Slug.Should().Be("evento-atualizado");
+        updatedEvent.Type.Should().Be(EventType.Nanowrimo.ToString());
+        updatedEvent.IsActive.Should().BeFalse();
 
         _repositoryMock.Verify(
-            r => r.UpdateAsync(eventId,existingEvent,  It.IsAny<CancellationToken>()),
+            r => r.UpdateAsync(eventId, It.IsAny<EventDto>(), It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -130,8 +133,10 @@ public class UpdateAdminEventCommandHandlerTests
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingEvent);
 
+        EventDto? updatedEvent = null;
         _repositoryMock
             .Setup(r => r.UpdateAsync(eventId, It.IsAny<EventDto>(), It.IsAny<CancellationToken>()))
+            .Callback<Guid, EventDto, CancellationToken>((_, ev, _) => updatedEvent = ev)
             .Returns(Task.CompletedTask);
 
         var handler = CreateHandler();
@@ -140,7 +145,8 @@ public class UpdateAdminEventCommandHandlerTests
         await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        existingEvent.Type.Should().Be(EventType.Nanowrimo.ToString());
+        updatedEvent.Should().NotBeNull();
+        updatedEvent!.Type.Should().Be(EventType.Nanowrimo.ToString());
     }
 
     [Fact]

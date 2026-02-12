@@ -44,8 +44,8 @@ public class BuddiesLeaderboardQueryHandlerTests
         _progressReadRepo
             .Setup(r => r.GetTotalWordsByUsersAsync(
                 It.IsAny<List<Guid>>(),
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>()))
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>()))
             .ReturnsAsync(totals);
 
         _userReadRepositoryMock
@@ -102,8 +102,8 @@ public class BuddiesLeaderboardQueryHandlerTests
         _progressReadRepo
             .Setup(r => r.GetTotalWordsByUsersAsync(
                 It.IsAny<List<Guid>>(),
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>()))
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>()))
             .ReturnsAsync(totals);
 
         _userReadRepositoryMock
@@ -159,8 +159,8 @@ public class BuddiesLeaderboardQueryHandlerTests
         _progressReadRepo
             .Setup(r => r.GetTotalWordsByUsersAsync(
                 It.IsAny<List<Guid>>(),
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>()))
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>()))
             .ReturnsAsync(totals);
 
         _userReadRepositoryMock
