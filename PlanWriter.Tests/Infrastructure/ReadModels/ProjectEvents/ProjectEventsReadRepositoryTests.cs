@@ -87,4 +87,36 @@ public class ProjectEventsReadRepositoryTests
         result.Should().HaveCount(1);
         result[0].Event!.Slug.Should().Be("nano");
     }
+
+    [Fact]
+    public async Task GetByIdWithEventAsync_ShouldMapSingleRow()
+    {
+        var row = new ProjectEventWithEventRow(
+            Id: Guid.NewGuid(),
+            ProjectId: Guid.NewGuid(),
+            EventId: Guid.NewGuid(),
+            TargetWords: 40000,
+            Won: true,
+            ValidatedAtUtc: DateTime.UtcNow,
+            FinalWordCount: 42000,
+            EventName: "Camp",
+            EventSlug: "camp",
+            EventType: 1,
+            StartsAtUtc: DateTime.UtcNow.AddDays(-10),
+            EndsAtUtc: DateTime.UtcNow.AddDays(10),
+            DefaultTargetWords: 40000,
+            IsActive: true
+        );
+
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.QueryFirstOrDefaultAsync<ProjectEventWithEventRow>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(row);
+
+        var sut = new ProjectEventsReadRepository(db.Object);
+        var result = await sut.GetByIdWithEventAsync(row.Id, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Event!.Name.Should().Be("Camp");
+        result.TargetWords.Should().Be(40000);
+    }
 }

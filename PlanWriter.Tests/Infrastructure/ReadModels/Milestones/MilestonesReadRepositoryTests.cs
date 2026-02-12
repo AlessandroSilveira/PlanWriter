@@ -52,4 +52,17 @@ public class MilestonesReadRepositoryTests
         exists.Should().BeFalse();
         db.Verify(x => x.QueryFirstOrDefaultAsync<bool>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task ExistsAsync_ShouldReturnTrue_WhenMilestoneExists()
+    {
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.QueryFirstOrDefaultAsync<bool>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var sut = new MilestonesReadRepository(db.Object);
+        var exists = await sut.ExistsAsync(Guid.NewGuid(), " Chapter 1 ", CancellationToken.None);
+
+        exists.Should().BeTrue();
+    }
 }

@@ -50,4 +50,43 @@ public class ProjectEventsRepositoryTests
 
         result.Should().Be(expected);
     }
+
+    [Fact]
+    public async Task UpdateProjectEvent_ShouldExecuteUpdate()
+    {
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var sut = new ProjectEventsRepository(db.Object);
+        await sut.UpdateProjectEvent(new ProjectEvent { Id = Guid.NewGuid(), TargetWords = 50000 }, CancellationToken.None);
+
+        db.Verify(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveByKeys_ShouldExecuteDelete()
+    {
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var sut = new ProjectEventsRepository(db.Object);
+        await sut.RemoveByKeys(Guid.NewGuid(), Guid.NewGuid());
+
+        db.Verify(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveByKeysAsync_ShouldReturnTrue_WhenRowsAreDeleted()
+    {
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var sut = new ProjectEventsRepository(db.Object);
+        var result = await sut.RemoveByKeysAsync(Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        result.Should().BeTrue();
+    }
 }

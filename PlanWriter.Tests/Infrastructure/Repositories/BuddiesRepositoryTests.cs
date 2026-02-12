@@ -100,4 +100,110 @@ public class BuddiesRepositoryTests
         result!.Value.start.Should().Be(DateOnly.FromDateTime(starts));
         result.Value.end.Should().Be(DateOnly.FromDateTime(ends));
     }
+
+    [Fact]
+    public async Task GetEventWindowAsync_ShouldReturnNull_WhenEventNotFound()
+    {
+        var db = new StubDbExecutor();
+        var sut = new BuddiesRepository(db);
+
+        var result = await sut.GetEventWindowAsync(Guid.NewGuid(), CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetTotalsAsync_ShouldReturnEmpty_WhenNoUsers()
+    {
+        var db = new StubDbExecutor();
+        var sut = new BuddiesRepository(db);
+
+        var result = await sut.GetTotalsAsync(Array.Empty<Guid>(), null, null, CancellationToken.None);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetTotalsAsync_ShouldMapRows()
+    {
+        var userId = Guid.NewGuid();
+        var db = new StubDbExecutor
+        {
+            QueryAsyncHandler = (t, _, _, _) =>
+                t == typeof((Guid UserId, int Total))
+                    ? new[] { (userId, 1000) }
+                    : Array.Empty<(Guid UserId, int Total)>()
+        };
+
+        var sut = new BuddiesRepository(db);
+        var result = await sut.GetTotalsAsync(new[] { userId }, null, null, CancellationToken.None);
+
+        result[userId].Should().Be(1000);
+    }
+
+    [Fact]
+    public async Task GetBuddies_ShouldReturnMappedSummaries()
+    {
+        var rowType = typeof(BuddiesRepository).GetNestedType("BuddyUserRow", BindingFlags.NonPublic)!;
+        var row = Activator.CreateInstance(rowType,
+            Guid.NewGuid(),
+            "alice",
+            "alice@test.com",
+            "Alice",
+            "Silva",
+            "Alice S",
+            "avatar.png")!;
+
+        var db = new StubDbExecutor
+        {
+            QueryAsyncHandler = (t, _, _, _) =>
+            {
+                if (t != rowType)
+                    return Array.Empty<object>();
+
+                var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(t))!;
+                list.Add(row);
+                return list;
+            }
+        };
+
+        var sut = new BuddiesRepository(db);
+        var result = await sut.GetBuddies(Guid.NewGuid());
+
+        result.Should().HaveCount(1);
+        result[0].DisplayName.Should().Be("Alice Silva");
+    }
+
+    [Fact]
+    public async Task GetByUserId_ShouldReturnMappedSummaries()
+    {
+        var rowType = typeof(BuddiesRepository).GetNestedType("BuddyUserRow", BindingFlags.NonPublic)!;
+        var row = Activator.CreateInstance(rowType,
+            Guid.NewGuid(),
+            "alice",
+            "alice@test.com",
+            "Alice",
+            "Silva",
+            "Alice S",
+            "avatar.png")!;
+
+        var db = new StubDbExecutor
+        {
+            QueryAsyncHandler = (t, _, _, _) =>
+            {
+                if (t != rowType)
+                    return Array.Empty<object>();
+
+                var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(t))!;
+                list.Add(row);
+                return list;
+            }
+        };
+
+        var sut = new BuddiesRepository(db);
+        var result = await sut.GetByUserId(Guid.NewGuid());
+
+        result.Should().HaveCount(1);
+        result[0].DisplayName.Should().Be("Alice Silva");
+    }
 }

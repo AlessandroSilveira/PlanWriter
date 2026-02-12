@@ -140,6 +140,97 @@ public class EventRepositoryTests
         result.Should().BeEquivalentTo(expected);
     }
 
+    [Fact]
+    public async Task GetEventById_ShouldReturnEntity()
+    {
+        var expected = new Event
+        {
+            Id = Guid.NewGuid(),
+            Name = "NaNo",
+            Slug = "nano",
+            Type = EventType.Nanowrimo
+        };
+
+        var db = new StubDbExecutor
+        {
+            QueryFirstOrDefaultAsyncHandler = (t, _, _, _) => t == typeof(Event) ? expected : null
+        };
+
+        var sut = new EventRepository(db);
+        var result = await sut.GetEventById(expected.Id);
+
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldSendEventTypeAsInt()
+    {
+        object? captured = null;
+        var db = new StubDbExecutor
+        {
+            ExecuteAsyncHandler = (_, p, _) =>
+            {
+                captured = p;
+                return Task.FromResult(1);
+            }
+        };
+
+        var sut = new EventRepository(db);
+        var ev = new Event
+        {
+            Id = Guid.NewGuid(),
+            Name = "NaNo",
+            Slug = "nano",
+            Type = EventType.Desafio,
+            StartsAtUtc = DateTime.UtcNow.AddDays(-1),
+            EndsAtUtc = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        };
+
+        await sut.UpdateAsync(ev, ev.Id);
+
+        captured.Should().NotBeNull();
+        captured!.GetProp<int>("Type").Should().Be((int)EventType.Desafio);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ShouldExecuteDelete()
+    {
+        var db = new StubDbExecutor
+        {
+            ExecuteAsyncHandler = (_, _, _) => Task.FromResult(1)
+        };
+
+        var sut = new EventRepository(db);
+        await sut.DeleteAsync(new Event { Id = Guid.NewGuid() });
+    }
+
+    [Fact]
+    public async Task GetEventByUserId_ShouldReturnRows()
+    {
+        var rows = new[]
+        {
+            new MyEventDto
+            {
+                EventId = Guid.NewGuid(),
+                EventName = "NaNo",
+                ProjectId = Guid.NewGuid(),
+                ProjectTitle = "Book"
+            }
+        };
+
+        var db = new StubDbExecutor
+        {
+            QueryAsyncHandler = (t, _, _, _) => t == typeof(MyEventDto) ? rows : Array.Empty<MyEventDto>()
+        };
+
+        var sut = new EventRepository(db);
+        var result = await sut.GetEventByUserId(Guid.NewGuid());
+
+        result.Should().HaveCount(1);
+        result[0].EventName.Should().Be("NaNo");
+    }
+
     private static object CreateEventRow(Guid id, string name, string slug, int type, DateTime startsAtUtc, DateTime endsAtUtc, int? defaultTargetWords, bool isActive)
     {
         var rowType = typeof(EventRepository).GetNestedType("EventRow", BindingFlags.NonPublic)!;

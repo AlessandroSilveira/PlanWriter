@@ -11,6 +11,46 @@ namespace PlanWriter.Tests.Infrastructure.Repositories;
 public class DailyWordLogRepositoryTests
 {
     [Fact]
+    public async Task GetByProjectAndDateAsync_ShouldReturnEntity_WhenFound()
+    {
+        var expected = new PlanWriter.Domain.Entities.DailyWordLog
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            Date = new DateOnly(2026, 1, 1),
+            WordsWritten = 120
+        };
+
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.QueryFirstOrDefaultAsync<PlanWriter.Domain.Entities.DailyWordLog>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var sut = new DailyWordLogRepository(db.Object);
+        var result = await sut.GetByProjectAndDateAsync(expected.ProjectId, expected.Date, expected.UserId);
+
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task GetByProjectAsync_ShouldReturnRows()
+    {
+        var rows = new[]
+        {
+            new PlanWriter.Domain.Entities.DailyWordLog { Id = Guid.NewGuid(), ProjectId = Guid.NewGuid(), UserId = Guid.NewGuid() }
+        };
+
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.QueryAsync<PlanWriter.Domain.Entities.DailyWordLog>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rows);
+
+        var sut = new DailyWordLogRepository(db.Object);
+        var result = await sut.GetByProjectAsync(rows[0].ProjectId, rows[0].UserId);
+
+        result.Should().HaveCount(1);
+    }
+
+    [Fact]
     public async Task AddAsync_ShouldGenerateId_WhenEmpty()
     {
         var db = new Mock<IDbExecutor>();
@@ -43,6 +83,19 @@ public class DailyWordLogRepositoryTests
         captured.Should().NotBeNull();
         captured!.GetProp<DateOnly?>("Start").Should().Be(DateOnly.FromDateTime(start));
         captured.GetProp<DateOnly?>("End").Should().Be(DateOnly.FromDateTime(end));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldExecuteCommand()
+    {
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var sut = new DailyWordLogRepository(db.Object);
+        await sut.UpdateAsync(new PlanWriter.Domain.Entities.DailyWordLog { Id = Guid.NewGuid(), WordsWritten = 321 });
+
+        db.Verify(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
