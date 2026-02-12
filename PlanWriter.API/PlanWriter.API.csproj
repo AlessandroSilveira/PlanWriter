@@ -9,7 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\PlanWriter.Application\PlanWriter.Application.csproj" />
     <ProjectReference Include="..\PlanWriter.Infrastructure\PlanWriter.Infrastructure.csproj" />
-    <ProjectReference Include="..\PlanWriter.Tests\PlanWriter.Tests.csproj" />
   </ItemGroup>
 
   <ItemGroup>
