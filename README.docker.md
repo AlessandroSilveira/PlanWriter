@@ -1,78 +1,84 @@
-# Rodando PlanWriter com Docker (Front + API + SQL Server)
+# Rodando PlanWriter com Docker (staging + production local)
 
 ## Pré-requisitos
 - Docker Desktop em execução
 
-## 1) (Opcional) Configure variáveis
-Use `.env.docker.example` como base:
+## 1) Configure variáveis
+Na raiz do backend (`PlanWriter`):
 
 ```bash
 cp .env.docker.example .env
 ```
 
-Você pode ajustar:
+Variáveis principais:
 - `MSSQL_SA_PASSWORD`
-- `API_PORT` (padrão `5001`)
-- `FRONTEND_PORT` (padrão `5173`)
+- `STAGING_API_PORT` (padrão `5003`)
+- `STAGING_FRONTEND_PORT` (padrão `5175`)
+- `PROD_API_PORT` (padrão `5001`)
+- `PROD_FRONTEND_PORT` (padrão `5173`)
+- `PROXY_PORT` (padrão `80`)
 
-## 2) Subir stack completa
-Na raiz do backend (`PlanWriter`):
-
-```bash
-docker compose up -d --build
-```
-
-Serviços:
-- `sqlserver` (interno na rede Docker)
-- `sql-init` (one-shot: cria `PlanWriterDb` e tabelas)
-- `api` (`http://localhost:${API_PORT}`)
-- `frontend` (`http://localhost:${FRONTEND_PORT}`)
-
-## 2.1) Acesso de outro Mac na mesma rede (cliente)
-No Mac servidor, descubra seu IP local:
+## 2) Subir os dois ambientes + proxy local
 
 ```bash
-ipconfig getifaddr en0
+docker network create planwriter_gateway || true
+docker compose -f docker-compose.staging.yml up -d --build
+docker compose -f docker-compose.production.yml up -d --build
+docker compose -f docker-compose.proxy.yml up -d
 ```
 
-Se vazio, tente:
+## 3) Configurar hostnames locais
 
-```bash
-ipconfig getifaddr en1
-```
-
-No Mac cliente, acesse:
+Em cada máquina cliente da sua rede, adicione no `/etc/hosts`:
 
 ```text
-http://IP_DO_MAC_SERVIDOR:${FRONTEND_PORT}
+192.168.15.182 planwriter.staging.test
+192.168.15.182 planwriter.test
 ```
 
-Exemplo:
+Depois acesse:
+- `http://planwriter.staging.test` (staging)
+- `http://planwriter.test` (production)
 
-```text
-http://192.168.15.36:5173
-```
+## 4) Verificar status/logs
 
-O frontend agora chama a API internamente por `/api` (proxy), então não depende de `localhost` no Mac cliente.
-
-## 3) Verificar status/logs
 ```bash
-docker compose ps
-docker compose logs -f api
+docker compose -f docker-compose.staging.yml ps
+docker compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.proxy.yml ps
 ```
 
-## 4) Parar tudo
 ```bash
-docker compose down
+docker compose -f docker-compose.staging.yml logs -f api
+docker compose -f docker-compose.production.yml logs -f api
+docker compose -f docker-compose.proxy.yml logs -f proxy
 ```
 
-Para remover também o volume do SQL (dados):
+## 5) Parar ambientes
+
 ```bash
-docker compose down -v
+docker compose -f docker-compose.staging.yml down
+docker compose -f docker-compose.production.yml down
+docker compose -f docker-compose.proxy.yml down
+```
+
+Para remover também os dados:
+
+```bash
+docker compose -f docker-compose.staging.yml down -v
+docker compose -f docker-compose.production.yml down -v
+```
+
+## 6) Deploy por script
+
+Deploy de um ambiente específico:
+
+```bash
+./scripts/deploy/deploy-target.sh staging
+./scripts/deploy/deploy-target.sh production
 ```
 
 ## CI/CD no GitHub
 
-Para configurar a esteira de deploy com GitHub Actions, veja:
-
+Guia da esteira:
 - `docs/deploy-github-actions.md`

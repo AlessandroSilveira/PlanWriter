@@ -10,6 +10,9 @@ Pipeline:
 2. Deploy automatico em `staging` no `push` da `main`.
 3. Deploy manual em `staging` ou `production` via `workflow_dispatch`.
 4. Rollback manual via `workflow_dispatch`.
+5. Deploy local com hostnames:
+   - `http://planwriter.staging.test`
+   - `http://planwriter.test`
 
 ## Environments (staging e production)
 
@@ -31,6 +34,20 @@ Exemplo:
 
 Se quiser separar infraestrutura, use caminhos diferentes por ambiente.
 
+## Como o deploy sobe containers separados
+
+O pipeline chama:
+
+```bash
+./scripts/deploy/deploy-target.sh staging
+./scripts/deploy/deploy-target.sh production
+```
+
+Esse script:
+- sobe `docker-compose.staging.yml` ou `docker-compose.production.yml`
+- garante o proxy `docker-compose.proxy.yml`
+- publica os hostnames locais `.test`
+
 ## Como rodar deploy manual
 
 No workflow `PlanWriter Pipeline`, clique em `Run workflow` e escolha:
@@ -40,6 +57,10 @@ No workflow `PlanWriter Pipeline`, clique em `Run workflow` e escolha:
 - `deploy_ref` (opcional): branch/tag/SHA
 
 Se `deploy_ref` ficar vazio, usa a branch atual do run.
+
+Depois confirme no navegador:
+- `http://planwriter.staging.test`
+- `http://planwriter.test`
 
 ## Como rodar rollback
 
@@ -71,4 +92,13 @@ Opcional via comando (API):
 cd /Users/alessandrosilveira/Documents/Repos/PlanWriter
 export GITHUB_TOKEN=seu_token_com_admin_repo
 ./scripts/ci/apply-branch-protection.sh
+```
+
+## /etc/hosts (clientes da rede local)
+
+Em cada máquina cliente:
+
+```text
+192.168.15.182 planwriter.staging.test
+192.168.15.182 planwriter.test
 ```
