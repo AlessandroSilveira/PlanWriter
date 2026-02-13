@@ -37,48 +37,48 @@ jobs:
         run: dotnet test PlanWriter.Tests/PlanWriter.Tests.csproj --configuration Release --no-build --verbosity normal
 
   deploy:
-    name: Deploy (Docker Compose via SSH)
-    runs-on: ubuntu-latest
+    name: Deploy (Docker Compose on self-hosted)
+    runs-on:
+      - self-hosted
+      - macOS
+      - deploy
     needs:
       - test
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    env:
+      DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
 
     steps:
-      - name: Deploy on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || '22' }}
-          script_stop: true
-          script: |
-            set -euo pipefail
+      - name: Validate deploy root
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_ROOT:-}" ]; then
+            echo "Secret DEPLOY_ROOT nao configurado."
+            exit 1
+          fi
 
-            DEPLOY_ROOT="${{ secrets.DEPLOY_ROOT }}"
-            if [ -z "$DEPLOY_ROOT" ]; then
-              echo "Secret DEPLOY_ROOT nao configurado."
-              exit 1
-            fi
+      - name: Update repositories and deploy
+        run: |
+          set -euo pipefail
 
-            BACKEND_DIR="$DEPLOY_ROOT/PlanWriter"
-            FRONTEND_DIR="$DEPLOY_ROOT/PlanWriter-Frontend"
+          BACKEND_DIR="$DEPLOY_ROOT/PlanWriter"
+          FRONTEND_DIR="$DEPLOY_ROOT/PlanWriter-Frontend"
 
-            if [ ! -d "$BACKEND_DIR/.git" ]; then
-              echo "Repositorio backend nao encontrado em: $BACKEND_DIR"
-              exit 1
-            fi
+          if [ ! -d "$BACKEND_DIR/.git" ]; then
+            echo "Repositorio backend nao encontrado em: $BACKEND_DIR"
+            exit 1
+          fi
 
-            if [ ! -d "$FRONTEND_DIR/.git" ]; then
-              echo "Repositorio frontend nao encontrado em: $FRONTEND_DIR"
-              exit 1
-            fi
+          if [ ! -d "$FRONTEND_DIR/.git" ]; then
+            echo "Repositorio frontend nao encontrado em: $FRONTEND_DIR"
+            exit 1
+          fi
 
-            git -C "$BACKEND_DIR" checkout main
-            git -C "$BACKEND_DIR" pull --ff-only origin main
+          git -C "$BACKEND_DIR" checkout main
+          git -C "$BACKEND_DIR" pull --ff-only origin main
 
-            git -C "$FRONTEND_DIR" checkout main
-            git -C "$FRONTEND_DIR" pull --ff-only origin main
+          git -C "$FRONTEND_DIR" checkout main
+          git -C "$FRONTEND_DIR" pull --ff-only origin main
 
-            docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d --build
-            docker compose -f "$BACKEND_DIR/docker-compose.yml" ps
+          docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d --build
+          docker compose -f "$BACKEND_DIR/docker-compose.yml" ps
