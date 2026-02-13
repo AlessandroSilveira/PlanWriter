@@ -13,9 +13,7 @@ namespace PlanWriter.API.Controllers;
 [AdminOnly]
 public class AdminEventsController(IMediator mediator) : ControllerBase
 {
-    /// <summary>
-    /// Obtém  eventos
-    /// </summary>
+   
     [HttpGet("active")]
     public async Task<IActionResult> GetActive()
     => Ok(await mediator.Send(new GetActiveQuery()));
