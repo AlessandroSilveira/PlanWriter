@@ -70,3 +70,9 @@ Para remover também o volume do SQL (dados):
 ```bash
 docker compose down -v
 ```
+
+## CI/CD no GitHub
+
+Para configurar a esteira de deploy com GitHub Actions, veja:
+
+- `docs/deploy-github-actions.md`
