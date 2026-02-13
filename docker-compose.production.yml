@@ -1,0 +1,90 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: planwriter-prod-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Str0ng!Senha2024}"
+    volumes:
+      - sqlserver_prod_data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - prod_internal
+
+  sql-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: planwriter-prod-sql-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Str0ng!Senha2024}"
+    volumes:
+      - ./docker/sql/init:/docker-init:ro
+    entrypoint:
+      - /bin/bash
+      - -c
+      - >-
+        /opt/mssql-tools18/bin/sqlcmd -b -C -S sqlserver -U sa -P "$${MSSQL_SA_PASSWORD}" -i /docker-init/001-init.sql
+        || /opt/mssql-tools/bin/sqlcmd -b -S sqlserver -U sa -P "$${MSSQL_SA_PASSWORD}" -i /docker-init/001-init.sql
+    restart: "no"
+    networks:
+      - prod_internal
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: planwriter-prod-api
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      sql-init:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=PlanWriterDbProd;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Str0ng!Senha2024};TrustServerCertificate=True;Encrypt=False;"
+    ports:
+      - "${PROD_API_PORT:-5001}:8080"
+    restart: unless-stopped
+    networks:
+      - prod_internal
+      - planwriter_gateway
+
+  frontend:
+    build:
+      context: ../PlanWriter-Frontend
+      dockerfile: ../PlanWriter/Dockerfile.frontend
+      args:
+        VITE_API_URL: /api
+    container_name: planwriter-prod-frontend
+    depends_on:
+      - api
+    ports:
+      - "${PROD_FRONTEND_PORT:-5173}:80"
+    restart: unless-stopped
+    networks:
+      - prod_internal
+      - planwriter_gateway
+
+volumes:
+  sqlserver_prod_data:
+
+networks:
+  prod_internal:
+  planwriter_gateway:
+    external: true

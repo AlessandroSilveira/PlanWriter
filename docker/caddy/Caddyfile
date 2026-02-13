@@ -1,0 +1,11 @@
+{
+  auto_https off
+}
+
+planwriter.test {
+  reverse_proxy planwriter-prod-frontend:80
+}
+
+planwriter.staging.test {
+  reverse_proxy planwriter-stg-frontend:80
+}

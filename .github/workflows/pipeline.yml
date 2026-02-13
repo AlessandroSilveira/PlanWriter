@@ -128,8 +128,7 @@ jobs:
           checkout_ref "$BACKEND_DIR" "$TARGET_REF"
           checkout_ref "$FRONTEND_DIR" "$TARGET_REF"
 
-          docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d --build
-          docker compose -f "$BACKEND_DIR/docker-compose.yml" ps
+          bash "$BACKEND_DIR/scripts/deploy/deploy-target.sh" "$TARGET_ENV" "$BACKEND_DIR"
 
   rollback:
     name: Rollback (Staging/Production)
@@ -199,5 +198,4 @@ jobs:
           checkout_ref "$BACKEND_DIR" "$TARGET_REF"
           checkout_ref "$FRONTEND_DIR" "$TARGET_REF"
 
-          docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d --build
-          docker compose -f "$BACKEND_DIR/docker-compose.yml" ps
+          bash "$BACKEND_DIR/scripts/deploy/deploy-target.sh" "$TARGET_ENV" "$BACKEND_DIR"

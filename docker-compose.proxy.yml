@@ -1,0 +1,15 @@
+services:
+  proxy:
+    image: caddy:2-alpine
+    container_name: planwriter-proxy
+    restart: unless-stopped
+    ports:
+      - "${PROXY_PORT:-80}:80"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - planwriter_gateway
+
+networks:
+  planwriter_gateway:
+    external: true
