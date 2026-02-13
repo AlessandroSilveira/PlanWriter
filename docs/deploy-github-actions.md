@@ -1,61 +1,74 @@
-# Esteira de Deploy com GitHub Actions
+# Esteira de Deploy (Backend) com GitHub Actions
 
-Este projeto agora tem uma pipeline em:
+Pipeline:
 
 - `.github/workflows/pipeline.yml`
 
-Ela faz:
+## O que ela faz
 
-1. Build e testes (`dotnet test`) no push/PR da `main`.
-2. Deploy automático em runner self-hosted (Docker Compose local) quando houver push na `main`.
-3. Deploy manual com `workflow_dispatch` (botão "Run workflow" no GitHub).
+1. `Build and Test` em `push`/`pull_request` da `main`.
+2. Deploy automatico em `staging` no `push` da `main`.
+3. Deploy manual em `staging` ou `production` via `workflow_dispatch`.
+4. Rollback manual via `workflow_dispatch`.
 
-## 1) Pré-requisitos na máquina de deploy (self-hosted runner)
+## Environments (staging e production)
 
-Na máquina de deploy, você precisa:
+Crie no GitHub:
 
-- Docker + Docker Compose instalados
-- GitHub Actions self-hosted runner registrado no repositório com labels:
-  - `self-hosted`
-  - `macOS`
-  - `deploy`
-- Dois repositórios clonados como irmãos no mesmo diretório:
-  - `PlanWriter`
-  - `PlanWriter-Frontend`
+- `Settings > Environments > New environment`
+- `staging`
+- `production`
+
+Em cada ambiente, configure:
+
+- Secret `DEPLOY_ROOT`
 
 Exemplo:
 
-```bash
-/opt/planwriter/PlanWriter
-/opt/planwriter/PlanWriter-Frontend
+```text
+/Users/alessandrosilveira/planwriter-deploy
 ```
 
-## 2) Secrets no GitHub
+Se quiser separar infraestrutura, use caminhos diferentes por ambiente.
 
-No repositório `PlanWriter`, configure em `Settings > Secrets and variables > Actions`:
+## Como rodar deploy manual
 
-- `DEPLOY_ROOT`: pasta raiz onde estão os 2 repositórios (ex.: `/opt/planwriter`)
+No workflow `PlanWriter Pipeline`, clique em `Run workflow` e escolha:
 
-## 3) Como a pipeline publica
+- `target`: `staging` ou `production`
+- `action`: `deploy`
+- `deploy_ref` (opcional): branch/tag/SHA
 
-No job de deploy, a pipeline:
+Se `deploy_ref` ficar vazio, usa a branch atual do run.
 
-1. Roda no runner self-hosted da sua máquina de deploy.
-2. Atualiza backend e frontend (`git pull --ff-only origin main`).
-3. Executa:
+## Como rodar rollback
+
+No workflow `PlanWriter Pipeline`:
+
+- `target`: `staging` ou `production`
+- `action`: `rollback`
+- `rollback_ref`: branch/tag/SHA para voltar
+
+Obs.: o `rollback_ref` deve existir nos dois repositórios (`PlanWriter` e `PlanWriter-Frontend`).
+
+## Branch protection (main)
+
+No GitHub:
+
+1. `Settings > Branches > Add branch protection rule`
+2. Branch name pattern: `main`
+3. Marcar `Require a pull request before merging`
+4. Marcar `Require status checks to pass before merging`
+5. Selecionar check obrigatório:
+   - `Build and Test`
+6. Salvar
+
+Para `production`, recomenda-se também exigir aprovação no Environment `production`.
+
+Opcional via comando (API):
 
 ```bash
-docker compose -f /SEU_DEPLOY_ROOT/PlanWriter/docker-compose.yml up -d --build
-docker compose -f /SEU_DEPLOY_ROOT/PlanWriter/docker-compose.yml ps
+cd /Users/alessandrosilveira/Documents/Repos/PlanWriter
+export GITHUB_TOKEN=seu_token_com_admin_repo
+./scripts/ci/apply-branch-protection.sh
 ```
-
-## 4) Como rodar o primeiro deploy manual
-
-1. Faça merge na `main` (ou use o botão manual).
-2. Vá em `Actions > PlanWriter Pipeline`.
-3. Clique em `Run workflow`.
-4. Acompanhe os logs do job `Deploy`.
-
-## 5) Dica para aprendizado
-
-Comece com deploy manual (`Run workflow`) e depois confie no deploy automático por push na `main`.

@@ -8,14 +8,38 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Ambiente de deploy"
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      action:
+        description: "Acao do deploy"
+        required: true
+        default: deploy
+        type: choice
+        options:
+          - deploy
+          - rollback
+      deploy_ref:
+        description: "Ref para deploy (branch/tag/SHA). Vazio usa branch atual."
+        required: false
+      rollback_ref:
+        description: "Ref para rollback (branch/tag/SHA). Obrigatorio em rollback."
+        required: false
 
 concurrency:
-  group: planwriter-main-pipeline
+  group: planwriter-main-pipeline-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
     name: Build and Test
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action != 'rollback'
     runs-on: ubuntu-latest
 
     steps:
@@ -37,16 +61,20 @@ jobs:
         run: dotnet test PlanWriter.Tests/PlanWriter.Tests.csproj --configuration Release --no-build --verbosity normal
 
   deploy:
-    name: Deploy (Docker Compose on self-hosted)
+    name: Deploy (Staging/Production)
     runs-on:
       - self-hosted
       - macOS
       - deploy
     needs:
       - test
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
+    environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target || 'staging' }}
     env:
       DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
+      DEPLOY_REF_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_ref || '' }}
+      DEFAULT_REF: ${{ github.ref_name }}
+      TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target || 'staging' }}
 
     steps:
       - name: Validate deploy root
@@ -74,11 +102,102 @@ jobs:
             exit 1
           fi
 
-          git -C "$BACKEND_DIR" checkout main
-          git -C "$BACKEND_DIR" pull --ff-only origin main
+          checkout_ref() {
+            local repo_dir="$1"
+            local ref="$2"
 
-          git -C "$FRONTEND_DIR" checkout main
-          git -C "$FRONTEND_DIR" pull --ff-only origin main
+            git -C "$repo_dir" fetch --all --tags --prune
+
+            if git -C "$repo_dir" show-ref --verify --quiet "refs/remotes/origin/$ref"; then
+              git -C "$repo_dir" checkout "$ref"
+              git -C "$repo_dir" pull --ff-only origin "$ref"
+            else
+              git -C "$repo_dir" checkout --detach "$ref"
+            fi
+          }
+
+          TARGET_REF="$DEPLOY_REF_INPUT"
+          if [ -z "$TARGET_REF" ]; then
+            TARGET_REF="$DEFAULT_REF"
+          fi
+
+          echo "Ambiente: $TARGET_ENV"
+          echo "Acao: deploy"
+          echo "Ref: $TARGET_REF"
+
+          checkout_ref "$BACKEND_DIR" "$TARGET_REF"
+          checkout_ref "$FRONTEND_DIR" "$TARGET_REF"
+
+          docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d --build
+          docker compose -f "$BACKEND_DIR/docker-compose.yml" ps
+
+  rollback:
+    name: Rollback (Staging/Production)
+    runs-on:
+      - self-hosted
+      - macOS
+      - deploy
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'rollback'
+    environment: ${{ github.event.inputs.target }}
+    env:
+      DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
+      ROLLBACK_REF_INPUT: ${{ github.event.inputs.rollback_ref }}
+      TARGET_ENV: ${{ github.event.inputs.target }}
+
+    steps:
+      - name: Validate rollback inputs
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DEPLOY_ROOT:-}" ]; then
+            echo "Secret DEPLOY_ROOT nao configurado."
+            exit 1
+          fi
+
+          if [ -z "${ROLLBACK_REF_INPUT:-}" ]; then
+            echo "rollback_ref e obrigatorio para rollback."
+            exit 1
+          fi
+
+      - name: Rollback repositories and redeploy
+        run: |
+          set -euo pipefail
+
+          BACKEND_DIR="$DEPLOY_ROOT/PlanWriter"
+          FRONTEND_DIR="$DEPLOY_ROOT/PlanWriter-Frontend"
+
+          if [ ! -d "$BACKEND_DIR/.git" ]; then
+            echo "Repositorio backend nao encontrado em: $BACKEND_DIR"
+            exit 1
+          fi
+
+          if [ ! -d "$FRONTEND_DIR/.git" ]; then
+            echo "Repositorio frontend nao encontrado em: $FRONTEND_DIR"
+            exit 1
+          fi
+
+          checkout_ref() {
+            local repo_dir="$1"
+            local ref="$2"
+
+            git -C "$repo_dir" fetch --all --tags --prune
+
+            if git -C "$repo_dir" show-ref --verify --quiet "refs/remotes/origin/$ref"; then
+              git -C "$repo_dir" checkout "$ref"
+              git -C "$repo_dir" pull --ff-only origin "$ref"
+            else
+              git -C "$repo_dir" checkout --detach "$ref"
+            fi
+          }
+
+          TARGET_REF="$ROLLBACK_REF_INPUT"
+
+          echo "Ambiente: $TARGET_ENV"
+          echo "Acao: rollback"
+          echo "Ref: $TARGET_REF"
+
+          checkout_ref "$BACKEND_DIR" "$TARGET_REF"
+          checkout_ref "$FRONTEND_DIR" "$TARGET_REF"
 
           docker compose -f "$BACKEND_DIR/docker-compose.yml" up -d --build
           docker compose -f "$BACKEND_DIR/docker-compose.yml" ps
