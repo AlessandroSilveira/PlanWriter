@@ -7,14 +7,18 @@ Este projeto agora tem uma pipeline em:
 Ela faz:
 
 1. Build e testes (`dotnet test`) no push/PR da `main`.
-2. Deploy automático no servidor (via SSH + Docker Compose) quando houver push na `main`.
+2. Deploy automático em runner self-hosted (Docker Compose local) quando houver push na `main`.
 3. Deploy manual com `workflow_dispatch` (botão "Run workflow" no GitHub).
 
-## 1) Pré-requisitos no servidor
+## 1) Pré-requisitos na máquina de deploy (self-hosted runner)
 
-No servidor de deploy (VPS ou máquina Linux), você precisa:
+Na máquina de deploy, você precisa:
 
 - Docker + Docker Compose instalados
+- GitHub Actions self-hosted runner registrado no repositório com labels:
+  - `self-hosted`
+  - `macOS`
+  - `deploy`
 - Dois repositórios clonados como irmãos no mesmo diretório:
   - `PlanWriter`
   - `PlanWriter-Frontend`
@@ -30,17 +34,13 @@ Exemplo:
 
 No repositório `PlanWriter`, configure em `Settings > Secrets and variables > Actions`:
 
-- `DEPLOY_HOST`: IP ou domínio do servidor
-- `DEPLOY_USER`: usuário SSH
-- `DEPLOY_SSH_KEY`: chave privada SSH (conteúdo completo)
-- `DEPLOY_PORT`: porta SSH (ex.: `22`)
 - `DEPLOY_ROOT`: pasta raiz onde estão os 2 repositórios (ex.: `/opt/planwriter`)
 
 ## 3) Como a pipeline publica
 
-No job de deploy, a action:
+No job de deploy, a pipeline:
 
-1. Entra no servidor por SSH.
+1. Roda no runner self-hosted da sua máquina de deploy.
 2. Atualiza backend e frontend (`git pull --ff-only origin main`).
 3. Executa:
 
