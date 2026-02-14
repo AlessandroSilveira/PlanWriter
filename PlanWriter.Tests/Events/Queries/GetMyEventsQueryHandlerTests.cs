@@ -34,6 +34,12 @@ public class GetMyEventsQueryHandlerTests
                 EventId = Guid.NewGuid(),
                 TargetWords = 0,
                 TotalWrittenInEvent = 1000
+            },
+            new MyEventDto
+            {
+                EventId = Guid.NewGuid(),
+                TargetWords = null,
+                TotalWrittenInEvent = null
             }
         };
 
@@ -48,9 +54,10 @@ public class GetMyEventsQueryHandlerTests
         var result = await handler.Handle(query, ct);
 
         // Assert
-        result.Should().HaveCount(2);
+        result.Should().HaveCount(3);
         result[0].Percent.Should().Be(50); // 25000 / 50000
         result[1].Percent.Should().Be(0);  // targetWords = 0
+        result[2].Percent.Should().Be(0);  // targetWords / totalWritten null
     }
 
     [Fact]

@@ -7,6 +7,8 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Str0ng!Senha2024}"
+    ports:
+      - "${STAGING_SQL_PORT:-14333}:1433"
     volumes:
       - sqlserver_stg_data:/var/opt/mssql
     healthcheck:
