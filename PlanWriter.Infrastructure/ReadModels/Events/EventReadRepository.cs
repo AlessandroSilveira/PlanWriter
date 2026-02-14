@@ -17,7 +17,12 @@ public class EventReadRepository(IDbExecutor db) : IEventReadRepository
                 Id,
                 Name,
                 Slug,
-                CAST([Type] AS varchar(50)) AS [Type],
+                CASE [Type]
+                    WHEN 0 THEN 'Nanowrimo'
+                    WHEN 1 THEN 'Desafio'
+                    WHEN 2 THEN 'Oficial'
+                    ELSE 'Nanowrimo'
+                END AS [Type],
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
@@ -39,7 +44,12 @@ public class EventReadRepository(IDbExecutor db) : IEventReadRepository
                 Id,
                 Name,
                 Slug,
-                [Type],
+                CASE [Type]
+                    WHEN 0 THEN 'Nanowrimo'
+                    WHEN 1 THEN 'Desafio'
+                    WHEN 2 THEN 'Oficial'
+                    ELSE 'Nanowrimo'
+                END AS [Type],
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
