@@ -108,11 +108,21 @@ jobs:
 
             git -C "$repo_dir" fetch --all --tags --prune
 
+            local default_branch
+            default_branch="$(git -C "$repo_dir" symbolic-ref --quiet --short refs/remotes/origin/HEAD | sed 's#^origin/##')"
+            if [ -z "$default_branch" ]; then
+              default_branch="main"
+            fi
+
             if git -C "$repo_dir" show-ref --verify --quiet "refs/remotes/origin/$ref"; then
               git -C "$repo_dir" checkout "$ref"
               git -C "$repo_dir" pull --ff-only origin "$ref"
-            else
+            elif git -C "$repo_dir" rev-parse --verify --quiet "$ref^{commit}" >/dev/null; then
               git -C "$repo_dir" checkout --detach "$ref"
+            else
+              echo "Ref '$ref' nao encontrada em $(basename "$repo_dir"). Usando '$default_branch'."
+              git -C "$repo_dir" checkout "$default_branch"
+              git -C "$repo_dir" pull --ff-only origin "$default_branch"
             fi
           }
 
@@ -181,11 +191,21 @@ jobs:
 
             git -C "$repo_dir" fetch --all --tags --prune
 
+            local default_branch
+            default_branch="$(git -C "$repo_dir" symbolic-ref --quiet --short refs/remotes/origin/HEAD | sed 's#^origin/##')"
+            if [ -z "$default_branch" ]; then
+              default_branch="main"
+            fi
+
             if git -C "$repo_dir" show-ref --verify --quiet "refs/remotes/origin/$ref"; then
               git -C "$repo_dir" checkout "$ref"
               git -C "$repo_dir" pull --ff-only origin "$ref"
-            else
+            elif git -C "$repo_dir" rev-parse --verify --quiet "$ref^{commit}" >/dev/null; then
               git -C "$repo_dir" checkout --detach "$ref"
+            else
+              echo "Ref '$ref' nao encontrada em $(basename "$repo_dir"). Usando '$default_branch'."
+              git -C "$repo_dir" checkout "$default_branch"
+              git -C "$repo_dir" pull --ff-only origin "$default_branch"
             fi
           }
 
