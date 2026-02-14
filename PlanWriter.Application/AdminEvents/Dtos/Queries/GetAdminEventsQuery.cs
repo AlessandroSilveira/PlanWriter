@@ -4,6 +4,6 @@ using PlanWriter.Domain.Dtos.Events;
 
 namespace PlanWriter.Application.AdminEvents.Dtos.Queries;
 
-public class GetAdminEventsQuery : IRequest<List<EventDto>>;
+public class GetAdminEventsQuery : IRequest<IReadOnlyList<EventDto>>;
 
     

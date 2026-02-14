@@ -178,17 +178,35 @@ public class EventRepository(IDbExecutor db) : IEventRepository
     public async Task<List<MyEventDto>> GetEventByUserId(Guid userId)
     {
         const string sql = @"
-            SELECT DISTINCT
+            SELECT
                 pe.ProjectId,
                 pe.EventId,
                 e.Name AS EventName,
                 p.Title AS ProjectTitle,
-                e.DefaultTargetWords AS TotalWrittenInEvent,
-                pe.TargetWords
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN pp.CreatedAt >= e.StartsAtUtc
+                                 AND pp.CreatedAt < DATEADD(day, 1, e.EndsAtUtc)
+                            THEN pp.WordsWritten
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS TotalWrittenInEvent,
+                COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) AS TargetWords
             FROM ProjectEvents pe
             INNER JOIN Events e ON e.Id = pe.EventId
             INNER JOIN Projects p ON p.Id = pe.ProjectId
-            WHERE p.UserId = @UserId;
+            LEFT JOIN ProjectProgresses pp ON pp.ProjectId = pe.ProjectId
+            WHERE p.UserId = @UserId
+            GROUP BY
+                pe.ProjectId,
+                pe.EventId,
+                e.Name,
+                p.Title,
+                pe.TargetWords,
+                e.DefaultTargetWords;
         ";
 
         var rows = await db.QueryAsync<MyEventDto>(sql, new { UserId = userId });
@@ -208,13 +226,13 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 (u.FirstName + ' ' + u.LastName) AS UserName,
                 COALESCE(agg.Words, 0) AS Words,
                 CASE
-                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) > 0
-                        THEN CAST(COALESCE(agg.Words, 0) * 100.0 / COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) AS float)
+                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) > 0
+                        THEN CAST(COALESCE(agg.Words, 0) * 100.0 / COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) AS float)
                     ELSE 0
                 END AS Percent,
                 CASE
-                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) > 0
-                         AND COALESCE(agg.Words, 0) >= COALESCE(pe.TargetWords, e.DefaultTargetWords, 0)
+                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) > 0
+                         AND COALESCE(agg.Words, 0) >= COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000)
                         THEN CAST(1 AS bit)
                     ELSE CAST(0 AS bit)
                 END AS Won

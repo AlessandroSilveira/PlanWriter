@@ -38,11 +38,13 @@ public class GetMyEventsQueryHandler(IEventRepository eventRepository, ILogger<G
 
     private static int CalculatePercent(int? totalWritten, int? targetWords)
     {
-        if (targetWords <= 0)
+        if (!targetWords.HasValue || targetWords.Value <= 0)
             return 0;
 
+        var total = Math.Max(0, totalWritten.GetValueOrDefault());
+
         return (int)Math.Round(
-            (decimal)totalWritten.Value / targetWords.Value * 100
+            (decimal)total / targetWords.Value * 100
         );
     }
 }
