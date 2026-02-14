@@ -6,6 +6,8 @@ BACKEND_DIR="${2:-$(pwd)}"
 GATEWAY_NETWORK="planwriter_gateway"
 PROXY_PROJECT="planwriter-proxy"
 LOCK_WAIT_SECONDS="${DEPLOY_LOCK_WAIT_SECONDS:-300}"
+UP_RETRY_ATTEMPTS="${DEPLOY_UP_RETRY_ATTEMPTS:-5}"
+UP_RETRY_DELAY_SECONDS="${DEPLOY_UP_RETRY_DELAY_SECONDS:-3}"
 
 case "$TARGET_ENV" in
   staging)
@@ -101,6 +103,28 @@ compose_proxy() {
   docker compose -p "$PROXY_PROJECT" -f "$PROXY_COMPOSE" "$@"
 }
 
+compose_target_up_with_retry() {
+  local attempt=1
+  while [ "$attempt" -le "$UP_RETRY_ATTEMPTS" ]; do
+    local output=""
+    if output="$(compose_target up -d --build 2>&1)"; then
+      printf '%s\n' "$output"
+      return 0
+    fi
+
+    printf '%s\n' "$output" >&2
+
+    if echo "$output" | grep -Fq "is already in progress" && [ "$attempt" -lt "$UP_RETRY_ATTEMPTS" ]; then
+      echo "Docker ainda processa remocao de container. Tentativa $attempt/$UP_RETRY_ATTEMPTS. Nova tentativa em ${UP_RETRY_DELAY_SECONDS}s..."
+      sleep "$UP_RETRY_DELAY_SECONDS"
+      attempt=$((attempt + 1))
+      continue
+    fi
+
+    return 1
+  done
+}
+
 ensure_project_container() {
   local container_name="$1"
   local expected_project="$2"
@@ -123,7 +147,7 @@ done
 ensure_project_container "planwriter-proxy" "$PROXY_PROJECT"
 
 echo "Subindo ambiente: $TARGET_ENV"
-compose_target up -d --build
+compose_target_up_with_retry
 
 echo "Garantindo proxy local por hostname (.test)"
 compose_proxy up -d
