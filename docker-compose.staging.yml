@@ -57,7 +57,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Staging
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=PlanWriterDbStaging;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Str0ng!Senha2024};TrustServerCertificate=True;Encrypt=False;"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=PlanWriterDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Str0ng!Senha2024};TrustServerCertificate=True;Encrypt=False;"
     ports:
       - "${STAGING_API_PORT:-5003}:8080"
     restart: unless-stopped
