@@ -194,7 +194,7 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                     ),
                     0
                 ) AS TotalWrittenInEvent,
-                COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) AS TargetWords
+                COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) AS TargetWords
             FROM ProjectEvents pe
             INNER JOIN Events e ON e.Id = pe.EventId
             INNER JOIN Projects p ON p.Id = pe.ProjectId
@@ -226,13 +226,13 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 (u.FirstName + ' ' + u.LastName) AS UserName,
                 COALESCE(agg.Words, 0) AS Words,
                 CASE
-                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) > 0
-                        THEN CAST(COALESCE(agg.Words, 0) * 100.0 / COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) AS float)
+                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) > 0
+                        THEN CAST(COALESCE(agg.Words, 0) * 100.0 / COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) AS float)
                     ELSE 0
                 END AS Percent,
                 CASE
-                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 0) > 0
-                         AND COALESCE(agg.Words, 0) >= COALESCE(pe.TargetWords, e.DefaultTargetWords, 0)
+                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) > 0
+                         AND COALESCE(agg.Words, 0) >= COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000)
                         THEN CAST(1 AS bit)
                     ELSE CAST(0 AS bit)
                 END AS Won
