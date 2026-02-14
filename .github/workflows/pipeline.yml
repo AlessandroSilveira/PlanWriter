@@ -60,21 +60,101 @@ jobs:
       - name: Test
         run: dotnet test PlanWriter.Tests/PlanWriter.Tests.csproj --configuration Release --no-build --verbosity normal
 
-  deploy:
-    name: Deploy (Staging/Production)
+  deploy_staging:
+    name: Deploy Staging
     runs-on:
       - self-hosted
       - macOS
       - deploy
     needs:
       - test
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
-    environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target || 'staging' }}
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy' && github.event.inputs.target == 'staging')
+    environment: staging
     env:
       DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
       DEPLOY_REF_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_ref || '' }}
       DEFAULT_REF: ${{ github.ref_name }}
-      TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target || 'staging' }}
+      TARGET_ENV: staging
+
+    steps:
+      - name: Validate deploy root
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_ROOT:-}" ]; then
+            echo "Secret DEPLOY_ROOT nao configurado."
+            exit 1
+          fi
+
+      - name: Update repositories and deploy
+        run: |
+          set -euo pipefail
+
+          BACKEND_DIR="$DEPLOY_ROOT/PlanWriter"
+          FRONTEND_DIR="$DEPLOY_ROOT/PlanWriter-Frontend"
+
+          if [ ! -d "$BACKEND_DIR/.git" ]; then
+            echo "Repositorio backend nao encontrado em: $BACKEND_DIR"
+            exit 1
+          fi
+
+          if [ ! -d "$FRONTEND_DIR/.git" ]; then
+            echo "Repositorio frontend nao encontrado em: $FRONTEND_DIR"
+            exit 1
+          fi
+
+          checkout_ref() {
+            local repo_dir="$1"
+            local ref="$2"
+
+            git -C "$repo_dir" fetch --all --tags --prune
+
+            local default_branch
+            default_branch="$(git -C "$repo_dir" symbolic-ref --quiet --short refs/remotes/origin/HEAD | sed 's#^origin/##')"
+            if [ -z "$default_branch" ]; then
+              default_branch="main"
+            fi
+
+            if git -C "$repo_dir" show-ref --verify --quiet "refs/remotes/origin/$ref"; then
+              git -C "$repo_dir" checkout "$ref"
+              git -C "$repo_dir" pull --ff-only origin "$ref"
+            elif git -C "$repo_dir" rev-parse --verify --quiet "$ref^{commit}" >/dev/null; then
+              git -C "$repo_dir" checkout --detach "$ref"
+            else
+              echo "Ref '$ref' nao encontrada em $(basename "$repo_dir"). Usando '$default_branch'."
+              git -C "$repo_dir" checkout "$default_branch"
+              git -C "$repo_dir" pull --ff-only origin "$default_branch"
+            fi
+          }
+
+          TARGET_REF="$DEPLOY_REF_INPUT"
+          if [ -z "$TARGET_REF" ]; then
+            TARGET_REF="$DEFAULT_REF"
+          fi
+
+          echo "Ambiente: $TARGET_ENV"
+          echo "Acao: deploy"
+          echo "Ref: $TARGET_REF"
+
+          checkout_ref "$BACKEND_DIR" "$TARGET_REF"
+          checkout_ref "$FRONTEND_DIR" "$TARGET_REF"
+
+          bash "$BACKEND_DIR/scripts/deploy/deploy-target.sh" "$TARGET_ENV" "$BACKEND_DIR"
+
+  deploy_production:
+    name: Deploy Production
+    runs-on:
+      - self-hosted
+      - macOS
+      - deploy
+    needs:
+      - test
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy' && github.event.inputs.target == 'production'
+    environment: production
+    env:
+      DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
+      DEPLOY_REF_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_ref || '' }}
+      DEFAULT_REF: ${{ github.ref_name }}
+      TARGET_ENV: production
 
     steps:
       - name: Validate deploy root
