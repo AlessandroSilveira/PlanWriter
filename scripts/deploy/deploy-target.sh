@@ -5,6 +5,7 @@ TARGET_ENV="${1:-staging}"
 BACKEND_DIR="${2:-$(pwd)}"
 GATEWAY_NETWORK="planwriter_gateway"
 PROXY_PROJECT="planwriter-proxy"
+LOCK_WAIT_SECONDS="${DEPLOY_LOCK_WAIT_SECONDS:-300}"
 
 case "$TARGET_ENV" in
   staging)
@@ -34,6 +35,47 @@ case "$TARGET_ENV" in
 esac
 
 PROXY_COMPOSE="$BACKEND_DIR/docker-compose.proxy.yml"
+LOCK_DIR="${TMPDIR:-/tmp}/planwriter-deploy-${TARGET_ENV}.lock"
+LOCK_PID_FILE="$LOCK_DIR/pid"
+LOCK_ACQUIRED=0
+
+acquire_deploy_lock() {
+  local waited=0
+
+  while ! mkdir "$LOCK_DIR" 2>/dev/null; do
+    local holder_pid=""
+    if [ -f "$LOCK_PID_FILE" ]; then
+      holder_pid="$(cat "$LOCK_PID_FILE" 2>/dev/null || true)"
+    fi
+
+    if [ -n "$holder_pid" ] && ! kill -0 "$holder_pid" 2>/dev/null; then
+      echo "Lock stale detectado ($LOCK_DIR). Limpando."
+      rm -rf "$LOCK_DIR" || true
+      continue
+    fi
+
+    if [ "$waited" -ge "$LOCK_WAIT_SECONDS" ]; then
+      echo "Timeout aguardando lock de deploy: $LOCK_DIR"
+      return 1
+    fi
+
+    echo "Aguardando lock de deploy ($TARGET_ENV). Tentando novamente em 2s..."
+    sleep 2
+    waited=$((waited + 2))
+  done
+
+  LOCK_ACQUIRED=1
+  echo "$$" > "$LOCK_PID_FILE"
+}
+
+release_deploy_lock() {
+  if [ "$LOCK_ACQUIRED" -eq 1 ]; then
+    rm -f "$LOCK_PID_FILE" || true
+    rmdir "$LOCK_DIR" || true
+  fi
+}
+
+trap release_deploy_lock EXIT INT TERM
 
 if [ ! -f "$TARGET_COMPOSE" ]; then
   echo "Compose nao encontrado: $TARGET_COMPOSE"
@@ -44,6 +86,8 @@ if [ ! -f "$PROXY_COMPOSE" ]; then
   echo "Compose nao encontrado: $PROXY_COMPOSE"
   exit 1
 fi
+
+acquire_deploy_lock
 
 if ! docker network inspect "$GATEWAY_NETWORK" >/dev/null 2>&1; then
   docker network create "$GATEWAY_NETWORK" >/dev/null
