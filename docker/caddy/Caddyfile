@@ -2,10 +2,10 @@
   auto_https off
 }
 
-planwriter.test {
+http://planwriter.test {
   reverse_proxy planwriter-prod-frontend:80
 }
 
-planwriter.staging.test {
+http://planwriter.staging.test {
   reverse_proxy planwriter-stg-frontend:80
 }
