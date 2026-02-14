@@ -37,8 +37,9 @@ public class ChangePasswordCommandHandler(IUserReadRepository userReadRepository
         }
 
         var newHash = passwordHasher.HashPassword(user, newPassword);
+        user.ChangePassword(newHash);
 
-        await passwordRepository.UpdatePasswordAsync(user.Id, newHash, ct);
+        await passwordRepository.UpdatePasswordAsync(user.Id, user.PasswordHash, ct);
 
         logger.LogInformation("Password changed for user {UserId}", user.Id);
         

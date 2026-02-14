@@ -111,6 +111,50 @@ public class ChangePasswordCommandHandlerTests
             .WithMessage("User not found");
     }
 
+    [Fact]
+    public async Task Handle_ShouldGenerateTokenWithMustChangePasswordFalse_ForAdminUser()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        const string newPassword = "NewStrongPassword!";
+        const string hashed = "hashed-password";
+        const string token = "admin-jwt";
+
+        var user = new User { Id = userId, PasswordHash = "" };
+        user.MakeAdmin();
+
+        _userRepositoryMock
+            .Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        _passwordHasherMock
+            .Setup(h => h.HashPassword(user, newPassword))
+            .Returns(hashed);
+
+        _userPasswordRepositoryMock
+            .Setup(r => r.UpdatePasswordAsync(userId, hashed, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _tokenGeneratorMock
+            .Setup(t => t.Generate(It.Is<User>(u => u.IsAdmin && !u.MustChangePassword)))
+            .Returns(token);
+
+        var handler = CreateHandler();
+        var command = BuildCommand(userId, newPassword);
+
+        // Act
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.Should().Be(token);
+        user.MustChangePassword.Should().BeFalse();
+
+        _tokenGeneratorMock.Verify(
+            t => t.Generate(It.Is<User>(u => u.IsAdmin && !u.MustChangePassword)),
+            Times.Once
+        );
+    }
+
     /* ===================== HELPERS ===================== */
 
     private ChangePasswordCommandHandler CreateHandler()
