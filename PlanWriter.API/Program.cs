@@ -23,9 +23,11 @@ using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Domain.Interfaces.ReadModels.Milestones;
 using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
+using PlanWriter.Domain.Interfaces.ReadModels.WordWars;
 using PlanWriter.Domain.Interfaces.Repositories;
 using PlanWriter.Domain.Interfaces.Repositories.DailyWordLogWrite;
 using PlanWriter.Domain.Interfaces.Repositories.Events.Admin;
+using PlanWriter.Domain.Interfaces.Repositories.WordWars;
 using PlanWriter.Infrastructure.Auth;
 using PlanWriter.Infrastructure.Data;
 using PlanWriter.Infrastructure.ReadModels.Auth;
@@ -37,12 +39,14 @@ using PlanWriter.Infrastructure.ReadModels.Events;
 using PlanWriter.Infrastructure.ReadModels.Milestones;
 using PlanWriter.Infrastructure.ReadModels.ProjectEvents;
 using PlanWriter.Infrastructure.ReadModels.Projects;
+using PlanWriter.Infrastructure.ReadModels.WordWars;
 using PlanWriter.Infrastructure.Repositories;
 using PlanWriter.Infrastructure.Repositories.DailyWordWrite;
 using PlanWriter.Infrastructure.Repositories.Events.Admin;
 using PlanWriter.Infrastructure.Repositories.Auth;
 using PlanWriter.Infrastructure.Repositories.Auth.Register;
 using PlanWriter.Infrastructure.Repositories.ProjectEvents;
+using PlanWriter.Infrastructure.Repositories.WordWars;
 using IEventReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Events.IEventReadRepository;
 using IUserReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Users.IUserReadRepository;
 using UserReadRepository = PlanWriter.Infrastructure.ReadModels.Users.UserReadRepository;
@@ -146,6 +150,10 @@ builder.Services.AddScoped<IUserRegistrationRepository, UserRegistrationReposito
 builder.Services.AddScoped<ICertificateReadRepository, CertificateReadRepository>();
 builder.Services.AddScoped<IDailyWordLogReadRepository, DailyWordLogReadRepository>();
 builder.Services.AddScoped<IProjectEventsReadRepository, ProjectEventsReadRepository>();
+
+builder.Services.AddScoped<IWordWarParticipantReadRepository, WordWarParticipantReadRepository>();
+builder.Services.AddScoped<IWordWarRepository, WordWarRepository>();
+builder.Services.AddScoped<IWordWarReadRepository, WordWarReadRepository>();
 
 
 builder.Services.AddScoped<IDbConnectionFactory, SqlConnectionFactory>();
