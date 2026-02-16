@@ -28,6 +28,58 @@ public class ProjectProgressReadRepositoryTests
     }
 
     [Fact]
+    public async Task GetUserProgressByDayAsync_ShouldReturnRows()
+    {
+        var rows = new[] { new ProgressHistoryRow(DateTime.UtcNow.Date, 250) };
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.QueryAsync<ProgressHistoryRow>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rows);
+
+        var sut = new ProjectProgressReadRepository(db.Object);
+        var result = await sut.GetUserProgressByDayAsync(
+            Guid.NewGuid(),
+            DateTime.UtcNow.AddDays(-7),
+            DateTime.UtcNow,
+            null,
+            CancellationToken.None);
+
+        result.Should().HaveCount(1);
+        result[0].WordsWritten.Should().Be(250);
+    }
+
+    [Fact]
+    public async Task GetUserProgressByDayAsync_ShouldPassProjectFilterParameter()
+    {
+        var userId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        object? capturedParam = null;
+        string? capturedSql = null;
+
+        var db = new Mock<IDbExecutor>();
+        db.Setup(x => x.QueryAsync<ProgressHistoryRow>(It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<CancellationToken>()))
+            .Callback<string, object?, CancellationToken>((sql, param, _) =>
+            {
+                capturedSql = sql;
+                capturedParam = param;
+            })
+            .ReturnsAsync(Array.Empty<ProgressHistoryRow>());
+
+        var sut = new ProjectProgressReadRepository(db.Object);
+        await sut.GetUserProgressByDayAsync(
+            userId,
+            new DateTime(2026, 2, 1),
+            new DateTime(2026, 2, 28),
+            projectId,
+            CancellationToken.None);
+
+        capturedSql.Should().NotBeNull();
+        capturedSql.Should().Contain("@ProjectId IS NULL OR pp.ProjectId = @ProjectId");
+        capturedParam.Should().NotBeNull();
+        capturedParam!.GetProp<Guid>("UserId").Should().Be(userId);
+        capturedParam.GetProp<Guid?>("ProjectId").Should().Be(projectId);
+    }
+
+    [Fact]
     public async Task GetMonthlyWordsAsync_WithCancellationToken_ShouldReturnValue()
     {
         var db = new Mock<IDbExecutor>();
