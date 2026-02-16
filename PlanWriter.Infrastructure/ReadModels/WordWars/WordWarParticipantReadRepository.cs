@@ -32,7 +32,7 @@ public class WordWarParticipantReadRepository(IDbExecutor db) : IWordWarParticip
         return db.QueryAsync<EventWordWarParticipantsDto>(sql, new { WarId = warId }, ct);
     }
 
-    public Task<IReadOnlyList<EventWordWarParticipantsDto>?> GetAllParticipant(Guid warId, CancellationToken ct)
+    public Task<IReadOnlyList<EventWordWarParticipantsDto>> GetAllParticipant(Guid warId, CancellationToken ct = default)
     {
         const string sql = @"
                        SELECT TOP 1

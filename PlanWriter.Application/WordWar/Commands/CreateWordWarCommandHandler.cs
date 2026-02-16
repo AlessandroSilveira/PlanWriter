@@ -6,6 +6,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Common.Exceptions;
 using PlanWriter.Application.WordWar.Dtos;
+using PlanWriter.Application.WordWar.Dtos.Commands;
 using PlanWriter.Domain.Enums;
 using PlanWriter.Domain.Interfaces.ReadModels.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.WordWars;

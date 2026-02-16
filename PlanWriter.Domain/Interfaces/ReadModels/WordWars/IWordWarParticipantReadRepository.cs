@@ -9,6 +9,6 @@ namespace PlanWriter.Domain.Interfaces.ReadModels.WordWars;
 public interface IWordWarParticipantReadRepository
 {
     Task<IReadOnlyList<EventWordWarParticipantsDto>> GetScoreboardAsync(Guid warId, CancellationToken ct = default);
-    Task<IReadOnlyList<EventWordWarParticipantsDto>?> GetAllParticipant(Guid warId, CancellationToken ct = default);
+    Task<IReadOnlyList<EventWordWarParticipantsDto>> GetAllParticipant(Guid warId, CancellationToken ct = default);
     Task<EventWordWarParticipantsDto?> GetParticipant(Guid warId, Guid userId, CancellationToken ct = default);
 }
