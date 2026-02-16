@@ -5,6 +5,7 @@ using Moq;
 using PlanWriter.Application.Common.Exceptions;
 using PlanWriter.Application.WordWar.Commands;
 using PlanWriter.Application.WordWar.Dtos;
+using PlanWriter.Application.WordWar.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Dtos.WordWars;
 using PlanWriter.Domain.Enums;
