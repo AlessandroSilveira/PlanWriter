@@ -16,7 +16,7 @@ public class EventWordWarsController(IUserService userService, IMediator mediato
     public async Task<ActionResult<MyProfileDto>> Create([FromBody] Guid eventId, int durationsInMinutes )
     {
         var userId = userService.GetUserId(User);
-        var response = await mediator.Send(new CreateWordWarCommand(eventId, durationsInMinutes, userId)); 
+        var response = await mediator.Send(new PlanWriter.Application.WordWar.Dtos.Commands.CreateWordWarCommand(eventId, durationsInMinutes, userId)); 
         return Ok(response);
     }
     
