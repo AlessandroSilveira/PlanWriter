@@ -9,7 +9,7 @@ namespace PlanWriter.Infrastructure.Repositories.WordWars;
 
 public class WordWarRepository(IDbExecutor db) : IWordWarRepository
 {
-    public Task<int> CreateAsync(Guid eventId, Guid createdByUserId, int durationMinutes, DateTime startsAtUtc, DateTime endsAtUtc, WordWarStatus status, CancellationToken ct = default)
+    public async Task<Guid> CreateAsync(Guid eventId, Guid createdByUserId, int durationMinutes, DateTime startsAtUtc, DateTime endsAtUtc, WordWarStatus status, CancellationToken ct = default)
     {
         const string sql = @"
             INSERT INTO EventWordWars
@@ -37,9 +37,10 @@ public class WordWarRepository(IDbExecutor db) : IWordWarRepository
                 NULL
             );";
 
-        return db.ExecuteAsync(sql, new
+        var id = Guid.NewGuid();
+        await db.ExecuteAsync(sql, new
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             EventId = eventId,
             CreatedByUserId = createdByUserId,
             Status = status.ToString(), // se coluna for INT, use (int)status
@@ -47,6 +48,8 @@ public class WordWarRepository(IDbExecutor db) : IWordWarRepository
             StartsAtUtc = startsAtUtc,
             EndsAtUtc = endsAtUtc
         }, ct);
+
+        return id;
     }
 
     public Task<int> StartAsync(Guid warId, DateTime startsAtUtc, DateTime endsAtUtc, CancellationToken ct = default)
@@ -149,4 +152,31 @@ public class WordWarRepository(IDbExecutor db) : IWordWarRepository
             CheckpointAtUtc = checkpointAtUtc
         }, ct);
     }
+    
+    // /Users/alessandrosilveira/Documents/Repos/PlanWriter/PlanWriter.Infrastructure/Repositories/WordWars/WordWarRepository.cs
+    public Task<int> PersistFinalRankAsync(Guid warId, CancellationToken ct = default)
+    {
+        const string sql = @"
+        ;WITH Ranked AS
+        (
+            SELECT
+                p.Id,
+                ROW_NUMBER() OVER
+                (
+                    ORDER BY
+                        p.WordsInRound DESC,
+                        p.LastCheckpointAtUtc ASC,
+                        p.JoinedAtUtc ASC
+                ) AS RankPos
+            FROM EventWordWarParticipants p
+            WHERE p.WordWarId = @WarId
+        )
+        UPDATE p
+        SET p.FinalRank = r.RankPos
+        FROM EventWordWarParticipants p
+        INNER JOIN Ranked r ON r.Id = p.Id;";
+
+        return db.ExecuteAsync(sql, new { WarId = warId }, ct);
+    }
+
 }

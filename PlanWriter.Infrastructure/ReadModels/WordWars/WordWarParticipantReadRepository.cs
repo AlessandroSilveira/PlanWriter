@@ -31,4 +31,43 @@ public class WordWarParticipantReadRepository(IDbExecutor db) : IWordWarParticip
 
         return db.QueryAsync<EventWordWarParticipantsDto>(sql, new { WarId = warId }, ct);
     }
+
+    public Task<IReadOnlyList<EventWordWarParticipantsDto>?> GetAllParticipant(Guid warId, CancellationToken ct)
+    {
+        const string sql = @"
+                       SELECT TOP 1
+                p.Id,
+                p.WordWarId,
+                p.UserId,
+                p.ProjectId,
+                p.JoinedAtUtc,
+                p.WordsInRound,
+                p.LastCheckpointAtUtc,
+                p.FinalRank
+            FROM EventWordWarParticipants p
+            WHERE p.WordWarId = @WarId;              
+            ";
+        
+        return db.QueryAsync<EventWordWarParticipantsDto>(sql, new { WarId = warId  }, ct);
+    }
+
+    public Task<EventWordWarParticipantsDto?> GetParticipant(Guid warId, Guid userId, CancellationToken ct)
+    {
+        const string sql = @"
+                       SELECT TOP 1
+                p.Id,
+                p.WordWarId,
+                p.UserId,
+                p.ProjectId,
+                p.JoinedAtUtc,
+                p.WordsInRound,
+                p.LastCheckpointAtUtc,
+                p.FinalRank
+            FROM EventWordWarParticipants p
+            WHERE p.WordWarId = @WarId
+              AND p.UserId = @UserId;
+            ";
+
+        return db.QueryFirstOrDefaultAsync<EventWordWarParticipantsDto>(sql, new { WarId = warId, UserId = userId  }, ct);
+    }
 }
