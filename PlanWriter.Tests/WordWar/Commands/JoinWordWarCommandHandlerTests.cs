@@ -251,6 +251,47 @@ public class JoinWordWarCommandHandlerTests
             .WithMessage("Unable to join word war due to state conflict.");
     }
 
+    [Fact]
+    public async Task Handle_ShouldThrowBusinessRuleException_WhenJoinRacesWithStartAndStatusChanges()
+    {
+        var command = NewCommand();
+
+        _wordWarReadRepositoryMock
+            .SetupSequence(r => r.GetByIdAsync(command.WarId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventWordWarsDto
+            {
+                Id = command.WarId,
+                Status = WordWarStatus.Waiting
+            })
+            .ReturnsAsync(new EventWordWarsDto
+            {
+                Id = command.WarId,
+                Status = WordWarStatus.Running
+            });
+
+        _projectReadRepositoryMock
+            .Setup(r => r.GetUserProjectsAsync(command.UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new ProjectDto { Id = command.ProjectId, Title = "Book" }
+            });
+
+        _wordWarParticipantReadRepositoryMock
+            .Setup(r => r.GetParticipant(command.WarId, command.UserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EventWordWarParticipantsDto?)null);
+
+        _wordWarRepositoryMock
+            .Setup(r => r.JoinAsync(command.WarId, command.UserId, command.ProjectId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        var handler = CreateHandler();
+        var act = async () => await handler.Handle(command, CancellationToken.None);
+
+        await act.Should()
+            .ThrowAsync<BusinessRuleException>()
+            .WithMessage("Can't join the word war when the status is not waiting.");
+    }
+
     private JoinWordWarCommandHandler CreateHandler()
     {
         return new JoinWordWarCommandHandler(

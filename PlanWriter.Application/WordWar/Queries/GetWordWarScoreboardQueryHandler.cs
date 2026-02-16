@@ -36,6 +36,10 @@ public class GetWordWarScoreboardQueryHandler(ILogger<GetWordWarScoreboardQueryH
                 await wordWarRepository.PersistFinalRankAsync(request.WarId, cancellationToken);
                 wordWar.Status = WordWarStatus.Finished;
                 wordWar.FinishedAtUtc = now;
+                logger.LogInformation(
+                    "Word war auto-finished by scoreboard read. WarId: {WarId}, FinishedAtUtc: {FinishedAtUtc}",
+                    request.WarId,
+                    now);
             }
             else
             {
@@ -46,6 +50,11 @@ public class GetWordWarScoreboardQueryHandler(ILogger<GetWordWarScoreboardQueryH
                     logger.LogError("Word war not found after auto-finish attempt.");
                     throw new NotFoundException("Word war not found.");
                 }
+
+                logger.LogInformation(
+                    "Word war finish was already processed concurrently before scoreboard read completed. WarId: {WarId}, Status: {Status}",
+                    request.WarId,
+                    wordWar.Status);
             }
         }
 

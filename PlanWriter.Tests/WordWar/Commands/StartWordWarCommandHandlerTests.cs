@@ -163,6 +163,37 @@ public class StartWordWarCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnUnit_WhenStartReturnsZeroButWarIsAlreadyRunning()
+    {
+        var warId = Guid.NewGuid();
+        var command = new StartWordWarCommand(warId, Guid.NewGuid());
+
+        _wordWarReadRepositoryMock
+            .SetupSequence(r => r.GetByIdAsync(warId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventWordWarsDto
+            {
+                Id = warId,
+                Status = WordWarStatus.Waiting,
+                DurationInMinuts = 10
+            })
+            .ReturnsAsync(new EventWordWarsDto
+            {
+                Id = warId,
+                Status = WordWarStatus.Running,
+                DurationInMinuts = 10
+            });
+
+        _wordWarRepositoryMock
+            .Setup(r => r.StartAsync(warId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        result.Should().Be(Unit.Value);
+    }
+
+    [Fact]
     public async Task Handle_ShouldPropagateException_WhenRepositoryThrows()
     {
         var warId = Guid.NewGuid();
