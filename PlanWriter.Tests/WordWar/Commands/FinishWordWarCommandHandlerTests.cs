@@ -91,6 +91,37 @@ public class FinishWordWarCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldReturnUnit_WhenFinishAffectsZeroButWarIsAlreadyFinished()
+    {
+        var command = NewCommand();
+
+        _wordWarReadRepositoryMock
+            .SetupSequence(r => r.GetByIdAsync(command.WarId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventWordWarsDto
+            {
+                Id = command.WarId,
+                Status = WordWarStatus.Running
+            })
+            .ReturnsAsync(new EventWordWarsDto
+            {
+                Id = command.WarId,
+                Status = WordWarStatus.Finished
+            });
+
+        _wordWarRepositoryMock
+            .Setup(r => r.FinishAsync(command.WarId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        result.Should().Be(Unit.Value);
+        _wordWarRepositoryMock.Verify(
+            r => r.PersistFinalRankAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_ShouldFinishWordWar_AndPersistFinalRank()
     {
         var command = NewCommand();

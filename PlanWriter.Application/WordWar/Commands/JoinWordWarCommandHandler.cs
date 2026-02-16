@@ -47,7 +47,11 @@ public class JoinWordWarCommandHandler(ILogger<JoinWordWarCommandHandler> logger
 
         if (participant is not null)
         {
-            logger.LogInformation("The user is already participating in this word war.");
+            logger.LogInformation(
+                "Join treated as idempotent because user already participates. WarId: {WarId}, UserId: {UserId}, ProjectId: {ProjectId}",
+                request.WarId,
+                request.UserId,
+                request.ProjectId);
             return true;
         }
 
@@ -55,13 +59,44 @@ public class JoinWordWarCommandHandler(ILogger<JoinWordWarCommandHandler> logger
             await wordWarRepository.JoinAsync(request.WarId, request.UserId, request.ProjectId, cancellationToken);
 
         if (insertParticipant == 1)
+        {
+            logger.LogInformation(
+                "User joined word war. WarId: {WarId}, UserId: {UserId}, ProjectId: {ProjectId}",
+                request.WarId,
+                request.UserId,
+                request.ProjectId);
             return true;
+        }
 
         var participantAfterJoin =
             await wordWarParticipantReadRepository.GetParticipant(request.WarId, request.UserId, cancellationToken);
 
         if (participantAfterJoin is not null)
+        {
+            logger.LogInformation(
+                "Join treated as idempotent after concurrent insert. WarId: {WarId}, UserId: {UserId}, ProjectId: {ProjectId}",
+                request.WarId,
+                request.UserId,
+                request.ProjectId);
             return true;
+        }
+
+        var latestWordWar = await wordWarReadRepository.GetByIdAsync(request.WarId, cancellationToken);
+        if (latestWordWar is null)
+        {
+            logger.LogError("WordWar not exist.");
+            throw new NotFoundException("WordWar not exist.");
+        }
+
+        if (latestWordWar.Status != WordWarStatus.Waiting)
+        {
+            logger.LogWarning(
+                "Join rejected because word war status changed concurrently. WarId: {WarId}, UserId: {UserId}, Status: {Status}",
+                request.WarId,
+                request.UserId,
+                latestWordWar.Status);
+            throw new BusinessRuleException("Can't join the word war when the status is not waiting.");
+        }
 
         logger.LogError("Unable to join word war due to state conflict.");
         throw new BusinessRuleException("Unable to join word war due to state conflict.");

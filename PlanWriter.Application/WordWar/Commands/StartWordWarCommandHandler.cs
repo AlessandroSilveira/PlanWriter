@@ -40,12 +40,28 @@ public class StartWordWarCommandHandler(ILogger<StartWordWarCommandHandler> logg
         var endsAtUtc = startsAtUtc.AddMinutes(wordwar.DurationInMinuts);
 
         var response = await wordWarRepository.StartAsync(wordwar.Id, startsAtUtc, endsAtUtc, cancellationToken);
-        if (response == 0)
+        if (response == 1)
         {
-            logger.LogError("A state conflict occurred while attempting to start the word war.");
-            throw new BusinessRuleException("A state conflict occurred while attempting to start the word war.");
+            logger.LogInformation(
+                "Word war state changed to Running. WarId: {WarId}, RequestedByUserId: {RequestedByUserId}, StartsAtUtc: {StartsAtUtc}, EndsAtUtc: {EndsAtUtc}",
+                request.WarId,
+                request.RequestedByUserId,
+                startsAtUtc,
+                endsAtUtc);
+            return Unit.Value;
         }
 
-        return Unit.Value;
+        var latestWordWar = await wordWarReadRepository.GetByIdAsync(request.WarId, cancellationToken);
+        if (latestWordWar?.Status == WordWarStatus.Running)
+        {
+            logger.LogInformation(
+                "Word war start treated as idempotent due to concurrent start. WarId: {WarId}, RequestedByUserId: {RequestedByUserId}",
+                request.WarId,
+                request.RequestedByUserId);
+            return Unit.Value;
+        }
+
+        logger.LogError("A state conflict occurred while attempting to start the word war.");
+        throw new BusinessRuleException("A state conflict occurred while attempting to start the word war.");
     }
 }

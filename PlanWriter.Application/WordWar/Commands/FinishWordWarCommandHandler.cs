@@ -31,11 +31,27 @@ public class FinishWordWarCommandHandler(ILogger<FinishWordWarCommandHandler> lo
             throw new BusinessRuleException("Only word wars in running status can be finished.");
         }
 
-        var affected = await wordWarRepository.FinishAsync(request.WarId, DateTime.UtcNow, cancellationToken);
+        var finishedAtUtc = DateTime.UtcNow;
+        var affected = await wordWarRepository.FinishAsync(request.WarId, finishedAtUtc, cancellationToken);
         if (affected == 0)
+        {
+            var latestWordWar = await wordWarReadRepository.GetByIdAsync(request.WarId, cancellationToken);
+            if (latestWordWar?.Status == WordWarStatus.Finished)
+            {
+                logger.LogInformation(
+                    "Word war finish treated as idempotent due to concurrent finish. WarId: {WarId}",
+                    request.WarId);
+                return Unit.Value;
+            }
+
             throw new BusinessRuleException("Word War não está em execução.");
+        }
 
         await wordWarRepository.PersistFinalRankAsync(request.WarId, cancellationToken);
+        logger.LogInformation(
+            "Word war state changed to Finished. WarId: {WarId}, FinishedAtUtc: {FinishedAtUtc}",
+            request.WarId,
+            finishedAtUtc);
 
         return Unit.Value;
 

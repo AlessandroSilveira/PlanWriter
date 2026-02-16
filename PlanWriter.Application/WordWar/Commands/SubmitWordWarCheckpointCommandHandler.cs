@@ -41,7 +41,15 @@ public class SubmitWordWarCheckpointCommandHandler(ILogger<SubmitWordWarCheckpoi
         var now = DateTime.UtcNow;
         if (now >= wordWar.EndsAtUtc)
         {
-            await wordWarRepository.FinishAsync(request.WarId, now, cancellationToken);
+            var affected = await wordWarRepository.FinishAsync(request.WarId, now, cancellationToken);
+            if (affected > 0)
+            {
+                await wordWarRepository.PersistFinalRankAsync(request.WarId, cancellationToken);
+                logger.LogInformation(
+                    "Word war auto-finished by time. WarId: {WarId}, FinishedAtUtc: {FinishedAtUtc}",
+                    request.WarId,
+                    now);
+            }
             logger.LogError("Word war has been auto-finished by time. Checkpoint rejected.");
             throw new BusinessRuleException("Word war has been auto-finished by time. Checkpoint rejected.");
         }
@@ -55,10 +63,20 @@ public class SubmitWordWarCheckpointCommandHandler(ILogger<SubmitWordWarCheckpoi
             throw new NotFoundException("The user is not participating in this word war.");
         }
 
-        if (request.WordsInRound <= wordWarParticipant.WordsInRound)
+        if (request.WordsInRound < wordWarParticipant.WordsInRound)
         {
-            logger.LogError("WordsInRound must be greater than the previous value.");
-            throw new BusinessRuleException("WordsInRound must be greater than the previous value.");
+            logger.LogError("WordsInRound cannot be lower than the previous value.");
+            throw new BusinessRuleException("WordsInRound cannot be lower than the previous value.");
+        }
+
+        if (request.WordsInRound == wordWarParticipant.WordsInRound)
+        {
+            logger.LogInformation(
+                "Checkpoint treated as idempotent (same value). WarId: {WarId}, UserId: {UserId}, WordsInRound: {WordsInRound}",
+                request.WarId,
+                request.UserId,
+                request.WordsInRound);
+            return true;
         }
 
         var response = await wordWarRepository.SubmitCheckpointAsync(
@@ -68,13 +86,42 @@ public class SubmitWordWarCheckpointCommandHandler(ILogger<SubmitWordWarCheckpoi
             now,
             cancellationToken);
 
-        if (response == 0)
+        if (response == 1)
         {
-            logger.LogError("Unable to persist checkpoint due to state conflict.");
-            throw new BusinessRuleException("Unable to persist checkpoint due to state conflict.");
+            logger.LogInformation(
+                "Checkpoint persisted. WarId: {WarId}, UserId: {UserId}, WordsInRound: {WordsInRound}",
+                request.WarId,
+                request.UserId,
+                request.WordsInRound);
+            return true;
         }
 
-        return true;
+        var participantAfterCheckpoint =
+            await wordWarParticipantReadRepository.GetParticipant(request.WarId, request.UserId, cancellationToken);
+        if (participantAfterCheckpoint is not null && participantAfterCheckpoint.WordsInRound >= request.WordsInRound)
+        {
+            logger.LogInformation(
+                "Checkpoint treated as idempotent after concurrent update. WarId: {WarId}, UserId: {UserId}, RequestedWords: {RequestedWords}, PersistedWords: {PersistedWords}",
+                request.WarId,
+                request.UserId,
+                request.WordsInRound,
+                participantAfterCheckpoint.WordsInRound);
+            return true;
+        }
+
+        var latestWordWar = await wordWarReadRepository.GetByIdAsync(request.WarId, cancellationToken);
+        if (latestWordWar is not null && latestWordWar.Status != WordWarStatus.Running)
+        {
+            logger.LogWarning(
+                "Checkpoint rejected because word war status changed concurrently. WarId: {WarId}, UserId: {UserId}, Status: {Status}",
+                request.WarId,
+                request.UserId,
+                latestWordWar.Status);
+            throw new BusinessRuleException("It's only possible to create a checkpoint when the word war is running.");
+        }
+
+        logger.LogError("Unable to persist checkpoint due to state conflict.");
+        throw new BusinessRuleException("Unable to persist checkpoint due to state conflict.");
 
     }
 }

@@ -58,7 +58,7 @@ public class CreateWordWarCommandHandler(ILogger<CreateWordWarCommandHandler> lo
         var startsAtUtc = now;
         var endsAtUtc = startsAtUtc.AddMinutes(request.DurationMinutes);
 
-        return await wordWarRepository.CreateAsync(
+        var warId = await wordWarRepository.CreateAsync(
             request.EventId,
             request.RequestedByUserId,
             request.DurationMinutes,
@@ -66,5 +66,14 @@ public class CreateWordWarCommandHandler(ILogger<CreateWordWarCommandHandler> lo
             endsAtUtc,
             WordWarStatus.Waiting,
             cancellationToken);
+
+        logger.LogInformation(
+            "Word war created in Waiting status. WarId: {WarId}, EventId: {EventId}, RequestedByUserId: {RequestedByUserId}, DurationMinutes: {DurationMinutes}",
+            warId,
+            request.EventId,
+            request.RequestedByUserId,
+            request.DurationMinutes);
+
+        return warId;
     }
 }
