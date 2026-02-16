@@ -7,7 +7,7 @@ namespace PlanWriter.Domain.Interfaces.Repositories.WordWars;
 
 public interface IWordWarRepository
 {
-    Task<int> CreateAsync(
+    Task<Guid> CreateAsync(
         Guid eventId,
         Guid createdByUserId,
         int durationMinutes,
@@ -28,4 +28,8 @@ public interface IWordWarRepository
         int wordsInRound,
         DateTime checkpointAtUtc,
         CancellationToken ct = default);
+    
+    // /Users/alessandrosilveira/Documents/Repos/PlanWriter/PlanWriter.Domain/Interfaces/Repositories/WordWars/IWordWarRepository.cs
+    Task<int> PersistFinalRankAsync(Guid warId, CancellationToken ct = default);
+
 }

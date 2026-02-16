@@ -33,9 +33,9 @@ public class WordWarRepositoryTests
         var endsAt = startsAt.AddMinutes(15);
         using var cts = new CancellationTokenSource();
 
-        var affected = await sut.CreateAsync(eventId, userId, 15, startsAt, endsAt, WordWarStatus.Waiting, cts.Token);
+        var createdId = await sut.CreateAsync(eventId, userId, 15, startsAt, endsAt, WordWarStatus.Waiting, cts.Token);
 
-        affected.Should().Be(1);
+        createdId.Should().NotBe(Guid.Empty);
         capturedSql.Should().Contain("INSERT INTO EventWordWars");
         capturedParam.Should().NotBeNull();
         capturedParam!.GetProp<Guid>("EventId").Should().Be(eventId);
