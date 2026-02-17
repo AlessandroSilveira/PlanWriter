@@ -100,12 +100,109 @@ BEGIN
     ALTER TABLE dbo.Events
         ADD AllowedValidationSources NVARCHAR(100) NULL;
 
-    UPDATE dbo.Events
-    SET AllowedValidationSources = N'current,paste,manual'
-    WHERE AllowedValidationSources IS NULL;
+    EXEC(N'
+        UPDATE dbo.Events
+        SET AllowedValidationSources = N''current,paste,manual''
+        WHERE AllowedValidationSources IS NULL;
+    ');
 
-    ALTER TABLE dbo.Events
-        ALTER COLUMN AllowedValidationSources NVARCHAR(100) NOT NULL;
+    EXEC(N'
+        ALTER TABLE dbo.Events
+            ALTER COLUMN AllowedValidationSources NVARCHAR(100) NOT NULL;
+    ');
+END
+GO
+
+IF OBJECT_ID(N'dbo.EventWordWars', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.EventWordWars
+    (
+        Id UNIQUEIDENTIFIER NOT NULL,
+        EventId UNIQUEIDENTIFIER NOT NULL,
+        CreatedByUserId UNIQUEIDENTIFIER NOT NULL,
+        Status NVARCHAR(20) NOT NULL,
+        DurationInMinutes INT NOT NULL,
+        StartsAtUtc DATETIME2 NOT NULL,
+        EndsAtUtc DATETIME2 NOT NULL,
+        CreatedAtUtc DATETIME2 NOT NULL
+            CONSTRAINT DF_EventWordWars_CreatedAtUtc DEFAULT (SYSUTCDATETIME()),
+        FinishedAtUtc DATETIME2 NULL,
+        CONSTRAINT PK_EventWordWars PRIMARY KEY (Id),
+        CONSTRAINT FK_EventWordWars_Events_EventId FOREIGN KEY (EventId)
+            REFERENCES dbo.Events (Id)
+            ON DELETE CASCADE,
+        CONSTRAINT FK_EventWordWars_Users_CreatedByUserId FOREIGN KEY (CreatedByUserId)
+            REFERENCES dbo.Users (Id)
+            ON DELETE NO ACTION,
+        CONSTRAINT CK_EventWordWars_Status
+            CHECK (Status IN (N'Waiting', N'Running', N'Finished'))
+    );
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_EventWordWars_EventId_Status_CreatedAtUtc'
+      AND object_id = OBJECT_ID(N'dbo.EventWordWars')
+)
+BEGIN
+    CREATE INDEX IX_EventWordWars_EventId_Status_CreatedAtUtc
+        ON dbo.EventWordWars (EventId, Status, CreatedAtUtc DESC);
+END
+GO
+
+IF OBJECT_ID(N'dbo.EventWordWarParticipants', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.EventWordWarParticipants
+    (
+        Id UNIQUEIDENTIFIER NOT NULL,
+        WordWarId UNIQUEIDENTIFIER NOT NULL,
+        UserId UNIQUEIDENTIFIER NOT NULL,
+        ProjectId UNIQUEIDENTIFIER NOT NULL,
+        JoinedAtUtc DATETIME2 NOT NULL
+            CONSTRAINT DF_EventWordWarParticipants_JoinedAtUtc DEFAULT (SYSUTCDATETIME()),
+        WordsInRound INT NOT NULL
+            CONSTRAINT DF_EventWordWarParticipants_WordsInRound DEFAULT (0),
+        LastCheckpointAtUtc DATETIME2 NULL,
+        FinalRank INT NULL,
+        CONSTRAINT PK_EventWordWarParticipants PRIMARY KEY (Id),
+        CONSTRAINT FK_EventWordWarParticipants_EventWordWars_WordWarId FOREIGN KEY (WordWarId)
+            REFERENCES dbo.EventWordWars (Id)
+            ON DELETE CASCADE,
+        CONSTRAINT FK_EventWordWarParticipants_Users_UserId FOREIGN KEY (UserId)
+            REFERENCES dbo.Users (Id)
+            ON DELETE NO ACTION,
+        CONSTRAINT FK_EventWordWarParticipants_Projects_ProjectId FOREIGN KEY (ProjectId)
+            REFERENCES dbo.Projects (Id)
+            ON DELETE NO ACTION,
+        CONSTRAINT CK_EventWordWarParticipants_WordsInRound_NonNegative
+            CHECK (WordsInRound >= 0)
+    );
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_EventWordWarParticipants_WordWarId_UserId'
+      AND object_id = OBJECT_ID(N'dbo.EventWordWarParticipants')
+)
+BEGIN
+    CREATE UNIQUE INDEX UX_EventWordWarParticipants_WordWarId_UserId
+        ON dbo.EventWordWarParticipants (WordWarId, UserId);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_EventWordWarParticipants_WordWarId_WordsInRound'
+      AND object_id = OBJECT_ID(N'dbo.EventWordWarParticipants')
+)
+BEGIN
+    CREATE INDEX IX_EventWordWarParticipants_WordWarId_WordsInRound
+        ON dbo.EventWordWarParticipants (WordWarId, WordsInRound DESC, LastCheckpointAtUtc ASC, JoinedAtUtc ASC);
 END
 GO
 

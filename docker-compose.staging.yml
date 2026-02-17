@@ -40,8 +40,10 @@ services:
       - /bin/bash
       - -c
       - >-
-        /opt/mssql-tools18/bin/sqlcmd -b -C -S sqlserver -U sa -P "$${MSSQL_SA_PASSWORD}" -i /docker-init/001-init.sql
-        || /opt/mssql-tools/bin/sqlcmd -b -S sqlserver -U sa -P "$${MSSQL_SA_PASSWORD}" -i /docker-init/001-init.sql
+        SQLCMD_BIN="/opt/mssql-tools18/bin/sqlcmd";
+        if [ ! -x "$${SQLCMD_BIN}" ]; then SQLCMD_BIN="/opt/mssql-tools/bin/sqlcmd"; fi;
+        if [ ! -x "$${SQLCMD_BIN}" ]; then echo "sqlcmd not found"; exit 127; fi;
+        "$${SQLCMD_BIN}" -b -C -S sqlserver -U sa -P "$${MSSQL_SA_PASSWORD}" -i /docker-init/001-init.sql
     restart: "no"
     networks:
       - stg_internal
