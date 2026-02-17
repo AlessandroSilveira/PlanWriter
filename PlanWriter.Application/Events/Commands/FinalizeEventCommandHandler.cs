@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,8 @@ public class FinalizeEventCommandHandler(
     ILogger<FinalizeEventCommandHandler> logger,IProjectEventsReadRepository projectEventsReadRepository)
     : IRequestHandler<FinalizeEventCommand, ProjectEvent>
 {
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+
     public async Task<ProjectEvent> Handle(FinalizeEventCommand request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Finalizing event participation for ProjectEvent {ProjectEventId}", request.Req.ProjectEventId);
@@ -95,7 +98,7 @@ public class FinalizeEventCommandHandler(
                 ? $"🏆 Winner — {eventEntity.Name}"
                 : $"🎉 Participant — {eventEntity.Name}",
             Description = isWinner
-                ? $"Você atingiu a meta de {targetWords:N0} palavras no {eventEntity.Name}!"
+                ? $"Você atingiu a meta de {targetWords.ToString("N0", PtBr)} palavras no {eventEntity.Name}!"
                 : $"Obrigado por participar do {eventEntity.Name}. Continue escrevendo!",
             Icon = isWinner ? "🏆" : "🎉",
             AwardedAt = DateTime.UtcNow
