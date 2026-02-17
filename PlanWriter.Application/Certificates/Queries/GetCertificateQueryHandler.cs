@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using PlanWriter.Application.Common.Exceptions;
+using PlanWriter.Application.Common.WinnerEligibility;
 using PlanWriter.Application.Certificates.Dtos.Queries;
 using PlanWriter.Domain.Interfaces.ReadModels.Certificates;
 using QuestPDF.Fluent;
@@ -11,7 +13,10 @@ using QuestPDF.Infrastructure;
 
 namespace PlanWriter.Application.Certificates.Queries;
 
-public class GetCertificateQueryHandler(ICertificateReadRepository readRepository, ILogger<GetCertificateQueryHandler> logger)
+public class GetCertificateQueryHandler(
+    ICertificateReadRepository readRepository,
+    IWinnerEligibilityService winnerEligibilityService,
+    ILogger<GetCertificateQueryHandler> logger)
     : IRequestHandler<GetCertificateQuery, byte[]>
 {
     public async Task<byte[]> Handle(GetCertificateQuery request, CancellationToken ct)
@@ -21,10 +26,14 @@ public class GetCertificateQueryHandler(ICertificateReadRepository readRepositor
         var row = await readRepository.GetWinnerRowAsync(request.ProjectId, request.EventId, request.UserId, ct);
 
         if (row is null)
-            throw new InvalidOperationException("Project/Event not found for this user.");
+            throw new NotFoundException("Projeto e evento não encontrados para este usuário.");
 
-        if (row.ValidatedAtUtc is null || !row.Won)
-            throw new InvalidOperationException("Certificate is available only for validated winners.");
+        var eligibility = winnerEligibilityService.EvaluateForCertificate(
+            row.ValidatedAtUtc is not null,
+            row.Won);
+
+        if (!eligibility.IsEligible)
+            throw new BusinessRuleException(eligibility.Message);
 
         var pdf = GenerateWinnerCertificate(request.UserName, row.ProjectTitle, row.EventName, row.FinalWordCount);
 
