@@ -19,7 +19,9 @@ public sealed class ProjectEventsRepository(IDbExecutor db) : IProjectEventsRepo
                 TargetWords,
                 Won,
                 ValidatedAtUtc,
-                FinalWordCount
+                FinalWordCount,
+                ValidatedWords,
+                ValidationSource
             FROM ProjectEvents
             WHERE ProjectId = @ProjectId
               AND EventId   = @EventId;
@@ -43,7 +45,9 @@ public sealed class ProjectEventsRepository(IDbExecutor db) : IProjectEventsRepo
                 TargetWords,
                 Won,
                 ValidatedAtUtc,
-                FinalWordCount
+                FinalWordCount,
+                ValidatedWords,
+                ValidationSource
             )
             VALUES
             (
@@ -53,7 +57,9 @@ public sealed class ProjectEventsRepository(IDbExecutor db) : IProjectEventsRepo
                 @TargetWords,
                 @Won,
                 @ValidatedAtUtc,
-                @FinalWordCount
+                @FinalWordCount,
+                @ValidatedWords,
+                @ValidationSource
             );
         ";
 
@@ -71,7 +77,9 @@ public sealed class ProjectEventsRepository(IDbExecutor db) : IProjectEventsRepo
                 entity.TargetWords,
                 entity.Won,
                 entity.ValidatedAtUtc,
-                entity.FinalWordCount
+                entity.FinalWordCount,
+                entity.ValidatedWords,
+                entity.ValidationSource
             },
             ct: ct
         );
@@ -108,7 +116,9 @@ public sealed class ProjectEventsRepository(IDbExecutor db) : IProjectEventsRepo
             TargetWords     = @TargetWords,
             Won             = @Won,
             ValidatedAtUtc  = @ValidatedAtUtc,
-            FinalWordCount  = @FinalWordCount
+            FinalWordCount  = @FinalWordCount,
+            ValidatedWords  = @ValidatedWords,
+            ValidationSource = @ValidationSource
         WHERE Id = @Id;
     ";
 
@@ -120,7 +130,9 @@ public sealed class ProjectEventsRepository(IDbExecutor db) : IProjectEventsRepo
                 entity.TargetWords,
                 entity.Won,
                 entity.ValidatedAtUtc,
-                entity.FinalWordCount
+                entity.FinalWordCount,
+                entity.ValidatedWords,
+                entity.ValidationSource
             },
             ct: ct
         );

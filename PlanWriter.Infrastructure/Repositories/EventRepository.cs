@@ -19,7 +19,10 @@ public class EventRepository(IDbExecutor db) : IEventRepository
         DateTime StartsAtUtc,
         DateTime EndsAtUtc,
         int? DefaultTargetWords,
-        bool IsActive);
+        bool IsActive,
+        DateTime? ValidationWindowStartsAtUtc,
+        DateTime? ValidationWindowEndsAtUtc,
+        string? AllowedValidationSources);
 
     public async Task<List<EventDto>> GetActiveEvents()
     {
@@ -33,7 +36,10 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
-                IsActive
+                IsActive,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources
             FROM Events
             WHERE IsActive = 1
               AND StartsAtUtc <= @Now
@@ -68,6 +74,9 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources,
                 IsActive
             )
             VALUES
@@ -79,6 +88,9 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 @StartsAtUtc,
                 @EndsAtUtc,
                 @DefaultTargetWords,
+                @ValidationWindowStartsAtUtc,
+                @ValidationWindowEndsAtUtc,
+                @AllowedValidationSources,
                 @IsActive
             );
         ";
@@ -95,6 +107,9 @@ public class EventRepository(IDbExecutor db) : IEventRepository
             ev.StartsAtUtc,
             ev.EndsAtUtc,
             ev.DefaultTargetWords,
+            ev.ValidationWindowStartsAtUtc,
+            ev.ValidationWindowEndsAtUtc,
+            ev.AllowedValidationSources,
             ev.IsActive
         });
     }
@@ -110,6 +125,9 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources,
                 IsActive
             FROM Events
             WHERE Id = @Id;
@@ -129,7 +147,10 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
-                IsActive
+                IsActive,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources
             FROM Events;
         ";
 
@@ -148,6 +169,9 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 StartsAtUtc = @StartsAtUtc,
                 EndsAtUtc = @EndsAtUtc,
                 DefaultTargetWords = @DefaultTargetWords,
+                ValidationWindowStartsAtUtc = @ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc = @ValidationWindowEndsAtUtc,
+                AllowedValidationSources = @AllowedValidationSources,
                 IsActive = @IsActive
             WHERE Id = @Id;
         ";
@@ -161,6 +185,9 @@ public class EventRepository(IDbExecutor db) : IEventRepository
             ev.StartsAtUtc,
             ev.EndsAtUtc,
             ev.DefaultTargetWords,
+            ev.ValidationWindowStartsAtUtc,
+            ev.ValidationWindowEndsAtUtc,
+            ev.AllowedValidationSources,
             ev.IsActive
         });
     }
@@ -255,5 +282,6 @@ public class EventRepository(IDbExecutor db) : IEventRepository
 
     private static EventDto ToDto(EventRow row)
         => new(row.Id, row.Name, row.Slug, ((EventType)row.Type).ToString(),
-            row.StartsAtUtc, row.EndsAtUtc, row.DefaultTargetWords, row.IsActive);
+            row.StartsAtUtc, row.EndsAtUtc, row.DefaultTargetWords, row.IsActive,
+            row.ValidationWindowStartsAtUtc, row.ValidationWindowEndsAtUtc, row.AllowedValidationSources);
 }

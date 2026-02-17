@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -64,8 +65,11 @@ builder.Services
         opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         opt.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
         opt.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
-    })
-    .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<RegisterUserDtoValidator>());
+    });
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
@@ -130,6 +134,7 @@ builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository
 builder.Services.AddScoped<IBadgeRepository, BadgeRepository>(); 
 builder.Services.AddScoped<IBadgeReadRepository, BadgeReadRepository>();
 builder.Services.AddScoped<IProjectEventsRepository, ProjectEventsRepository>();
+builder.Services.AddScoped<IEventValidationAuditRepository, EventValidationAuditRepository>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IAdminEventRepository, AdminEventRepository>();
 builder.Services.AddScoped<IUserFollowRepository, UserFollowRepository>();

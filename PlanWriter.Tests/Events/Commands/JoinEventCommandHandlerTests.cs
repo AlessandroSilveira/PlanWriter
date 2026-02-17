@@ -73,6 +73,61 @@ public class JoinEventCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldFallbackToEventDefaultTarget_WhenRequestTargetIsNull()
+    {
+        var eventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateEventDto(eventId, 42000));
+
+        _projectReadRepositoryMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectDto { Id = projectId });
+
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProjectEvent?)null);
+
+        var handler = CreateHandler();
+        var command = CreateCommand(projectId, eventId, null);
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        result.TargetWords.Should().Be(42000);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFallbackToGlobalDefaultTarget_WhenRequestAndEventDefaultAreNull()
+    {
+        var eventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateEventDto(eventId, null));
+
+        _projectReadRepositoryMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectDto { Id = projectId });
+
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProjectEvent?)null);
+
+        var handler = CreateHandler();
+        var command = CreateCommand(projectId, eventId, null);
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        result.TargetWords.Should().Be(50000);
+        _projectEventsRepositoryMock.Verify(
+            r => r.CreateAsync(It.Is<ProjectEvent>(x => x.TargetWords == 50000), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnExistingProjectEvent_WhenAlreadyJoined_WithoutUpdatingTarget()
     {
         // Arrange
@@ -160,6 +215,42 @@ public class JoinEventCommandHandlerTests
             r => r.UpdateTargetWordsAsync(existing.Id, 60000, It.IsAny<CancellationToken>()),
             Times.Once
         );
+    }
+
+    [Fact]
+    public async Task Handle_ShouldUpdateExistingTargetToFallback_WhenExistingAndRequestAreNull()
+    {
+        var eventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var existing = new ProjectEvent
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = projectId,
+            EventId = eventId,
+            TargetWords = null
+        };
+
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateEventDto(eventId, null));
+
+        _projectReadRepositoryMock
+            .Setup(r => r.GetProjectByIdAsync(projectId, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectDto { Id = projectId });
+
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var handler = CreateHandler();
+        var command = CreateCommand(projectId, eventId, null);
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        result.TargetWords.Should().Be(50000);
+        _projectEventsRepositoryMock.Verify(
+            r => r.UpdateTargetWordsAsync(existing.Id, 50000, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

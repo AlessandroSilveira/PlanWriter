@@ -39,7 +39,10 @@ public class AdminEventReadRepository(IDbExecutor db) : IAdminEventReadRepositor
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
-                IsActive
+                IsActive,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources
             FROM Events
             WHERE Id = @EventId;
         ";
@@ -62,7 +65,10 @@ public class AdminEventReadRepository(IDbExecutor db) : IAdminEventReadRepositor
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
-                IsActive
+                IsActive,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources
             FROM Events
             ORDER BY StartsAtUtc DESC;
         ";

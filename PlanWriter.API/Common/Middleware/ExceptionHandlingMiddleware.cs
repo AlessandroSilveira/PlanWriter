@@ -24,7 +24,7 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (BusinessRuleException ex)
+        catch (Exception ex) when (ex is BusinessRuleException)
         {
             await WriteProblemAsync(
                 context,
@@ -32,7 +32,7 @@ public class ExceptionHandlingMiddleware
                 ex.Message
             );
         }
-        catch (NotFoundException ex)
+        catch (Exception ex) when (ex is NotFoundException)
         {
             await WriteProblemAsync(
                 context,

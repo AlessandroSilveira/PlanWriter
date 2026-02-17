@@ -10,6 +10,8 @@ public sealed record ProjectEventWithEventRow(
     bool Won,
     DateTime? ValidatedAtUtc,
     int? FinalWordCount,
+    int? ValidatedWords,
+    string? ValidationSource,
 
     // Event
     string EventName,

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.AdminEvents.Dtos.Commands;
+using PlanWriter.Application.EventValidation;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
@@ -49,6 +50,9 @@ public class CreateAdminEventCommandHandler(IAdminEventRepository repository, IA
             StartsAtUtc = request.Event.StartDate,
             EndsAtUtc = request.Event.EndDate,
             DefaultTargetWords = request.Event.DefaultTargetWords,
+            ValidationWindowStartsAtUtc = request.Event.ValidationWindowStartsAtUtc,
+            ValidationWindowEndsAtUtc = request.Event.ValidationWindowEndsAtUtc,
+            AllowedValidationSources = ValidationPolicyHelper.NormalizeAllowedSources(request.Event.AllowedValidationSources),
             IsActive = true
         };
     }
@@ -80,8 +84,10 @@ public class CreateAdminEventCommandHandler(IAdminEventRepository repository, IA
             ev.StartsAtUtc,
             ev.EndsAtUtc,
             ev.DefaultTargetWords,
-            ev.IsActive
+            ev.IsActive,
+            ev.ValidationWindowStartsAtUtc,
+            ev.ValidationWindowEndsAtUtc,
+            ev.AllowedValidationSources
         );
     }
 }
-

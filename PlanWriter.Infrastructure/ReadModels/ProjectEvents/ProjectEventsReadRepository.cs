@@ -28,6 +28,8 @@ public sealed class ProjectEventsReadRepository(IDbExecutor db) : IProjectEvents
                 pe.Won,
                 pe.ValidatedAtUtc,
                 pe.FinalWordCount,
+                pe.ValidatedWords,
+                pe.ValidationSource,
 
                 e.Name              AS EventName,
                 e.Slug              AS EventSlug,
@@ -62,6 +64,8 @@ public sealed class ProjectEventsReadRepository(IDbExecutor db) : IProjectEvents
                 pe.Won,
                 pe.ValidatedAtUtc,
                 pe.FinalWordCount,
+                pe.ValidatedWords,
+                pe.ValidationSource,
 
                 e.Name              AS EventName,
                 e.Slug              AS EventSlug,
@@ -99,6 +103,8 @@ public sealed class ProjectEventsReadRepository(IDbExecutor db) : IProjectEvents
                 pe.Won,
                 pe.ValidatedAtUtc,
                 pe.FinalWordCount,
+                pe.ValidatedWords,
+                pe.ValidationSource,
 
                 e.Name              AS EventName,
                 e.Slug              AS EventSlug,
@@ -132,6 +138,8 @@ public sealed class ProjectEventsReadRepository(IDbExecutor db) : IProjectEvents
                 pe.Won,
                 pe.ValidatedAtUtc,
                 pe.FinalWordCount,
+                pe.ValidatedWords,
+                pe.ValidationSource,
 
                 e.Name              AS EventName,
                 e.Slug              AS EventSlug,
@@ -168,6 +176,8 @@ public sealed class ProjectEventsReadRepository(IDbExecutor db) : IProjectEvents
             Won = row.Won,
             ValidatedAtUtc = row.ValidatedAtUtc,
             FinalWordCount = row.FinalWordCount,
+            ValidatedWords = row.ValidatedWords,
+            ValidationSource = row.ValidationSource,
 
             Event = new Event
             {

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.AdminEvents.Dtos.Commands;
+using PlanWriter.Application.EventValidation;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Domain.Interfaces.Repositories.Events.Admin;
@@ -33,7 +34,10 @@ public class UpdateAdminEventCommandHandler(IAdminEventReadRepository adminEvent
                 StartsAtUtc = request.Request.StartDate,
                 EndsAtUtc = request.Request.EndDate,
                 DefaultTargetWords = request.Request.TargetWords,
-                IsActive = request.Request.IsActive
+                IsActive = request.Request.IsActive,
+                ValidationWindowStartsAtUtc = request.Request.ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc = request.Request.ValidationWindowEndsAtUtc,
+                AllowedValidationSources = ValidationPolicyHelper.NormalizeAllowedSources(request.Request.AllowedValidationSources)
             };
 
             await adminEventRepository.UpdateAsync(request.Id, updatedEvent, cancellationToken);

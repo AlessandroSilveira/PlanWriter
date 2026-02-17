@@ -180,6 +180,115 @@ public class FinalizeEventCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldUseEventDefaultTarget_WhenProjectTargetIsNull()
+    {
+        var projectEventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+
+        var ev = new Event
+        {
+            Id = eventId,
+            Name = "Evento Teste",
+            StartsAtUtc = DateTime.UtcNow.AddDays(-10),
+            EndsAtUtc = DateTime.UtcNow,
+            DefaultTargetWords = 30000
+        };
+
+        var projectEvent = new ProjectEvent
+        {
+            Id = projectEventId,
+            ProjectId = projectId,
+            EventId = eventId,
+            TargetWords = null,
+            Event = ev
+        };
+
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(projectEvent);
+
+        _projectProgressRepoMock
+            .Setup(r => r.GetByProjectAndDateRangeAsync(
+                projectId,
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new ProjectProgress { ProjectId = projectId, WordsWritten = 30000 }
+            });
+
+        _badgeRepoMock
+            .Setup(r => r.SaveAsync(It.IsAny<List<Badge>>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new FinalizeEventCommand(new FinalizeRequest(projectEventId)), CancellationToken.None);
+
+        result.Won.Should().BeTrue();
+        result.FinalWordCount.Should().Be(30000);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFallbackToGlobalDefaultTarget_WhenProjectAndEventTargetsAreNull()
+    {
+        var projectEventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+
+        var ev = new Event
+        {
+            Id = eventId,
+            Name = "Evento Teste",
+            StartsAtUtc = DateTime.UtcNow.AddDays(-20),
+            EndsAtUtc = DateTime.UtcNow,
+            DefaultTargetWords = null
+        };
+
+        var projectEvent = new ProjectEvent
+        {
+            Id = projectEventId,
+            ProjectId = projectId,
+            EventId = eventId,
+            TargetWords = null,
+            Event = ev
+        };
+
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(projectEvent);
+
+        _projectProgressRepoMock
+            .Setup(r => r.GetByProjectAndDateRangeAsync(
+                projectId,
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new ProjectProgress { ProjectId = projectId, WordsWritten = 50000 }
+            });
+
+        _badgeRepoMock
+            .Setup(r => r.SaveAsync(It.IsAny<List<Badge>>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new FinalizeEventCommand(new FinalizeRequest(projectEventId)), CancellationToken.None);
+
+        result.Won.Should().BeTrue();
+        result.FinalWordCount.Should().Be(50000);
+
+        _badgeRepoMock.Verify(
+            r => r.SaveAsync(It.Is<List<Badge>>(b =>
+                b.Count == 1 &&
+                b[0].Icon == "🏆" &&
+                b[0].Description.Contains("50.000"))),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_ShouldThrow_WhenProjectEventDoesNotExist()
     {
         // Arrange

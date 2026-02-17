@@ -13,8 +13,12 @@ public class CertificatesController(IMediator mediator, IUserService userService
     [HttpGet("{eventId:guid}/projects/{projectId:guid}/certificate")]
     public async Task<IActionResult> GetCertificate(Guid eventId, Guid projectId)
     {
-        var userName = User?.Identity?.Name ?? "Autor(a)";
-        var userId = userService.GetUserId(User);
+        var user = User;
+        if (user?.Identity?.IsAuthenticated != true)
+            return Unauthorized();
+
+        var userName = user.Identity?.Name ?? "Autor(a)";
+        var userId = userService.GetUserId(user);
         
         var pdf =  await mediator.Send(new GetCertificateQuery(eventId, projectId, userName, userId));
         

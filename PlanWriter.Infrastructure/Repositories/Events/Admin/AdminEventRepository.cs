@@ -22,6 +22,9 @@ public class AdminEventRepository(IDbExecutor db) : IAdminEventRepository
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources,
                 IsActive
             )
             VALUES
@@ -33,6 +36,9 @@ public class AdminEventRepository(IDbExecutor db) : IAdminEventRepository
                 @StartsAtUtc,
                 @EndsAtUtc,
                 @DefaultTargetWords,
+                @ValidationWindowStartsAtUtc,
+                @ValidationWindowEndsAtUtc,
+                @AllowedValidationSources,
                 @IsActive
             );
         ";
@@ -48,6 +54,9 @@ public class AdminEventRepository(IDbExecutor db) : IAdminEventRepository
                 entity.StartsAtUtc,
                 entity.EndsAtUtc,
                 entity.DefaultTargetWords,
+                entity.ValidationWindowStartsAtUtc,
+                entity.ValidationWindowEndsAtUtc,
+                entity.AllowedValidationSources,
                 entity.IsActive
             },
             ct
@@ -67,9 +76,17 @@ public class AdminEventRepository(IDbExecutor db) : IAdminEventRepository
             Type = @Type,
             StartsAtUtc = @StartsAtUtc,
             EndsAtUtc = @EndsAtUtc,
-            DefaultTargetWords = @DefaultTargetWords
+            DefaultTargetWords = @DefaultTargetWords,
+            ValidationWindowStartsAtUtc = @ValidationWindowStartsAtUtc,
+            ValidationWindowEndsAtUtc = @ValidationWindowEndsAtUtc,
+            AllowedValidationSources = @AllowedValidationSources,
+            IsActive = @IsActive
         WHERE Id = @EventId;
     ";
+
+        var typeValue = Enum.TryParse<EventType>(entity.Type, true, out var parsedType)
+            ? (int)parsedType
+            : (int)EventType.Nanowrimo;
 
         var affected = await db.ExecuteAsync(
             sql,
@@ -78,10 +95,14 @@ public class AdminEventRepository(IDbExecutor db) : IAdminEventRepository
                 EventId = eventId,
                 entity.Name,
                 entity.Slug,
-                Type = entity.Type,
+                Type = typeValue,
                 entity.StartsAtUtc,
                 entity.EndsAtUtc,
-                entity.DefaultTargetWords
+                entity.DefaultTargetWords,
+                entity.ValidationWindowStartsAtUtc,
+                entity.ValidationWindowEndsAtUtc,
+                entity.AllowedValidationSources,
+                entity.IsActive
             },
             ct
         );
