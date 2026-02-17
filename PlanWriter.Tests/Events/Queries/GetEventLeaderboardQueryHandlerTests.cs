@@ -68,6 +68,48 @@ public class GetEventLeaderboardQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldUseEventDefaultTarget_WhenProjectTargetIsZero()
+    {
+        var eventId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        var ev = new Event
+        {
+            Id = eventId,
+            StartsAtUtc = now.AddDays(-5),
+            EndsAtUtc = now.AddDays(5),
+            DefaultTargetWords = 2000
+        };
+
+        var leaderboardRows = new List<EventLeaderboardRowDto>
+        {
+            new() { ProjectTitle = "A", Words = 1000, TargetWords = 0, EventDefaultTargetWords = 2000 }
+        };
+
+        _eventRepositoryMock
+            .Setup(r => r.GetEventById(eventId))
+            .ReturnsAsync(ev);
+
+        _eventRepositoryMock
+            .Setup(r => r.GetLeaderboard(
+                ev,
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                10))
+            .ReturnsAsync(leaderboardRows);
+
+        var handler = CreateHandler();
+        var query = new GetEventLeaderboardQuery(eventId, "all", 10);
+
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        result.Should().HaveCount(1);
+        result[0].Percent.Should().Be(50);
+        result[0].Won.Should().BeFalse();
+        result[0].TargetWords.Should().Be(2000);
+    }
+
+    [Fact]
     public async Task Handle_ShouldReturnEmptyList_ForDailyScopeOutsideEvent()
     {
         // Arrange

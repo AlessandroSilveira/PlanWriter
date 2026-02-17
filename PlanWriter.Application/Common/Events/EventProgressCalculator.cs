@@ -6,9 +6,9 @@ public sealed class EventProgressCalculator : IEventProgressCalculator
 {
     private const int DefaultTargetWords = 50000;
 
-    public EventProgressMetrics Calculate(int? targetWords, int? totalWrittenInEvent)
+    public EventProgressMetrics Calculate(int? projectTargetWords, int? eventDefaultTargetWords, int? totalWrittenInEvent)
     {
-        var resolvedTarget = ResolveTarget(targetWords);
+        var resolvedTarget = ResolveTarget(projectTargetWords, eventDefaultTargetWords);
         var normalizedTotal = Math.Max(0, totalWrittenInEvent.GetValueOrDefault());
 
         var percent = (int)Math.Round(
@@ -29,9 +29,16 @@ public sealed class EventProgressCalculator : IEventProgressCalculator
     public DateTime ResolveWindowEndExclusive(DateTime endsAtUtc)
         => endsAtUtc.Date.AddDays(1);
 
-    private static int ResolveTarget(int? targetWords)
+    private static int ResolveTarget(int? projectTargetWords, int? eventDefaultTargetWords)
     {
-        var target = targetWords.GetValueOrDefault();
-        return target > 0 ? target : DefaultTargetWords;
+        var projectTarget = projectTargetWords.GetValueOrDefault();
+        if (projectTarget > 0)
+            return projectTarget;
+
+        var eventDefaultTarget = eventDefaultTargetWords.GetValueOrDefault();
+        if (eventDefaultTarget > 0)
+            return eventDefaultTarget;
+
+        return DefaultTargetWords;
     }
 }

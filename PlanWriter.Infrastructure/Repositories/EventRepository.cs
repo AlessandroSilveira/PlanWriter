@@ -214,14 +214,15 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                     SUM(
                         CASE
                             WHEN pp.CreatedAt >= e.StartsAtUtc
-                                 AND pp.CreatedAt < DATEADD(day, 1, e.EndsAtUtc)
+                                 AND pp.CreatedAt < DATEADD(day, 1, CAST(e.EndsAtUtc AS date))
                             THEN pp.WordsWritten
                             ELSE 0
                         END
                     ),
                     0
                 ) AS TotalWrittenInEvent,
-                COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) AS TargetWords
+                pe.TargetWords AS TargetWords,
+                e.DefaultTargetWords AS EventDefaultTargetWords
             FROM ProjectEvents pe
             INNER JOIN Events e ON e.Id = pe.EventId
             INNER JOIN Projects p ON p.Id = pe.ProjectId
@@ -252,7 +253,8 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 p.Title AS ProjectTitle,
                 (u.FirstName + ' ' + u.LastName) AS UserName,
                 COALESCE(agg.Words, 0) AS Words,
-                COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) AS TargetWords
+                pe.TargetWords AS TargetWords,
+                e.DefaultTargetWords AS EventDefaultTargetWords
             FROM ProjectEvents pe
             INNER JOIN Projects p ON p.Id = pe.ProjectId
             INNER JOIN Users u ON u.Id = p.UserId

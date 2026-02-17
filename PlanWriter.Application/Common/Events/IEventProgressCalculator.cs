@@ -4,6 +4,6 @@ namespace PlanWriter.Application.Common.Events;
 
 public interface IEventProgressCalculator
 {
-    EventProgressMetrics Calculate(int? targetWords, int? totalWrittenInEvent);
+    EventProgressMetrics Calculate(int? projectTargetWords, int? eventDefaultTargetWords, int? totalWrittenInEvent);
     DateTime ResolveWindowEndExclusive(DateTime endsAtUtc);
 }

@@ -48,7 +48,10 @@ public class GetEventLeaderboardQueryHandler(
     {
         foreach (var row in rows)
         {
-            var metrics = eventProgressCalculator.Calculate(row.TargetWords, row.Words);
+            var metrics = eventProgressCalculator.Calculate(
+                row.TargetWords,
+                row.EventDefaultTargetWords,
+                row.Words);
             row.Percent = metrics.Percent;
             row.Won = metrics.Won;
             row.TargetWords = metrics.TargetWords;
@@ -71,7 +74,7 @@ public class GetEventLeaderboardQueryHandler(
             return LeaderboardWindow.ForSingleDay(today);
         }
 
-        return LeaderboardWindow.ForRange(eventStartDate, effectiveEndDate);
+        return LeaderboardWindow.ForRange(eventEntity.StartsAtUtc, effectiveEndDate);
     }
 
     private static List<EventLeaderboardRowDto> ApplyRankingAndOrdering(IEnumerable<EventLeaderboardRowDto> rows, int top)
