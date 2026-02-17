@@ -1,16 +1,19 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Events.Queries;
 
-public class GetMyEventsQueryHandler(IEventRepository eventRepository, ILogger<GetMyEventsQueryHandler> logger)
+public class GetMyEventsQueryHandler(
+    IEventRepository eventRepository,
+    IEventProgressCalculator eventProgressCalculator,
+    ILogger<GetMyEventsQueryHandler> logger)
     : IRequestHandler<GetMyEventsQuery, List<MyEventDto>>
 {
     public async Task<List<MyEventDto>> Handle(GetMyEventsQuery request, CancellationToken cancellationToken)
@@ -21,7 +24,7 @@ public class GetMyEventsQueryHandler(IEventRepository eventRepository, ILogger<G
 
         logger.LogInformation("Found {Count} events for user {UserId}", eventsForUser.Count, request.UserId);
 
-        CalculateCompletionPercentage(eventsForUser);
+        ApplyCalculatedMetrics(eventsForUser);
 
         logger.LogInformation("Returning events with calculated completion percentage for user {UserId}", request.UserId);
 
@@ -30,21 +33,15 @@ public class GetMyEventsQueryHandler(IEventRepository eventRepository, ILogger<G
 
     /* ===================== PRIVATE METHODS ===================== */
 
-    private static void CalculateCompletionPercentage(IEnumerable<MyEventDto> events)
+    private void ApplyCalculatedMetrics(IEnumerable<MyEventDto> events)
     {
         foreach (var eventDto in events)
-            eventDto.Percent = CalculatePercent(eventDto.TotalWrittenInEvent, eventDto.TargetWords);
-    }
-
-    private static int CalculatePercent(int? totalWritten, int? targetWords)
-    {
-        if (!targetWords.HasValue || targetWords.Value <= 0)
-            return 0;
-
-        var total = Math.Max(0, totalWritten.GetValueOrDefault());
-
-        return (int)Math.Round(
-            (decimal)total / targetWords.Value * 100
-        );
+        {
+            var metrics = eventProgressCalculator.Calculate(eventDto.TargetWords, eventDto.TotalWrittenInEvent);
+            eventDto.TargetWords = metrics.TargetWords;
+            eventDto.TotalWrittenInEvent = metrics.TotalWords;
+            eventDto.Percent = metrics.Percent;
+            eventDto.Won = metrics.Won;
+        }
     }
 }

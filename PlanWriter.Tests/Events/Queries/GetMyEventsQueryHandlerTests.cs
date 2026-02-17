@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Application.Events.Queries;
 using PlanWriter.Domain.Dtos.Events;
@@ -13,6 +14,7 @@ public class GetMyEventsQueryHandlerTests
 {
     private readonly Mock<IEventRepository> _eventRepositoryMock = new();
     private readonly Mock<ILogger<GetMyEventsQueryHandler>> _loggerMock = new();
+    private readonly IEventProgressCalculator _eventProgressCalculator = new EventProgressCalculator();
 
     [Fact]
     public async Task Handle_ShouldReturnEventsWithCalculatedPercent_WhenEventsExist()
@@ -56,8 +58,11 @@ public class GetMyEventsQueryHandlerTests
         // Assert
         result.Should().HaveCount(3);
         result[0].Percent.Should().Be(50); // 25000 / 50000
-        result[1].Percent.Should().Be(0);  // targetWords = 0
-        result[2].Percent.Should().Be(0);  // targetWords / totalWritten null
+        result[1].Percent.Should().Be(2);  // targetWords=0 -> fallback 50000
+        result[2].Percent.Should().Be(0);  // targetWords/totalWritten null -> fallback 50000
+        result[0].Won.Should().BeFalse();
+        result[1].Won.Should().BeFalse();
+        result[2].Won.Should().BeFalse();
     }
 
     [Fact]
@@ -86,6 +91,9 @@ public class GetMyEventsQueryHandlerTests
 
     private GetMyEventsQueryHandler CreateHandler()
     {
-        return new GetMyEventsQueryHandler(_eventRepositoryMock.Object, _loggerMock.Object);
+        return new GetMyEventsQueryHandler(
+            _eventRepositoryMock.Object,
+            _eventProgressCalculator,
+            _loggerMock.Object);
     }
 }

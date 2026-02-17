@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using PlanWriter.API.Common.Middleware;
 using PlanWriter.API.Middleware;
 using PlanWriter.Application;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Common.WinnerEligibility;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Application.Services;
@@ -152,6 +153,7 @@ builder.Services.AddScoped<ICertificateReadRepository, CertificateReadRepository
 builder.Services.AddScoped<IDailyWordLogReadRepository, DailyWordLogReadRepository>();
 builder.Services.AddScoped<IProjectEventsReadRepository, ProjectEventsReadRepository>();
 builder.Services.AddScoped<IWinnerEligibilityService, WinnerEligibilityService>();
+builder.Services.AddScoped<IEventProgressCalculator, EventProgressCalculator>();
 
 builder.Services.AddScoped<IWordWarParticipantReadRepository, WordWarParticipantReadRepository>();
 builder.Services.AddScoped<IWordWarRepository, WordWarRepository>();
