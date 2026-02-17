@@ -40,7 +40,7 @@ public class JoinEventCommandHandler(
 
         if (existing is not null)
         {
-            await UpdateTargetWordsIfNeeded(existing, request, ct);
+            await UpdateTargetWordsIfNeeded(existing, request, ev, ct);
             return existing;
         }
         
@@ -51,12 +51,10 @@ public class JoinEventCommandHandler(
         return created;
     }
 
-    private async Task UpdateTargetWordsIfNeeded(ProjectEvent existing, JoinEventCommand request, CancellationToken ct)
+    private async Task UpdateTargetWordsIfNeeded(ProjectEvent existing, JoinEventCommand request, EventDto ev, CancellationToken ct)
     {
-        if (!request.Req.TargetWords.HasValue)
-            return;
-
-        if (existing.TargetWords == request.Req.TargetWords.Value)
+        var resolvedTargetWords = ResolveTargetWords(request.Req.TargetWords, existing.TargetWords, ev.DefaultTargetWords);
+        if (existing.TargetWords == resolvedTargetWords)
             return;
 
         logger.LogInformation(
@@ -64,12 +62,12 @@ public class JoinEventCommandHandler(
             existing.ProjectId,
             existing.EventId,
             existing.TargetWords,
-            request.Req.TargetWords.Value
+            resolvedTargetWords
         );
 
-        await projectEventsRepository.UpdateTargetWordsAsync(existing.Id, request.Req.TargetWords.Value, ct);
+        await projectEventsRepository.UpdateTargetWordsAsync(existing.Id, resolvedTargetWords, ct);
         
-        existing.TargetWords = request.Req.TargetWords.Value;
+        existing.TargetWords = resolvedTargetWords;
     }
 
     private async Task<ProjectEvent> CreateProjectEventAsync(JoinEventCommand request, EventDto ev, CancellationToken ct)
@@ -79,11 +77,17 @@ public class JoinEventCommandHandler(
             Id          = Guid.NewGuid(),
             ProjectId   = request.Req.ProjectId,
             EventId     = request.Req.EventId,
-            TargetWords = request.Req.TargetWords ?? ev.DefaultTargetWords
+            TargetWords = ResolveTargetWords(request.Req.TargetWords, null, ev.DefaultTargetWords)
         };
 
         await projectEventsRepository.CreateAsync(pe, ct);
 
         return pe;
     }
+
+    private static int ResolveTargetWords(int? requestTargetWords, int? existingTargetWords, int? eventDefaultTargetWords)
+        => requestTargetWords
+           ?? existingTargetWords
+           ?? eventDefaultTargetWords
+           ?? 50000;
 }
