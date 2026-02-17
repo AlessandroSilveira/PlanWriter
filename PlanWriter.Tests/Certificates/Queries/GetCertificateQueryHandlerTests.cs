@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PlanWriter.Application.Common.Exceptions;
+using PlanWriter.Application.Common.WinnerEligibility;
 using PlanWriter.Application.Certificates.Dtos.Queries;
 using PlanWriter.Application.Certificates.Queries;
 using PlanWriter.Domain.Dtos.Certificates;
@@ -12,6 +14,7 @@ namespace PlanWriter.Tests.Certificates.Queries;
 public class GetCertificateQueryHandlerTests
 {
     private readonly Mock<ICertificateReadRepository> _certificateReadRepository = new();
+    private readonly Mock<IWinnerEligibilityService> _winnerEligibilityService = new();
     private readonly Mock<ILogger<GetCertificateQueryHandler>> _logger = new();
 
     private readonly GetCertificateQueryHandler _handler;
@@ -20,6 +23,7 @@ public class GetCertificateQueryHandlerTests
     {
         _handler = new GetCertificateQueryHandler(
             _certificateReadRepository.Object,
+            _winnerEligibilityService.Object,
             _logger.Object
         );
     }
@@ -42,6 +46,9 @@ public class GetCertificateQueryHandlerTests
                 ValidatedAtUtc = DateTime.UtcNow,
                 FinalWordCount = 50000
             });
+        _winnerEligibilityService
+            .Setup(x => x.EvaluateForCertificate(true, true))
+            .Returns(new WinnerEligibilityResult(true, false, "eligible", "Certificado liberado."));
 
         // ✅ ORDEM CORRETA: (EventId, ProjectId, UserName, UserId)
         var query = new GetCertificateQuery(
@@ -66,7 +73,7 @@ public class GetCertificateQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenRowNotFound()
+    public async Task Handle_ShouldThrowNotFoundException_WhenRowNotFound()
     {
         // Arrange
         var projectId = Guid.NewGuid();
@@ -85,12 +92,12 @@ public class GetCertificateQueryHandlerTests
 
         // Assert
         await act.Should()
-            .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Project/Event not found for this user.");
+            .ThrowAsync<NotFoundException>()
+            .WithMessage("Projeto e evento não encontrados para este usuário.");
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenProjectEventIsNotValidated()
+    public async Task Handle_ShouldThrowBusinessRuleException_WhenProjectEventIsNotValidated()
     {
         // Arrange
         var projectId = Guid.NewGuid();
@@ -107,6 +114,10 @@ public class GetCertificateQueryHandlerTests
                 ValidatedAtUtc = null,
                 FinalWordCount = 123
             });
+        _winnerEligibilityService
+            .Setup(x => x.EvaluateForCertificate(false, true))
+            .Returns(new WinnerEligibilityResult(false, false, "not_eligible",
+                "O certificado é liberado apenas para participantes vencedores com validação final."));
 
         // ✅ ORDEM CORRETA
         var query = new GetCertificateQuery(eventId, projectId, "User", userId);
@@ -116,12 +127,12 @@ public class GetCertificateQueryHandlerTests
 
         // Assert
         await act.Should()
-            .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Certificate is available only for validated winners.");
+            .ThrowAsync<BusinessRuleException>()
+            .WithMessage("O certificado é liberado apenas para participantes vencedores com validação final.");
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenProjectEventIsNotWinner()
+    public async Task Handle_ShouldThrowBusinessRuleException_WhenProjectEventIsNotWinner()
     {
         // Arrange
         var projectId = Guid.NewGuid();
@@ -138,6 +149,10 @@ public class GetCertificateQueryHandlerTests
                 ValidatedAtUtc = DateTime.UtcNow,
                 FinalWordCount = 999
             });
+        _winnerEligibilityService
+            .Setup(x => x.EvaluateForCertificate(true, false))
+            .Returns(new WinnerEligibilityResult(false, false, "not_eligible",
+                "O certificado é liberado apenas para participantes vencedores com validação final."));
 
         // ✅ ORDEM CORRETA
         var query = new GetCertificateQuery(eventId, projectId, "User", userId);
@@ -147,8 +162,8 @@ public class GetCertificateQueryHandlerTests
 
         // Assert
         await act.Should()
-            .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Certificate is available only for validated winners.");
+            .ThrowAsync<BusinessRuleException>()
+            .WithMessage("O certificado é liberado apenas para participantes vencedores com validação final.");
     }
 
     [Fact]
@@ -169,6 +184,9 @@ public class GetCertificateQueryHandlerTests
                 ValidatedAtUtc = DateTime.UtcNow,
                 FinalWordCount = 12345
             });
+        _winnerEligibilityService
+            .Setup(x => x.EvaluateForCertificate(true, true))
+            .Returns(new WinnerEligibilityResult(true, false, "eligible", "Certificado liberado."));
 
         // ✅ ORDEM CORRETA
         var query = new GetCertificateQuery(eventId, projectId, "User", userId);
