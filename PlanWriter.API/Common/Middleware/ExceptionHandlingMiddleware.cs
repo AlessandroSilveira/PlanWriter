@@ -24,27 +24,27 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
+        catch (Exception ex) when (ex is BusinessRuleException)
+        {
+            await WriteProblemAsync(
+                context,
+                HttpStatusCode.BadRequest,
+                ex.Message
+            );
+        }
+        catch (Exception ex) when (ex is NotFoundException)
+        {
+            await WriteProblemAsync(
+                context,
+                HttpStatusCode.NotFound,
+                ex.Message
+            );
+        }
         catch (InvalidOperationException ex)
         {
             await WriteProblemAsync(
                 context,
                 HttpStatusCode.BadRequest,
-                ex.Message
-            );
-        }
-        catch (BusinessRuleException ex)
-        {
-            await WriteProblemAsync(
-                context,
-                HttpStatusCode.BadRequest,
-                ex.Message
-            );
-        }
-        catch (NotFoundException ex)
-        {
-            await WriteProblemAsync(
-                context,
-                HttpStatusCode.NotFound,
                 ex.Message
             );
         }
