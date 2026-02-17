@@ -5,13 +5,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.Repositories;
 
 namespace PlanWriter.Application.Events.Queries;
 
-public class GetEventLeaderboardQueryHandler(IEventRepository eventRepository, ILogger<GetEventLeaderboardQueryHandler> logger)
+public class GetEventLeaderboardQueryHandler(
+    IEventRepository eventRepository,
+    IEventProgressCalculator eventProgressCalculator,
+    ILogger<GetEventLeaderboardQueryHandler> logger)
     : IRequestHandler<GetEventLeaderboardQuery, List<EventLeaderboardRowDto>>
 {
     public async Task<List<EventLeaderboardRowDto>> Handle(GetEventLeaderboardQuery request, CancellationToken cancellationToken)
@@ -32,13 +36,24 @@ public class GetEventLeaderboardQueryHandler(IEventRepository eventRepository, I
         var rawLeaderboardRows = await eventRepository.GetLeaderboard(eventEntity, leaderboardWindow.Start,
             leaderboardWindow.End, request.Top);
 
+        ApplyProgressMetrics(rawLeaderboardRows);
         var rankedRows = ApplyRankingAndOrdering(rawLeaderboardRows, request.Top);
 
         logger.LogInformation("Returning {Count} leaderboard rows for event {EventId}", rankedRows.Count, request.EventId);
 
         return rankedRows;
     }
-    
+
+    private void ApplyProgressMetrics(IEnumerable<EventLeaderboardRowDto> rows)
+    {
+        foreach (var row in rows)
+        {
+            var metrics = eventProgressCalculator.Calculate(row.TargetWords, row.Words);
+            row.Percent = metrics.Percent;
+            row.Won = metrics.Won;
+            row.TargetWords = metrics.TargetWords;
+        }
+    }
 
     private static LeaderboardWindow ResolveLeaderboardWindow(Domain.Events.Event eventEntity, string scope)
     {

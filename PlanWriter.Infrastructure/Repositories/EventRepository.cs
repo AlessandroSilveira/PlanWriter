@@ -225,17 +225,7 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 p.Title AS ProjectTitle,
                 (u.FirstName + ' ' + u.LastName) AS UserName,
                 COALESCE(agg.Words, 0) AS Words,
-                CASE
-                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) > 0
-                        THEN CAST(COALESCE(agg.Words, 0) * 100.0 / COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) AS float)
-                    ELSE 0
-                END AS Percent,
-                CASE
-                    WHEN COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) > 0
-                         AND COALESCE(agg.Words, 0) >= COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000)
-                        THEN CAST(1 AS bit)
-                    ELSE CAST(0 AS bit)
-                END AS Won
+                COALESCE(pe.TargetWords, e.DefaultTargetWords, 50000) AS TargetWords
             FROM ProjectEvents pe
             INNER JOIN Projects p ON p.Id = pe.ProjectId
             INNER JOIN Users u ON u.Id = p.UserId
