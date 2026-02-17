@@ -128,6 +128,7 @@ builder.Services.AddScoped<IProjectProgressRepository, ProjectProgressRepository
 builder.Services.AddScoped<IBadgeRepository, BadgeRepository>(); 
 builder.Services.AddScoped<IBadgeReadRepository, BadgeReadRepository>();
 builder.Services.AddScoped<IProjectEventsRepository, ProjectEventsRepository>();
+builder.Services.AddScoped<IEventValidationAuditRepository, EventValidationAuditRepository>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IAdminEventRepository, AdminEventRepository>();
 builder.Services.AddScoped<IUserFollowRepository, UserFollowRepository>();

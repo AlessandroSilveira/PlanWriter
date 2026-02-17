@@ -71,9 +71,56 @@ BEGIN
         StartsAtUtc DATETIME2 NOT NULL,
         EndsAtUtc DATETIME2 NOT NULL,
         DefaultTargetWords INT NULL,
+        ValidationWindowStartsAtUtc DATETIME2 NULL,
+        ValidationWindowEndsAtUtc DATETIME2 NULL,
+        AllowedValidationSources NVARCHAR(100) NOT NULL
+            CONSTRAINT DF_Events_AllowedValidationSources DEFAULT (N'current,paste,manual'),
         IsActive BIT NOT NULL CONSTRAINT DF_Events_IsActive DEFAULT (1),
         CONSTRAINT PK_Events PRIMARY KEY (Id)
     );
+END
+GO
+
+IF COL_LENGTH(N'dbo.Events', N'ValidationWindowStartsAtUtc') IS NULL
+BEGIN
+    ALTER TABLE dbo.Events
+        ADD ValidationWindowStartsAtUtc DATETIME2 NULL;
+END
+GO
+
+IF COL_LENGTH(N'dbo.Events', N'ValidationWindowEndsAtUtc') IS NULL
+BEGIN
+    ALTER TABLE dbo.Events
+        ADD ValidationWindowEndsAtUtc DATETIME2 NULL;
+END
+GO
+
+IF COL_LENGTH(N'dbo.Events', N'AllowedValidationSources') IS NULL
+BEGIN
+    ALTER TABLE dbo.Events
+        ADD AllowedValidationSources NVARCHAR(100) NULL;
+
+    UPDATE dbo.Events
+    SET AllowedValidationSources = N'current,paste,manual'
+    WHERE AllowedValidationSources IS NULL;
+
+    ALTER TABLE dbo.Events
+        ALTER COLUMN AllowedValidationSources NVARCHAR(100) NOT NULL;
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.default_constraints dc
+    INNER JOIN sys.columns c
+        ON c.default_object_id = dc.object_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'dbo.Events')
+      AND c.name = N'AllowedValidationSources'
+)
+BEGIN
+    ALTER TABLE dbo.Events
+        ADD CONSTRAINT DF_Events_AllowedValidationSources
+            DEFAULT (N'current,paste,manual') FOR AllowedValidationSources;
 END
 GO
 
@@ -128,6 +175,47 @@ IF NOT EXISTS (
 )
 BEGIN
     CREATE INDEX IX_Projects_UserId ON dbo.Projects (UserId);
+END
+GO
+
+IF OBJECT_ID(N'dbo.EventValidationAudits', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.EventValidationAudits
+    (
+        Id UNIQUEIDENTIFIER NOT NULL,
+        EventId UNIQUEIDENTIFIER NOT NULL,
+        ProjectId UNIQUEIDENTIFIER NOT NULL,
+        UserId UNIQUEIDENTIFIER NOT NULL,
+        Source NVARCHAR(50) NOT NULL,
+        SubmittedWords INT NOT NULL,
+        Status NVARCHAR(50) NOT NULL,
+        ValidatedAtUtc DATETIME2 NULL,
+        Reason NVARCHAR(500) NULL,
+        CreatedAtUtc DATETIME2 NOT NULL
+            CONSTRAINT DF_EventValidationAudits_CreatedAtUtc DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT PK_EventValidationAudits PRIMARY KEY (Id),
+        CONSTRAINT FK_EventValidationAudits_Events_EventId FOREIGN KEY (EventId)
+            REFERENCES dbo.Events (Id)
+            ON DELETE CASCADE,
+        CONSTRAINT FK_EventValidationAudits_Projects_ProjectId FOREIGN KEY (ProjectId)
+            REFERENCES dbo.Projects (Id)
+            ON DELETE CASCADE,
+        CONSTRAINT FK_EventValidationAudits_Users_UserId FOREIGN KEY (UserId)
+            REFERENCES dbo.Users (Id)
+            ON DELETE NO ACTION
+    );
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_EventValidationAudits_Event_Project_CreatedAt'
+      AND object_id = OBJECT_ID(N'dbo.EventValidationAudits')
+)
+BEGIN
+    CREATE INDEX IX_EventValidationAudits_Event_Project_CreatedAt
+        ON dbo.EventValidationAudits (EventId, ProjectId, CreatedAtUtc DESC);
 END
 GO
 

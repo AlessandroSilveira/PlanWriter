@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using PlanWriter.Application.Common.Exceptions;
 
 namespace PlanWriter.API.Common.Middleware;
 
@@ -28,6 +29,22 @@ public class ExceptionHandlingMiddleware
             await WriteProblemAsync(
                 context,
                 HttpStatusCode.BadRequest,
+                ex.Message
+            );
+        }
+        catch (BusinessRuleException ex)
+        {
+            await WriteProblemAsync(
+                context,
+                HttpStatusCode.BadRequest,
+                ex.Message
+            );
+        }
+        catch (NotFoundException ex)
+        {
+            await WriteProblemAsync(
+                context,
+                HttpStatusCode.NotFound,
                 ex.Message
             );
         }

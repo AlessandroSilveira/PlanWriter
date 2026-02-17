@@ -26,7 +26,10 @@ public class EventReadRepository(IDbExecutor db) : IEventReadRepository
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
-                IsActive
+                IsActive,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources
             FROM Events
             WHERE IsActive = 1
               AND StartsAtUtc <= SYSUTCDATETIME()
@@ -53,7 +56,10 @@ public class EventReadRepository(IDbExecutor db) : IEventReadRepository
                 StartsAtUtc,
                 EndsAtUtc,
                 DefaultTargetWords,
-                IsActive
+                IsActive,
+                ValidationWindowStartsAtUtc,
+                ValidationWindowEndsAtUtc,
+                AllowedValidationSources
             FROM Events
             WHERE Id = @EventId;
         ";

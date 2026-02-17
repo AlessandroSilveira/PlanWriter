@@ -231,9 +231,32 @@ public class EventRepositoryTests
         result[0].EventName.Should().Be("NaNo");
     }
 
-    private static object CreateEventRow(Guid id, string name, string slug, int type, DateTime startsAtUtc, DateTime endsAtUtc, int? defaultTargetWords, bool isActive)
+    private static object CreateEventRow(
+        Guid id,
+        string name,
+        string slug,
+        int type,
+        DateTime startsAtUtc,
+        DateTime endsAtUtc,
+        int? defaultTargetWords,
+        bool isActive,
+        DateTime? validationWindowStartsAtUtc = null,
+        DateTime? validationWindowEndsAtUtc = null,
+        string? allowedValidationSources = null)
     {
         var rowType = typeof(EventRepository).GetNestedType("EventRow", BindingFlags.NonPublic)!;
-        return Activator.CreateInstance(rowType, id, name, slug, type, startsAtUtc, endsAtUtc, defaultTargetWords, isActive)!;
+        return Activator.CreateInstance(
+            rowType,
+            id,
+            name,
+            slug,
+            type,
+            startsAtUtc,
+            endsAtUtc,
+            defaultTargetWords,
+            isActive,
+            validationWindowStartsAtUtc,
+            validationWindowEndsAtUtc,
+            allowedValidationSources)!;
     }
 }

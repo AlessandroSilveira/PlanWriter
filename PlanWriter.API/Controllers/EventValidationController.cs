@@ -21,6 +21,13 @@ public class EventValidationController(IUserService userService, IMediator media
         return Ok(new { target, total });
     }
 
+    [HttpGet("{eventId:guid}/validate/status")]
+    public async Task<IActionResult> Status(Guid eventId, [FromQuery] Guid projectId)
+    {
+        var status = await mediator.Send(new ValidationStatusQuery(UserId, eventId, projectId));
+        return Ok(status);
+    }
+
     [HttpPost("{eventId:guid}/validate")]
     public async Task<IActionResult> Validate(Guid eventId, [FromBody] ValidateRequest request)
     {

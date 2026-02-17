@@ -2,9 +2,12 @@ using System;
 
 namespace PlanWriter.Domain.Dtos.Events
 {
-    public record EventDto(Guid Id, string Name, string Slug, string Type,
+public record EventDto(Guid Id, string Name, string Slug, string Type,
         DateTime StartsAtUtc, DateTime EndsAtUtc,
-        int? DefaultTargetWords, bool IsActive);
+        int? DefaultTargetWords, bool IsActive,
+        DateTime? ValidationWindowStartsAtUtc = null,
+        DateTime? ValidationWindowEndsAtUtc = null,
+        string? AllowedValidationSources = null);
 
     public record CreateEventRequest(string Name, string Type,
         DateTime StartDate, DateTime EndDate,

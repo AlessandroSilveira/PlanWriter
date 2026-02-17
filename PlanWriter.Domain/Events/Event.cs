@@ -15,6 +15,11 @@ public class Event
     // Meta padrão (pode ser sobrescrita pelo participante)
     public int? DefaultTargetWords { get; set; }
 
+    // Política de validação final por evento.
+    public DateTime? ValidationWindowStartsAtUtc { get; set; }
+    public DateTime? ValidationWindowEndsAtUtc { get; set; }
+    public string? AllowedValidationSources { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     // Navegação
