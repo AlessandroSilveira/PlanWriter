@@ -31,6 +31,39 @@ public class ProjectProgressReadRepository(IDbExecutor db) : IProjectProgressRea
         return db.QueryAsync<ProgressHistoryRow>(sql, new { ProjectId = projectId, UserId = userId }, ct);
     }
 
+    public Task<IReadOnlyList<ProgressHistoryRow>> GetUserProgressByDayAsync(
+        Guid userId,
+        DateTime startDate,
+        DateTime endDate,
+        Guid? projectId,
+        CancellationToken ct)
+    {
+        const string sql = """
+            SELECT
+                CAST(pp.[Date] AS date) AS [Date],
+                SUM(pp.WordsWritten)    AS WordsWritten
+            FROM ProjectProgresses pp
+            INNER JOIN Projects p ON p.Id = pp.ProjectId
+            WHERE p.UserId = @UserId
+              AND CAST(pp.[Date] AS date) >= @StartDate
+              AND CAST(pp.[Date] AS date) <= @EndDate
+              AND (@ProjectId IS NULL OR pp.ProjectId = @ProjectId)
+            GROUP BY CAST(pp.[Date] AS date)
+            ORDER BY CAST(pp.[Date] AS date) ASC;
+        """;
+
+        return db.QueryAsync<ProgressHistoryRow>(
+            sql,
+            new
+            {
+                UserId = userId,
+                StartDate = startDate.Date,
+                EndDate = endDate.Date,
+                ProjectId = projectId
+            },
+            ct);
+    }
+
     public async Task<int> GetMonthlyWordsAsync(Guid userId, DateTime startUtc, DateTime endUtc, CancellationToken ct)
     {
         const string sql = """

@@ -16,6 +16,7 @@ public interface IProjectProgressReadRepository
     Task<ProgressRow?> GetByIdAsync(Guid progressId, Guid userId, CancellationToken ct);
     Task<int> GetLastTotalBeforeAsync(Guid projectId, Guid userId, DateTime date, CancellationToken ct);
     Task<IReadOnlyList<ProgressHistoryRow>> GetProgressHistoryAsync(Guid projectId, Guid userId, CancellationToken ct);
+    Task<IReadOnlyList<ProgressHistoryRow>> GetUserProgressByDayAsync(Guid userId, DateTime startDate, DateTime endDate, Guid? projectId, CancellationToken ct);
     Task<IReadOnlyList<ProjectProgress>> GetProgressByProjectIdAsync(Guid projectId, Guid userId, CancellationToken ct);
     
     Task<List<ProjectProgress>> GetProgressHistoryAsync(Guid projectId, Guid userId);
@@ -27,4 +28,3 @@ public interface IProjectProgressReadRepository
     Task<int> GetMonthlyWordsAsync(Guid userId, DateTime start, DateTime end);
    
 }
-
