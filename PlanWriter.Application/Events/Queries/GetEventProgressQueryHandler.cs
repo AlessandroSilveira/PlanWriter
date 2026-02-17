@@ -32,17 +32,18 @@ public class GetEventProgressQueryHandler(
         var ev = projectEvent.Event!;
         var totalInEvent = await GetTotalWordsInEventAsync(request.ProjectId, ev, cancellationToken);
         var metrics = eventProgressCalculator.Calculate(
-            projectEvent.TargetWords ?? ev.DefaultTargetWords,
+            projectEvent.TargetWords,
+            ev.DefaultTargetWords,
             totalInEvent);
-        var progress = CalculateProgress(metrics.TargetWords, metrics.TotalWords, ev.StartsAtUtc, ev.EndsAtUtc);
+        var progress = CalculateTimelineProgress(metrics.TargetWords, ev.StartsAtUtc, ev.EndsAtUtc);
 
         return new EventProgressDto(
             request.ProjectId,
             request.EventId,
             metrics.TargetWords,
             metrics.TotalWords,
-            progress.Percent,
-            progress.Remaining,
+            metrics.Percent,
+            metrics.RemainingWords,
             progress.Days,
             progress.DayIndex,
             progress.DailyTarget,
@@ -65,7 +66,7 @@ public class GetEventProgressQueryHandler(
         return entries.Sum(w => w.WordsWritten);
     }
 
-    private static EventProgressCalculation CalculateProgress(int target, int total, DateTime start, DateTime end)
+    private static EventTimelineProgress CalculateTimelineProgress(int target, DateTime start, DateTime end)
     {
         var startDate = start.Date;
         var endDate = end.Date;
@@ -74,24 +75,16 @@ public class GetEventProgressQueryHandler(
         var dayIndex = Math.Clamp((DateTime.UtcNow.Date - startDate).Days + 1, 1, days);
 
         var dailyTarget = (int)Math.Ceiling((double)target / days);
-        var percent = (int)Math.Round(total * 100.0 / target);
-
-        var remaining = Math.Max(0, target - total);
-
-        return new EventProgressCalculation(
+        return new EventTimelineProgress(
             days,
             dayIndex,
-            dailyTarget,
-            percent,
-            remaining
+            dailyTarget
         );
     }
 
-    private record EventProgressCalculation(
+    private record EventTimelineProgress(
         int Days,
         int DayIndex,
-        int DailyTarget,
-        int Percent,
-        int Remaining
+        int DailyTarget
     );
 }

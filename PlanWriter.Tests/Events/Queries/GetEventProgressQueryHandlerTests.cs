@@ -167,4 +167,56 @@ public class GetEventProgressQueryHandlerTests
         result.Percent.Should().Be(120);
         result.Remaining.Should().Be(0);
     }
+
+    [Fact]
+    public async Task Handle_ShouldUseEventDefault_WhenProjectTargetIsZero()
+    {
+        var projectId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        var ev = new PlanWriter.Domain.Events.Event
+        {
+            Id = eventId,
+            Name = "Fallback Event",
+            StartsAtUtc = now.AddDays(-2),
+            EndsAtUtc = now.AddDays(2),
+            DefaultTargetWords = 2000
+        };
+
+        var projectEvent = new PlanWriter.Domain.Events.ProjectEvent
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = projectId,
+            EventId = eventId,
+            TargetWords = 0,
+            Event = ev
+        };
+
+        _projectProgressReadRepoMock
+            .Setup(r => r.GetByProjectAndEventWithEventAsync(projectId, eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(projectEvent);
+
+        _projectProgressRepoMock
+            .Setup(r => r.GetByProjectAndDateRangeAsync(projectId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new ProjectProgress { ProjectId = projectId, WordsWritten = 1000, CreatedAt = now }
+            });
+
+        var handler = new GetEventProgressQueryHandler(
+            _projectProgressRepoMock.Object,
+            _loggerMock.Object,
+            _projectProgressReadRepoMock.Object,
+            _eventProgressCalculator
+        );
+
+        var result = await handler.Handle(new GetEventProgressQuery(eventId, projectId), CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.TargetWords.Should().Be(2000);
+        result.TotalWrittenInEvent.Should().Be(1000);
+        result.Percent.Should().Be(50);
+        result.Won.Should().BeFalse();
+    }
 }

@@ -42,6 +42,13 @@ public class GetMyEventsQueryHandlerTests
                 EventId = Guid.NewGuid(),
                 TargetWords = null,
                 TotalWrittenInEvent = null
+            },
+            new MyEventDto
+            {
+                EventId = Guid.NewGuid(),
+                TargetWords = 0,
+                EventDefaultTargetWords = 40000,
+                TotalWrittenInEvent = 1000
             }
         };
 
@@ -56,13 +63,15 @@ public class GetMyEventsQueryHandlerTests
         var result = await handler.Handle(query, ct);
 
         // Assert
-        result.Should().HaveCount(3);
+        result.Should().HaveCount(4);
         result[0].Percent.Should().Be(50); // 25000 / 50000
         result[1].Percent.Should().Be(2);  // targetWords=0 -> fallback 50000
         result[2].Percent.Should().Be(0);  // targetWords/totalWritten null -> fallback 50000
+        result[3].Percent.Should().Be(3);  // targetWords=0 -> fallback event default (40000)
         result[0].Won.Should().BeFalse();
         result[1].Won.Should().BeFalse();
         result[2].Won.Should().BeFalse();
+        result[3].Won.Should().BeFalse();
     }
 
     [Fact]

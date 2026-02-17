@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace PlanWriter.Domain.Dtos.Events;
 
@@ -11,6 +12,8 @@ public class MyEventDto
     public string? ProjectTitle { get; set; }
 
     public int? TargetWords { get; set; }
+    [JsonIgnore]
+    public int? EventDefaultTargetWords { get; set; }
     public int? TotalWrittenInEvent { get; set; }
 
     public int Percent { get; set; }

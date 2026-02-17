@@ -37,7 +37,10 @@ public class GetMyEventsQueryHandler(
     {
         foreach (var eventDto in events)
         {
-            var metrics = eventProgressCalculator.Calculate(eventDto.TargetWords, eventDto.TotalWrittenInEvent);
+            var metrics = eventProgressCalculator.Calculate(
+                eventDto.TargetWords,
+                eventDto.EventDefaultTargetWords,
+                eventDto.TotalWrittenInEvent);
             eventDto.TargetWords = metrics.TargetWords;
             eventDto.TotalWrittenInEvent = metrics.TotalWords;
             eventDto.Percent = metrics.Percent;

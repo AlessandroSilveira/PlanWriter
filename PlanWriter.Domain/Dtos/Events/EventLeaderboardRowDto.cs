@@ -13,6 +13,8 @@ namespace PlanWriter.Domain.Dtos.Events
         public int Words { get; set; }
         [JsonIgnore]
         public int? TargetWords { get; set; }
+        [JsonIgnore]
+        public int? EventDefaultTargetWords { get; set; }
         public double? Percent { get; set; } // 0..100 relativo à meta do projeto no evento
         public bool Won { get; set; }
         public int Rank { get; set; }
