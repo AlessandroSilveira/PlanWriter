@@ -14,4 +14,5 @@ public class MyEventDto
     public int? TotalWrittenInEvent { get; set; }
 
     public int Percent { get; set; }
+    public bool Won { get; set; }
 }

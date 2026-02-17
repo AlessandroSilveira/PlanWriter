@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Application.Events.Queries;
 using PlanWriter.Domain.Dtos.Events;
@@ -14,9 +15,10 @@ public class GetEventLeaderboardQueryHandlerTests
 {
     private readonly Mock<IEventRepository> _eventRepositoryMock = new();
     private readonly Mock<ILogger<GetEventLeaderboardQueryHandler>> _loggerMock = new();
+    private readonly IEventProgressCalculator _eventProgressCalculator = new EventProgressCalculator();
 
     private GetEventLeaderboardQueryHandler CreateHandler()
-        => new(_eventRepositoryMock.Object, _loggerMock.Object);
+        => new(_eventRepositoryMock.Object, _eventProgressCalculator, _loggerMock.Object);
 
     [Fact]
     public async Task Handle_ShouldReturnLeaderboard_ForGlobalScope()
@@ -34,8 +36,8 @@ public class GetEventLeaderboardQueryHandlerTests
 
         var leaderboardRows = new List<EventLeaderboardRowDto>
         {
-            new() { ProjectTitle = "A", Words = 2000 },
-            new() { ProjectTitle = "B", Words = 3000 }
+            new() { ProjectTitle = "A", Words = 2000, TargetWords = 50000 },
+            new() { ProjectTitle = "B", Words = 3000, TargetWords = 50000 }
         };
 
         _eventRepositoryMock
@@ -61,6 +63,8 @@ public class GetEventLeaderboardQueryHandlerTests
         result[0].Rank.Should().Be(1);
         result[1].Rank.Should().Be(2);
         result[0].Words.Should().Be(3000);
+        result[0].Percent.Should().Be(6);
+        result[0].Won.Should().BeFalse();
     }
 
     [Fact]

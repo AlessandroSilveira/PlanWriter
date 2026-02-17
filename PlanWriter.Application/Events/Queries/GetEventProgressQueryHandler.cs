@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
@@ -14,10 +15,10 @@ using PlanWriter.Domain.Interfaces.Repositories;
 namespace PlanWriter.Application.Events.Queries;
 
 public class GetEventProgressQueryHandler(
-    IProjectEventsRepository projectEventsRepository,
     IProjectProgressRepository projectProgressRepository, 
     ILogger<GetEventProgressQueryHandler> logger, 
-    IProjectEventsReadRepository projectEventsReadRepository)
+    IProjectEventsReadRepository projectEventsReadRepository,
+    IEventProgressCalculator eventProgressCalculator)
     : IRequestHandler<GetEventProgressQuery, EventProgressDto?>
 {
     public async Task<EventProgressDto?> Handle(GetEventProgressQuery request, CancellationToken cancellationToken)
@@ -29,15 +30,17 @@ public class GetEventProgressQueryHandler(
                            ?? throw new KeyNotFoundException("Inscrição do projeto no evento não encontrada.");
 
         var ev = projectEvent.Event!;
-        var target = ResolveTargetWords(projectEvent, ev, cancellationToken);
         var totalInEvent = await GetTotalWordsInEventAsync(request.ProjectId, ev, cancellationToken);
-        var progress = CalculateProgress(target, totalInEvent, ev.StartsAtUtc, ev.EndsAtUtc);
+        var metrics = eventProgressCalculator.Calculate(
+            projectEvent.TargetWords ?? ev.DefaultTargetWords,
+            totalInEvent);
+        var progress = CalculateProgress(metrics.TargetWords, metrics.TotalWords, ev.StartsAtUtc, ev.EndsAtUtc);
 
         return new EventProgressDto(
             request.ProjectId,
             request.EventId,
-            target,
-            totalInEvent,
+            metrics.TargetWords,
+            metrics.TotalWords,
             progress.Percent,
             progress.Remaining,
             progress.Days,
@@ -45,20 +48,18 @@ public class GetEventProgressQueryHandler(
             progress.DailyTarget,
             projectEvent.Id,
             projectEvent.ValidatedAtUtc,
-            projectEvent.Won,
+            metrics.Won,
             ev.Name
         );
     }
 
-    private static int ResolveTargetWords(ProjectEvent projectEvent, Event ev, CancellationToken cancellationToken) 
-        => projectEvent.TargetWords ?? ev.DefaultTargetWords ?? 50000;
-
     private async Task<int> GetTotalWordsInEventAsync(Guid projectId, Event ev, CancellationToken cancellationToken)
     {
+        var endExclusive = eventProgressCalculator.ResolveWindowEndExclusive(ev.EndsAtUtc);
         var entries = await projectProgressRepository.GetByProjectAndDateRangeAsync(
             projectId,
             ev.StartsAtUtc,
-            ev.EndsAtUtc,
+            endExclusive,
             cancellationToken);
 
         return entries.Sum(w => w.WordsWritten);
@@ -66,14 +67,14 @@ public class GetEventProgressQueryHandler(
 
     private static EventProgressCalculation CalculateProgress(int target, int total, DateTime start, DateTime end)
     {
-        var days = Math.Max(1, (int)Math.Ceiling((end - start).TotalDays));
+        var startDate = start.Date;
+        var endDate = end.Date;
+        var days = Math.Max(1, (endDate - startDate).Days + 1);
 
-        var dayIndex = Math.Clamp((int)Math.Ceiling((DateTime.UtcNow - start).TotalDays), 1, days);
+        var dayIndex = Math.Clamp((DateTime.UtcNow.Date - startDate).Days + 1, 1, days);
 
         var dailyTarget = (int)Math.Ceiling((double)target / days);
-        var percent = target > 0
-            ? (int)Math.Round(total * 100.0 / target)
-            : 0;
+        var percent = (int)Math.Round(total * 100.0 / target);
 
         var remaining = Math.Max(0, target - total);
 
