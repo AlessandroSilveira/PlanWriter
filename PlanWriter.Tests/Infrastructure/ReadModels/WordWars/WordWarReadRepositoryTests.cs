@@ -80,7 +80,8 @@ public class WordWarReadRepositoryTests
         var result = await sut.GetActiveByEventIdAsync(expected.EventId, CancellationToken.None);
 
         result.Should().Be(expected);
-        capturedSql.Should().Contain("Status IN ('Waiting', 'Running')");
+        capturedSql.Should().Contain("TRY_CONVERT(INT, Status) IN (0, 1)");
+        capturedSql.Should().Contain("IN ('WAITING', 'RUNNING')");
         capturedSql.Should().Contain("WHERE EventId = @EventId");
         capturedParam.Should().NotBeNull();
         capturedParam!.GetProp<Guid>("EventId").Should().Be(expected.EventId);
