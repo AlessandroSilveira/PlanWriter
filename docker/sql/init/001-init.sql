@@ -122,8 +122,8 @@ BEGIN
         CreatedByUserId UNIQUEIDENTIFIER NOT NULL,
         Status NVARCHAR(20) NOT NULL,
         DurationInMinutes INT NOT NULL,
-        StartsAtUtc DATETIME2 NOT NULL,
-        EndsAtUtc DATETIME2 NOT NULL,
+        StartAtUtc DATETIME2 NOT NULL,
+        EndAtUtc DATETIME2 NOT NULL,
         CreatedAtUtc DATETIME2 NOT NULL
             CONSTRAINT DF_EventWordWars_CreatedAtUtc DEFAULT (SYSUTCDATETIME()),
         FinishedAtUtc DATETIME2 NULL,
@@ -137,6 +137,38 @@ BEGIN
         CONSTRAINT CK_EventWordWars_Status
             CHECK (Status IN (N'Waiting', N'Running', N'Finished'))
     );
+END
+GO
+
+IF OBJECT_ID(N'dbo.EventWordWars', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH(N'dbo.EventWordWars', N'StartAtUtc') IS NULL
+       AND COL_LENGTH(N'dbo.EventWordWars', N'StartsAtUtc') IS NOT NULL
+    BEGIN
+        ALTER TABLE dbo.EventWordWars
+            ADD StartAtUtc DATETIME2 NULL;
+
+        UPDATE dbo.EventWordWars
+        SET StartAtUtc = StartsAtUtc
+        WHERE StartAtUtc IS NULL;
+
+        ALTER TABLE dbo.EventWordWars
+            ALTER COLUMN StartAtUtc DATETIME2 NOT NULL;
+    END
+
+    IF COL_LENGTH(N'dbo.EventWordWars', N'EndAtUtc') IS NULL
+       AND COL_LENGTH(N'dbo.EventWordWars', N'EndsAtUtc') IS NOT NULL
+    BEGIN
+        ALTER TABLE dbo.EventWordWars
+            ADD EndAtUtc DATETIME2 NULL;
+
+        UPDATE dbo.EventWordWars
+        SET EndAtUtc = EndsAtUtc
+        WHERE EndAtUtc IS NULL;
+
+        ALTER TABLE dbo.EventWordWars
+            ALTER COLUMN EndAtUtc DATETIME2 NOT NULL;
+    END
 END
 GO
 
