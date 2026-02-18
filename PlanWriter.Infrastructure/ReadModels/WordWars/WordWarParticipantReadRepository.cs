@@ -20,7 +20,7 @@ public class WordWarParticipantReadRepository(IDbExecutor db) : IWordWarParticip
                 p.ProjectId,
                 p.JoinedAtUtc,
                 p.WordsInRound,
-                p.LastCheckpointAtUtc,
+                ISNULL(p.LastCheckpointAtUtc, p.JoinedAtUtc) AS LastCheckpointAtUtc,
                 ROW_NUMBER() OVER (
                     ORDER BY p.WordsInRound DESC,
                              p.LastCheckpointAtUtc ASC,
@@ -35,15 +35,15 @@ public class WordWarParticipantReadRepository(IDbExecutor db) : IWordWarParticip
     public Task<IReadOnlyList<EventWordWarParticipantsDto>> GetAllParticipant(Guid warId, CancellationToken ct = default)
     {
         const string sql = @"
-                       SELECT TOP 1
+            SELECT TOP 1
                 p.Id,
                 p.WordWarId,
                 p.UserId,
                 p.ProjectId,
                 p.JoinedAtUtc,
                 p.WordsInRound,
-                p.LastCheckpointAtUtc,
-                p.FinalRank
+                ISNULL(p.LastCheckpointAtUtc, p.JoinedAtUtc) AS LastCheckpointAtUtc,
+                ISNULL(p.FinalRank, 0) AS FinalRank
             FROM EventWordWarParticipants p
             WHERE p.WordWarId = @WarId;              
             ";
@@ -54,15 +54,15 @@ public class WordWarParticipantReadRepository(IDbExecutor db) : IWordWarParticip
     public Task<EventWordWarParticipantsDto?> GetParticipant(Guid warId, Guid userId, CancellationToken ct)
     {
         const string sql = @"
-                       SELECT TOP 1
+            SELECT TOP 1
                 p.Id,
                 p.WordWarId,
                 p.UserId,
                 p.ProjectId,
                 p.JoinedAtUtc,
                 p.WordsInRound,
-                p.LastCheckpointAtUtc,
-                p.FinalRank
+                ISNULL(p.LastCheckpointAtUtc, p.JoinedAtUtc) AS LastCheckpointAtUtc,
+                ISNULL(p.FinalRank, 0) AS FinalRank
             FROM EventWordWarParticipants p
             WHERE p.WordWarId = @WarId
               AND p.UserId = @UserId;
