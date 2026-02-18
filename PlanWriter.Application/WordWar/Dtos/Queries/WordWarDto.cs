@@ -11,6 +11,6 @@ public class WordWarDto
     public int DurationMinutes { get; set; } 
     public DateTime StartsAtUtc { get; set; }
     public DateTime EndsAtUtc { get; set; }
-    public DateTime FinishedAtUtc { get; set; }
+    public DateTime? FinishedAtUtc { get; set; }
     
 }
