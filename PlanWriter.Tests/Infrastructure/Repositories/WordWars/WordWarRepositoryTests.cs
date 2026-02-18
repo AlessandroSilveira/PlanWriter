@@ -71,12 +71,14 @@ public class WordWarRepositoryTests
         var affected = await sut.StartAsync(warId, startsAt, endsAt, CancellationToken.None);
 
         affected.Should().Be(1);
-        capturedSql.Should().Contain("Status = 'Running'");
-        capturedSql.Should().Contain("AND Status = 'Waiting'");
+        capturedSql.Should().Contain("Status = @StatusRunning");
+        capturedSql.Should().Contain("AND Status = @StatusWaiting");
         capturedParam.Should().NotBeNull();
         capturedParam!.GetProp<Guid>("WarId").Should().Be(warId);
         capturedParam.GetProp<DateTime>("StartAtUtc").Should().Be(startsAt);
         capturedParam.GetProp<DateTime>("EndAtUtc").Should().Be(endsAt);
+        capturedParam.GetProp<object>("StatusRunning").Should().NotBeNull();
+        capturedParam.GetProp<object>("StatusWaiting").Should().NotBeNull();
     }
 
     [Fact]
@@ -102,11 +104,13 @@ public class WordWarRepositoryTests
         var affected = await sut.FinishAsync(warId, finishedAt, CancellationToken.None);
 
         affected.Should().Be(1);
-        capturedSql.Should().Contain("Status = 'Finished'");
-        capturedSql.Should().Contain("AND Status = 'Running'");
+        capturedSql.Should().Contain("Status = @StatusFinished");
+        capturedSql.Should().Contain("AND Status = @StatusRunning");
         capturedParam.Should().NotBeNull();
         capturedParam!.GetProp<Guid>("WarId").Should().Be(warId);
         capturedParam.GetProp<DateTime>("FinishedAtUtc").Should().Be(finishedAt);
+        capturedParam.GetProp<object>("StatusFinished").Should().NotBeNull();
+        capturedParam.GetProp<object>("StatusRunning").Should().NotBeNull();
     }
 
     [Fact]
@@ -134,12 +138,13 @@ public class WordWarRepositoryTests
 
         affected.Should().Be(1);
         capturedSql.Should().Contain("INSERT INTO EventWordWarParticipants");
-        capturedSql.Should().Contain("w.Status = 'Waiting'");
+        capturedSql.Should().Contain("w.Status = @StatusWaiting");
         capturedSql.Should().Contain("NOT EXISTS");
         capturedParam.Should().NotBeNull();
         capturedParam!.GetProp<Guid>("WarId").Should().Be(warId);
         capturedParam.GetProp<Guid>("UserId").Should().Be(userId);
         capturedParam.GetProp<Guid>("ProjectId").Should().Be(projectId);
+        capturedParam.GetProp<object>("StatusWaiting").Should().NotBeNull();
     }
 
     [Fact]
@@ -166,10 +171,11 @@ public class WordWarRepositoryTests
 
         affected.Should().Be(1);
         capturedSql.Should().Contain("DELETE p");
-        capturedSql.Should().Contain("AND w.Status = 'Waiting'");
+        capturedSql.Should().Contain("AND w.Status = @StatusWaiting");
         capturedParam.Should().NotBeNull();
         capturedParam!.GetProp<Guid>("WarId").Should().Be(warId);
         capturedParam.GetProp<Guid>("UserId").Should().Be(userId);
+        capturedParam.GetProp<object>("StatusWaiting").Should().NotBeNull();
     }
 
     [Fact]
@@ -196,12 +202,13 @@ public class WordWarRepositoryTests
         var affected = await sut.SubmitCheckpointAsync(warId, userId, 1234, checkpointAt, CancellationToken.None);
 
         affected.Should().Be(1);
-        capturedSql.Should().Contain("w.Status = 'Running'");
+        capturedSql.Should().Contain("w.Status = @StatusRunning");
         capturedSql.Should().Contain("@WordsInRound > ISNULL(p.WordsInRound, 0)");
         capturedParam.Should().NotBeNull();
         capturedParam!.GetProp<Guid>("WarId").Should().Be(warId);
         capturedParam.GetProp<Guid>("UserId").Should().Be(userId);
         capturedParam.GetProp<int>("WordsInRound").Should().Be(1234);
         capturedParam.GetProp<DateTime>("CheckpointAtUtc").Should().Be(checkpointAt);
+        capturedParam.GetProp<object>("StatusRunning").Should().NotBeNull();
     }
 }
