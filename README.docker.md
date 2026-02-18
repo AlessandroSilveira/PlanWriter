@@ -82,3 +82,6 @@ Deploy de um ambiente específico:
 
 Guia da esteira:
 - `docs/deploy-github-actions.md`
+
+Documentacao do Word War (regras, endpoints e fluxo):
+- `docs/wordwar.md`
