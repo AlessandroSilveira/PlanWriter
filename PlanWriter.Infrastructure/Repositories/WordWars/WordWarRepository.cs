@@ -145,7 +145,7 @@ public class WordWarRepository(IDbExecutor db) : IWordWarRepository
                 @ProjectId,
                 SYSUTCDATETIME(),
                 0,
-                NULL,
+                SYSUTCDATETIME(),
                 NULL
             WHERE EXISTS
             (
