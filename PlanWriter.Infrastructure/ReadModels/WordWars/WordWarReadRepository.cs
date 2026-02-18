@@ -18,8 +18,8 @@ public class WordWarReadRepository(IDbExecutor db) : IWordWarReadRepository
                 CreatedByUserId,
                 Status,
                 DurationInMinutes AS DurationInMinuts,
-                StartsAtUtc,
-                EndsAtUtc,
+                StartAtUtc AS StartsAtUtc,
+                EndAtUtc AS EndsAtUtc,
                 CreatedAtUtc,
                 FinishedAtUtc
             FROM EventWordWars
@@ -37,8 +37,8 @@ public class WordWarReadRepository(IDbExecutor db) : IWordWarReadRepository
                 CreatedByUserId,
                 Status,
                 DurationInMinutes AS DurationInMinuts,
-                StartsAtUtc,
-                EndsAtUtc,
+                StartAtUtc AS StartsAtUtc,
+                EndAtUtc AS EndsAtUtc,
                 CreatedAtUtc,
                 FinishedAtUtc
             FROM EventWordWars

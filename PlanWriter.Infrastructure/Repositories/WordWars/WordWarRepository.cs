@@ -19,8 +19,8 @@ public class WordWarRepository(IDbExecutor db) : IWordWarRepository
                 CreatedByUserId,
                 Status,
                 DurationInMinutes,
-                StartsAtUtc,
-                EndsAtUtc,
+                StartAtUtc,
+                EndAtUtc,
                 CreatedAtUtc,
                 FinishedAtUtc
             )
@@ -31,8 +31,8 @@ public class WordWarRepository(IDbExecutor db) : IWordWarRepository
                 @CreatedByUserId,
                 @Status,
                 @DurationInMinutes,
-                @StartsAtUtc,
-                @EndsAtUtc,
+                @StartAtUtc,
+                @EndAtUtc,
                 SYSUTCDATETIME(),
                 NULL
             );";
@@ -45,8 +45,8 @@ public class WordWarRepository(IDbExecutor db) : IWordWarRepository
             CreatedByUserId = createdByUserId,
             Status = status.ToString(), // se coluna for INT, use (int)status
             DurationInMinutes = durationMinutes,
-            StartsAtUtc = startsAtUtc,
-            EndsAtUtc = endsAtUtc
+            StartAtUtc = startsAtUtc,
+            EndAtUtc = endsAtUtc
         }, ct);
 
         return id;
@@ -57,12 +57,12 @@ public class WordWarRepository(IDbExecutor db) : IWordWarRepository
         const string sql = @"
             UPDATE EventWordWars
             SET Status = 'Running',
-                StartsAtUtc = @StartsAtUtc,
-                EndsAtUtc = @EndsAtUtc
+                StartAtUtc = @StartAtUtc,
+                EndAtUtc = @EndAtUtc
             WHERE Id = @WarId
               AND Status = 'Waiting';";
 
-        return db.ExecuteAsync(sql, new { WarId = warId, StartsAtUtc = startsAtUtc, EndsAtUtc = endsAtUtc }, ct);
+        return db.ExecuteAsync(sql, new { WarId = warId, StartAtUtc = startsAtUtc, EndAtUtc = endsAtUtc }, ct);
     }
 
     public Task<int> FinishAsync(Guid warId, DateTime finishedAtUtc, CancellationToken ct = default)

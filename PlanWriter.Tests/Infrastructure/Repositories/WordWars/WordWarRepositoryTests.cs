@@ -41,8 +41,8 @@ public class WordWarRepositoryTests
         capturedParam!.GetProp<Guid>("EventId").Should().Be(eventId);
         capturedParam.GetProp<Guid>("CreatedByUserId").Should().Be(userId);
         capturedParam.GetProp<int>("DurationInMinutes").Should().Be(15);
-        capturedParam.GetProp<DateTime>("StartsAtUtc").Should().Be(startsAt);
-        capturedParam.GetProp<DateTime>("EndsAtUtc").Should().Be(endsAt);
+        capturedParam.GetProp<DateTime>("StartAtUtc").Should().Be(startsAt);
+        capturedParam.GetProp<DateTime>("EndAtUtc").Should().Be(endsAt);
         capturedParam.GetProp<string>("Status").Should().Be(WordWarStatus.Waiting.ToString());
         capturedCt.Should().Be(cts.Token);
     }
@@ -75,8 +75,8 @@ public class WordWarRepositoryTests
         capturedSql.Should().Contain("AND Status = 'Waiting'");
         capturedParam.Should().NotBeNull();
         capturedParam!.GetProp<Guid>("WarId").Should().Be(warId);
-        capturedParam.GetProp<DateTime>("StartsAtUtc").Should().Be(startsAt);
-        capturedParam.GetProp<DateTime>("EndsAtUtc").Should().Be(endsAt);
+        capturedParam.GetProp<DateTime>("StartAtUtc").Should().Be(startsAt);
+        capturedParam.GetProp<DateTime>("EndAtUtc").Should().Be(endsAt);
     }
 
     [Fact]
