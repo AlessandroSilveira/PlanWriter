@@ -13,5 +13,5 @@ public class EventWordWarsDto
     public DateTime StartsAtUtc { get; set; }
     public DateTime EndsAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }
-    public DateTime FinishedAtUtc { get; set; }
+    public DateTime? FinishedAtUtc { get; set; }
 }
