@@ -145,30 +145,44 @@ BEGIN
     IF COL_LENGTH(N'dbo.EventWordWars', N'StartAtUtc') IS NULL
        AND COL_LENGTH(N'dbo.EventWordWars', N'StartsAtUtc') IS NOT NULL
     BEGIN
-        ALTER TABLE dbo.EventWordWars
-            ADD StartAtUtc DATETIME2 NULL;
-
-        UPDATE dbo.EventWordWars
-        SET StartAtUtc = ISNULL(StartsAtUtc, SYSUTCDATETIME())
-        WHERE StartAtUtc IS NULL;
+        EXEC(N'ALTER TABLE dbo.EventWordWars ADD StartAtUtc DATETIME2 NULL;');
+        EXEC(N'
+            UPDATE dbo.EventWordWars
+            SET StartAtUtc = ISNULL(StartsAtUtc, SYSUTCDATETIME())
+            WHERE StartAtUtc IS NULL;
+        ');
     END
 
     IF COL_LENGTH(N'dbo.EventWordWars', N'EndAtUtc') IS NULL
        AND COL_LENGTH(N'dbo.EventWordWars', N'EndsAtUtc') IS NOT NULL
     BEGIN
-        ALTER TABLE dbo.EventWordWars
-            ADD EndAtUtc DATETIME2 NULL;
+        EXEC(N'ALTER TABLE dbo.EventWordWars ADD EndAtUtc DATETIME2 NULL;');
+        EXEC(N'
+            UPDATE dbo.EventWordWars
+            SET EndAtUtc = ISNULL(EndsAtUtc, DATEADD(minute, ISNULL(DurationInMinutes, 0), ISNULL(StartAtUtc, SYSUTCDATETIME())))
+            WHERE EndAtUtc IS NULL;
+        ');
+    END
 
-        UPDATE dbo.EventWordWars
-        SET EndAtUtc = ISNULL(EndsAtUtc, DATEADD(minute, ISNULL(DurationInMinutes, 0), ISNULL(StartAtUtc, SYSUTCDATETIME())))
-        WHERE EndAtUtc IS NULL;
+    IF COL_LENGTH(N'dbo.EventWordWars', N'StartAtUtc') IS NULL
+       AND COL_LENGTH(N'dbo.EventWordWars', N'StartsAtUtc') IS NULL
+    BEGIN
+        EXEC(N'ALTER TABLE dbo.EventWordWars ADD StartAtUtc DATETIME2 NULL;');
+    END
+
+    IF COL_LENGTH(N'dbo.EventWordWars', N'EndAtUtc') IS NULL
+       AND COL_LENGTH(N'dbo.EventWordWars', N'EndsAtUtc') IS NULL
+    BEGIN
+        EXEC(N'ALTER TABLE dbo.EventWordWars ADD EndAtUtc DATETIME2 NULL;');
     END
 
     IF COL_LENGTH(N'dbo.EventWordWars', N'StartAtUtc') IS NOT NULL
     BEGIN
-        UPDATE dbo.EventWordWars
-        SET StartAtUtc = SYSUTCDATETIME()
-        WHERE StartAtUtc IS NULL;
+        EXEC(N'
+            UPDATE dbo.EventWordWars
+            SET StartAtUtc = ISNULL(StartAtUtc, SYSUTCDATETIME())
+            WHERE StartAtUtc IS NULL;
+        ');
 
         IF EXISTS (
             SELECT 1
@@ -178,16 +192,17 @@ BEGIN
               AND is_nullable = 1
         )
         BEGIN
-            ALTER TABLE dbo.EventWordWars
-                ALTER COLUMN StartAtUtc DATETIME2 NOT NULL;
+            EXEC(N'ALTER TABLE dbo.EventWordWars ALTER COLUMN StartAtUtc DATETIME2 NOT NULL;');
         END
     END
 
     IF COL_LENGTH(N'dbo.EventWordWars', N'EndAtUtc') IS NOT NULL
     BEGIN
-        UPDATE dbo.EventWordWars
-        SET EndAtUtc = DATEADD(minute, ISNULL(DurationInMinutes, 0), ISNULL(StartAtUtc, SYSUTCDATETIME()))
-        WHERE EndAtUtc IS NULL;
+        EXEC(N'
+            UPDATE dbo.EventWordWars
+            SET EndAtUtc = ISNULL(EndAtUtc, DATEADD(minute, ISNULL(DurationInMinutes, 0), ISNULL(StartAtUtc, SYSUTCDATETIME())))
+            WHERE EndAtUtc IS NULL;
+        ');
 
         IF EXISTS (
             SELECT 1
@@ -197,31 +212,8 @@ BEGIN
               AND is_nullable = 1
         )
         BEGIN
-            ALTER TABLE dbo.EventWordWars
-                ALTER COLUMN EndAtUtc DATETIME2 NOT NULL;
+            EXEC(N'ALTER TABLE dbo.EventWordWars ALTER COLUMN EndAtUtc DATETIME2 NOT NULL;');
         END
-    END
-
-    IF COL_LENGTH(N'dbo.EventWordWars', N'StartAtUtc') IS NULL
-       AND COL_LENGTH(N'dbo.EventWordWars', N'StartsAtUtc') IS NULL
-    BEGIN
-        ALTER TABLE dbo.EventWordWars
-            ADD StartAtUtc DATETIME2 NOT NULL
-                CONSTRAINT DF_EventWordWars_StartAtUtc_Backfill DEFAULT (SYSUTCDATETIME());
-    END
-
-    IF COL_LENGTH(N'dbo.EventWordWars', N'EndAtUtc') IS NULL
-       AND COL_LENGTH(N'dbo.EventWordWars', N'EndsAtUtc') IS NULL
-    BEGIN
-        ALTER TABLE dbo.EventWordWars
-            ADD EndAtUtc DATETIME2 NOT NULL
-                CONSTRAINT DF_EventWordWars_EndAtUtc_Backfill DEFAULT (SYSUTCDATETIME());
-
-        UPDATE dbo.EventWordWars
-        SET EndAtUtc = DATEADD(minute, ISNULL(DurationInMinutes, 0), StartAtUtc);
-
-        ALTER TABLE dbo.EventWordWars
-            DROP CONSTRAINT DF_EventWordWars_EndAtUtc_Backfill;
     END
 
     IF COL_LENGTH(N'dbo.EventWordWars', N'StartAtUtc') IS NOT NULL
