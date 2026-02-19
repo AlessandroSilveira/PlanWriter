@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PlanWriter.API.Common.Middleware;
 using PlanWriter.API.Middleware;
+using PlanWriter.API.Security;
 using PlanWriter.Application;
 using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Common.WinnerEligibility;
@@ -196,29 +197,24 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var bootstrapOptions = builder.Configuration
+        .GetSection("AuthBootstrap")
+        .Get<AuthBootstrapOptions>() ?? new AuthBootstrapOptions();
+
+    AdminBootstrapper.ValidateConfiguration(bootstrapOptions, app.Environment.IsProduction());
+
     var cancellationToken = new CancellationToken();
     var usersRead = scope.ServiceProvider.GetRequiredService<IUserReadRepository>();
     var users = scope.ServiceProvider.GetRequiredService<IUserRepository>();
     var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
-    var admin = await usersRead.GetByEmailAsync("admin@admin.com", cancellationToken);
 
-    if (admin == null)
-    {
-        var user = new User
-        {
-            FirstName = "Admin",
-            LastName = "System",
-            Email = "admin@admin.com",
-            IsProfilePublic = false,
-            DisplayName = "Administrador",
-            DateOfBirth = new DateTime(2000, 1, 1)
-        };
-        user.ChangePassword(
-            hasher.HashPassword(user, "admin")
-        );
-        user.MakeAdmin();
-        await users.CreateAsync(user, cancellationToken);
-    }
+    await AdminBootstrapper.EnsureBootstrapAdminAsync(
+        bootstrapOptions,
+        usersRead,
+        users,
+        hasher,
+        app.Logger,
+        cancellationToken);
 }
 
 app.UseSwagger();

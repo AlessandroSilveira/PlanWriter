@@ -55,6 +55,11 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=PlanWriterDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Str0ng!Senha2024};TrustServerCertificate=True;Encrypt=False;"
+      AuthBootstrap__Enabled: "${AUTH_BOOTSTRAP_ENABLED:-false}"
+      AuthBootstrap__AdminEmail: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:-}"
+      AuthBootstrap__AdminPassword: "${AUTH_BOOTSTRAP_ADMIN_PASSWORD:-}"
+      AuthBootstrap__AdminFirstName: "${AUTH_BOOTSTRAP_ADMIN_FIRST_NAME:-Admin}"
+      AuthBootstrap__AdminLastName: "${AUTH_BOOTSTRAP_ADMIN_LAST_NAME:-System}"
     ports:
       - "${API_PORT:-5001}:8080"
     restart: unless-stopped
