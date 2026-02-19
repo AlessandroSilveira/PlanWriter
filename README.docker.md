@@ -17,6 +17,9 @@ Variáveis principais:
 - `PROD_API_PORT` (padrão `5001`)
 - `PROD_FRONTEND_PORT` (padrão `5173`)
 - `PROXY_PORT` (padrão `80`)
+- `AUTH_BOOTSTRAP_ENABLED` (padrão `false`)
+- `AUTH_BOOTSTRAP_ADMIN_EMAIL`
+- `AUTH_BOOTSTRAP_ADMIN_PASSWORD` (somente senha forte, minimo 12 com maiuscula/minuscula/numero/simbolo)
 
 ## 2) Subir os dois ambientes + proxy local
 
