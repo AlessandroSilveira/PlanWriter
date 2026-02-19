@@ -1,0 +1,49 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using PlanWriter.Domain.Interfaces.Auth;
+using PlanWriter.Domain.Interfaces.Auth.Regsitration;
+using PlanWriter.Domain.Interfaces.ReadModels.Auth;
+using PlanWriter.Domain.Interfaces.ReadModels.Users;
+using PlanWriter.Domain.Interfaces.Repositories;
+
+namespace PlanWriter.Tests.API.Integration;
+
+public sealed class AuthApiWebApplicationFactory : WebApplicationFactory<Program>
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Testing");
+
+        builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IUserReadRepository>();
+            services.RemoveAll<IUserRepository>();
+            services.RemoveAll<IUserRegistrationReadRepository>();
+            services.RemoveAll<IUserRegistrationRepository>();
+            services.RemoveAll<IUserPasswordRepository>();
+            services.RemoveAll<IJwtTokenGenerator>();
+
+            services.AddSingleton<InMemoryAuthRepository>();
+            services.AddSingleton<IUserReadRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
+            services.AddSingleton<IUserRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
+            services.AddSingleton<IUserRegistrationReadRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
+            services.AddSingleton<IUserRegistrationRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
+            services.AddSingleton<IUserPasswordRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
+            services.AddSingleton<IJwtTokenGenerator, FakeJwtTokenGenerator>();
+
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+                    options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+                })
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+        });
+    }
+
+    public InMemoryAuthRepository Store => Services.GetRequiredService<InMemoryAuthRepository>();
+}

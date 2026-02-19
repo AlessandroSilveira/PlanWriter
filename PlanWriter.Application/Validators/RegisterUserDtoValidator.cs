@@ -1,6 +1,7 @@
 ﻿using System;
 using FluentValidation;
 using PlanWriter.Application.DTO;
+using PlanWriter.Application.Security;
 
 namespace PlanWriter.Application.Validators;
 
@@ -21,8 +22,10 @@ public class RegisterUserDtoValidator : AbstractValidator<RegisterUserDto>
             .EmailAddress().WithMessage("Invalid email format.");
 
         RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password is required.")
-            .MinimumLength(6).WithMessage("Password must be at least 6 characters.");
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty().WithMessage("Senha é obrigatória.")
+            .Must(password => PasswordPolicy.Validate(password) is null)
+            .WithMessage(dto => PasswordPolicy.Validate(dto.Password)!);
 
         RuleFor(x => x.DateOfBirth)
             .NotEmpty().WithMessage("Date of birth is required.")

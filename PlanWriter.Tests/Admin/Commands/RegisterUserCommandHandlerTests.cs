@@ -78,6 +78,30 @@ public class RegisterUserCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldThrow_WhenPasswordIsWeak()
+    {
+        var email = "weak@planwriter.com";
+
+        _userRegistrationReadRepositoryMock
+            .Setup(r => r.EmailExistsAsync(email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var handler = CreateHandler();
+        var command = BuildCommand(email, "123456");
+
+        Func<Task> act = async () => await handler.Handle(command, CancellationToken.None);
+
+        await act.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("A senha deve ter pelo menos 12 caracteres.");
+
+        _userRegistrationRepositoryMock.Verify(
+            r => r.CreateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+    }
+
+    [Fact]
     public async Task Handle_ShouldPropagateException_WhenRepositoryThrows()
     {
         // Arrange
@@ -112,13 +136,13 @@ public class RegisterUserCommandHandlerTests
         );
     }
 
-    private static RegisterUserCommand BuildCommand(string email)
+    private static RegisterUserCommand BuildCommand(string email, string password = "StrongPassword123!")
     {
         return new RegisterUserCommand(
             new RegisterUserDto
             {
                 Email = email,
-                Password = "StrongPassword123!"
+                Password = password
             }
         );
     }
