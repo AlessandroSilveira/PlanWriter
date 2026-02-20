@@ -130,6 +130,7 @@ builder.Services.AddRateLimiter(options =>
 var jwtOptions = builder.Configuration
     .GetSection("Jwt")
     .Get<JwtOptions>() ?? new JwtOptions();
+CriticalSecretsConfiguration.ValidateForStartup(builder.Configuration, builder.Environment);
 JwtSecurityConfiguration.ValidateForStartup(jwtOptions, builder.Environment.IsProduction());
 var signingKeys = JwtSecurityConfiguration.BuildSigningKeys(jwtOptions);
 var clockSkew = TimeSpan.FromSeconds(jwtOptions.ClockSkewSeconds);

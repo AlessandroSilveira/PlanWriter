@@ -7,10 +7,11 @@ Pipeline:
 ## O que ela faz
 
 1. `Build and Test` em `push`/`pull_request` da `main`.
-2. Deploy automatico em `staging` no `push` da `main`.
-3. Deploy manual em `staging` ou `production` via `workflow_dispatch`.
-4. Rollback manual via `workflow_dispatch`.
-5. Deploy local com hostnames:
+2. `Security config guard` para bloquear segredos hardcoded/default inseguros.
+3. Deploy automatico em `staging` no `push` da `main`.
+4. Deploy manual em `staging` ou `production` via `workflow_dispatch`.
+5. Rollback manual via `workflow_dispatch`.
+6. Deploy local com hostnames:
    - `http://planwriter.staging.test`
    - `http://planwriter.test`
 

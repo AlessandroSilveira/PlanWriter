@@ -6,7 +6,7 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
-      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Str0ng!Senha2024}"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD_is_required}"
     volumes:
       - sqlserver_data:/var/opt/mssql
     healthcheck:
@@ -28,7 +28,7 @@ services:
       sqlserver:
         condition: service_healthy
     environment:
-      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Str0ng!Senha2024}"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD_is_required}"
     volumes:
       - ./docker/sql/init:/docker-init:ro
     entrypoint:
@@ -54,8 +54,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=PlanWriterDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Str0ng!Senha2024};TrustServerCertificate=True;Encrypt=False;"
-      Jwt__Key: "${JWT_KEY:-SUA_CHAVE_SECRETA_GRANDE_E_UNICA_AQUI}"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=PlanWriterDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD_is_required};TrustServerCertificate=True;Encrypt=False;"
+      Jwt__Key: "${JWT_KEY:?JWT_KEY_is_required}"
       Jwt__Issuer: "${JWT_ISSUER:-PlanWriterApi}"
       Jwt__Audience: "${JWT_AUDIENCE:-PlanWriterClient}"
       Jwt__CurrentKid: "${JWT_CURRENT_KID:-v1}"
