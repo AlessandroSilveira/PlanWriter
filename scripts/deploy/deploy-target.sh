@@ -3,6 +3,7 @@ set -euo pipefail
 
 TARGET_ENV="${1:-staging}"
 BACKEND_DIR="${2:-$(pwd)}"
+ENV_FILE="$BACKEND_DIR/.env"
 GATEWAY_NETWORK="planwriter_gateway"
 PROXY_PROJECT="planwriter-proxy"
 LOCK_WAIT_SECONDS="${DEPLOY_LOCK_WAIT_SECONDS:-300}"
@@ -89,6 +90,14 @@ if [ ! -f "$PROXY_COMPOSE" ]; then
   exit 1
 fi
 
+COMPOSE_ENV_ARGS=()
+if [ -f "$ENV_FILE" ]; then
+  COMPOSE_ENV_ARGS=(--env-file "$ENV_FILE")
+  echo "Usando env file: $ENV_FILE"
+else
+  echo "Env file nao encontrado em $ENV_FILE. Usando apenas variaveis de ambiente do processo."
+fi
+
 acquire_deploy_lock
 
 if ! docker network inspect "$GATEWAY_NETWORK" >/dev/null 2>&1; then
@@ -96,11 +105,11 @@ if ! docker network inspect "$GATEWAY_NETWORK" >/dev/null 2>&1; then
 fi
 
 compose_target() {
-  docker compose -p "$TARGET_PROJECT" -f "$TARGET_COMPOSE" "$@"
+  docker compose "${COMPOSE_ENV_ARGS[@]}" -p "$TARGET_PROJECT" -f "$TARGET_COMPOSE" "$@"
 }
 
 compose_proxy() {
-  docker compose -p "$PROXY_PROJECT" -f "$PROXY_COMPOSE" "$@"
+  docker compose "${COMPOSE_ENV_ARGS[@]}" -p "$PROXY_PROJECT" -f "$PROXY_COMPOSE" "$@"
 }
 
 compose_target_up_with_retry() {
