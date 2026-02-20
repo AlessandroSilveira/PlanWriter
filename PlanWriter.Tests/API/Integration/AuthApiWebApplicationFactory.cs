@@ -30,6 +30,7 @@ public sealed class AuthApiWebApplicationFactory : WebApplicationFactory<Program
             services.RemoveAll<IAuthAuditReadRepository>();
             services.RemoveAll<IAuthAuditRepository>();
             services.RemoveAll<IRefreshTokenRepository>();
+            services.RemoveAll<IAdminMfaRepository>();
             services.RemoveAll<IJwtTokenGenerator>();
 
             services.AddSingleton<InMemoryAuthRepository>();
@@ -39,6 +40,7 @@ public sealed class AuthApiWebApplicationFactory : WebApplicationFactory<Program
             services.AddSingleton<IUserRegistrationRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
             services.AddSingleton<IUserPasswordRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
             services.AddSingleton<IUserAuthReadRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
+            services.AddSingleton<IAdminMfaRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
 
             services.AddSingleton<InMemoryRefreshTokenRepository>();
             services.AddSingleton<IRefreshTokenRepository>(sp => sp.GetRequiredService<InMemoryRefreshTokenRepository>());

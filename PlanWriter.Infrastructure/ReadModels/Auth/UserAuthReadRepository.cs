@@ -16,7 +16,11 @@ public class UserAuthReadRepository(IDbExecutor db) : IUserAuthReadRepository
             Email,
             PasswordHash,
             IsAdmin,
-            MustChangePassword
+            MustChangePassword,
+            AdminMfaEnabled,
+            AdminMfaSecret,
+            AdminMfaPendingSecret,
+            AdminMfaPendingGeneratedAtUtc
         FROM Users
         WHERE Email = @Email;
     ";

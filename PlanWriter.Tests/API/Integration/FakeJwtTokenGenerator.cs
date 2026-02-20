@@ -5,8 +5,8 @@ namespace PlanWriter.Tests.API.Integration;
 
 public sealed class FakeJwtTokenGenerator : IJwtTokenGenerator
 {
-    public string Generate(User user)
+    public string Generate(User user, bool adminMfaVerified = false)
     {
-        return $"fake-jwt-{user.Id}";
+        return $"fake-jwt-{user.Id}-{adminMfaVerified}";
     }
 }

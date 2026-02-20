@@ -56,7 +56,8 @@ public class ChangePasswordCommandHandler(IUserReadRepository userReadRepository
             user.Id,
             revokedSessions);
         
-        return tokenGenerator.Generate(user);
+        var adminMfaVerified = !user.IsAdmin || user.AdminMfaEnabled;
+        return tokenGenerator.Generate(user, adminMfaVerified);
     }
    
 }

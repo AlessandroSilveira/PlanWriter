@@ -37,6 +37,35 @@ BEGIN
 END
 GO
 
+IF COL_LENGTH(N'dbo.Users', N'AdminMfaEnabled') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users
+        ADD AdminMfaEnabled BIT NOT NULL
+            CONSTRAINT DF_Users_AdminMfaEnabled DEFAULT (0);
+END
+GO
+
+IF COL_LENGTH(N'dbo.Users', N'AdminMfaSecret') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users
+        ADD AdminMfaSecret NVARCHAR(256) NULL;
+END
+GO
+
+IF COL_LENGTH(N'dbo.Users', N'AdminMfaPendingSecret') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users
+        ADD AdminMfaPendingSecret NVARCHAR(256) NULL;
+END
+GO
+
+IF COL_LENGTH(N'dbo.Users', N'AdminMfaPendingGeneratedAtUtc') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users
+        ADD AdminMfaPendingGeneratedAtUtc DATETIME2 NULL;
+END
+GO
+
 IF NOT EXISTS (
     SELECT 1
     FROM sys.indexes
@@ -45,6 +74,50 @@ IF NOT EXISTS (
 )
 BEGIN
     CREATE UNIQUE INDEX UX_Users_Email ON dbo.Users (Email);
+END
+GO
+
+IF OBJECT_ID(N'dbo.AdminMfaBackupCodes', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.AdminMfaBackupCodes
+    (
+        Id UNIQUEIDENTIFIER NOT NULL,
+        UserId UNIQUEIDENTIFIER NOT NULL,
+        CodeHash CHAR(64) NOT NULL,
+        IsUsed BIT NOT NULL
+            CONSTRAINT DF_AdminMfaBackupCodes_IsUsed DEFAULT (0),
+        CreatedAtUtc DATETIME2 NOT NULL
+            CONSTRAINT DF_AdminMfaBackupCodes_CreatedAtUtc DEFAULT (SYSUTCDATETIME()),
+        UsedAtUtc DATETIME2 NULL,
+        CONSTRAINT PK_AdminMfaBackupCodes PRIMARY KEY (Id),
+        CONSTRAINT FK_AdminMfaBackupCodes_Users_UserId FOREIGN KEY (UserId)
+            REFERENCES dbo.Users (Id)
+            ON DELETE CASCADE
+    );
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_AdminMfaBackupCodes_UserId_CodeHash'
+      AND object_id = OBJECT_ID(N'dbo.AdminMfaBackupCodes')
+)
+BEGIN
+    CREATE UNIQUE INDEX UX_AdminMfaBackupCodes_UserId_CodeHash
+        ON dbo.AdminMfaBackupCodes (UserId, CodeHash);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_AdminMfaBackupCodes_UserId_IsUsed'
+      AND object_id = OBJECT_ID(N'dbo.AdminMfaBackupCodes')
+)
+BEGIN
+    CREATE INDEX IX_AdminMfaBackupCodes_UserId_IsUsed
+        ON dbo.AdminMfaBackupCodes (UserId, IsUsed);
 END
 GO
 

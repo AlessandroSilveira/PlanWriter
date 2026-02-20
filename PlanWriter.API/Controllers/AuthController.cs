@@ -1,3 +1,4 @@
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -126,6 +127,46 @@ public class AuthController(
         }
     }
 
+    [Authorize]
+    [EnableRateLimiting("auth-login")]
+    [HttpPost("admin-mfa/enroll")]
+    public async Task<IActionResult> StartAdminMfaEnrollment()
+    {
+        if (!TryGetAuthenticatedUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        if (!IsCurrentUserAdmin())
+        {
+            return Forbid();
+        }
+
+        var response = await mediator.Send(new StartAdminMfaEnrollmentCommand(userId));
+        await AuditAsync("AdminMfaEnrollmentStart", "Success", userId, null);
+        return Ok(response);
+    }
+
+    [Authorize]
+    [EnableRateLimiting("auth-login")]
+    [HttpPost("admin-mfa/confirm")]
+    public async Task<IActionResult> ConfirmAdminMfaEnrollment([FromBody] AdminMfaConfirmDto request)
+    {
+        if (!TryGetAuthenticatedUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        if (!IsCurrentUserAdmin())
+        {
+            return Forbid();
+        }
+
+        var response = await mediator.Send(new ConfirmAdminMfaEnrollmentCommand(userId, request.Code));
+        await AuditAsync("AdminMfaEnrollmentConfirm", "Success", userId, null);
+        return Ok(response);
+    }
+
     [EnableRateLimiting("auth-refresh")]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenDto dto)
@@ -239,5 +280,16 @@ public class AuthController(
         {
             return null;
         }
+    }
+
+    private bool TryGetAuthenticatedUserId(out Guid userId)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return Guid.TryParse(userIdClaim, out userId);
+    }
+
+    private bool IsCurrentUserAdmin()
+    {
+        return string.Equals(User.FindFirst("isAdmin")?.Value, "true", StringComparison.Ordinal);
     }
 }

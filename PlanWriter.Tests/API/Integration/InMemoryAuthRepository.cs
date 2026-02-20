@@ -4,6 +4,7 @@ using PlanWriter.Domain.Interfaces.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.Repositories.Auth;
 
 namespace PlanWriter.Tests.API.Integration;
 
@@ -13,16 +14,19 @@ public sealed class InMemoryAuthRepository :
     IUserAuthReadRepository,
     IUserRegistrationReadRepository,
     IUserRegistrationRepository,
-    IUserPasswordRepository
+    IUserPasswordRepository,
+    IAdminMfaRepository
 {
     private readonly object _lock = new();
     private readonly Dictionary<Guid, User> _users = new();
+    private readonly Dictionary<Guid, Dictionary<string, bool>> _backupCodes = new();
 
     public void Reset()
     {
         lock (_lock)
         {
             _users.Clear();
+            _backupCodes.Clear();
         }
     }
 
@@ -31,6 +35,10 @@ public sealed class InMemoryAuthRepository :
         lock (_lock)
         {
             _users[user.Id] = user;
+            if (!_backupCodes.ContainsKey(user.Id))
+            {
+                _backupCodes[user.Id] = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            }
         }
     }
 
@@ -144,6 +152,58 @@ public sealed class InMemoryAuthRepository :
         }
 
         return Task.CompletedTask;
+    }
+
+    public Task SetPendingSecretAsync(Guid userId, string pendingSecret, DateTime generatedAtUtc, CancellationToken ct)
+    {
+        lock (_lock)
+        {
+            if (_users.TryGetValue(userId, out var user) && user.IsAdmin)
+            {
+                user.SetAdminMfaPending(pendingSecret, generatedAtUtc);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task EnableAsync(Guid userId, string activeSecret, CancellationToken ct)
+    {
+        lock (_lock)
+        {
+            if (_users.TryGetValue(userId, out var user) && user.IsAdmin)
+            {
+                user.EnableAdminMfa(activeSecret);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task ReplaceBackupCodesAsync(Guid userId, IReadOnlyCollection<string> codeHashes, CancellationToken ct)
+    {
+        lock (_lock)
+        {
+            _backupCodes[userId] = codeHashes.ToDictionary(k => k, _ => false, StringComparer.OrdinalIgnoreCase);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> ConsumeBackupCodeAsync(Guid userId, string codeHash, DateTime usedAtUtc, CancellationToken ct)
+    {
+        lock (_lock)
+        {
+            if (_backupCodes.TryGetValue(userId, out var codes) &&
+                codes.TryGetValue(codeHash, out var isUsed) &&
+                !isUsed)
+            {
+                codes[codeHash] = true;
+                return Task.FromResult(true);
+            }
+
+            return Task.FromResult(false);
+        }
     }
 
     private static string Normalize(string? value)

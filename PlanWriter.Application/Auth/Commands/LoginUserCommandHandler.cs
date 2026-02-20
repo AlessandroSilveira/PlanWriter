@@ -17,6 +17,7 @@ namespace PlanWriter.Application.Auth.Commands;
 
 public class LoginUserCommandHandler(IUserAuthReadRepository userReadRepository, IPasswordHasher<User> passwordHasher,
     IJwtTokenGenerator tokenGenerator, IRefreshTokenRepository refreshTokenRepository,
+    IAdminMfaRepository adminMfaRepository,
     TimeProvider timeProvider, IOptions<AuthTokenOptions> tokenOptions,
     ILogger<LoginUserCommandHandler> logger)
     : IRequestHandler<LoginUserCommand, AuthTokensDto?>
@@ -44,8 +45,27 @@ public class LoginUserCommandHandler(IUserAuthReadRepository userReadRepository,
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
+        var adminMfaVerified = !user.IsAdmin;
+
+        if (user.IsAdmin)
+        {
+            if (!user.AdminMfaEnabled)
+            {
+                adminMfaVerified = false;
+            }
+            else
+            {
+                adminMfaVerified = await ValidateAdminMfaAsync(user, request, now, ct);
+                if (!adminMfaVerified)
+                {
+                    logger.LogWarning("Login failed for {Email}: admin MFA verification failed", email);
+                    return null;
+                }
+            }
+        }
+
         var options = tokenOptions.Value;
-        var accessToken = tokenGenerator.Generate(user);
+        var accessToken = tokenGenerator.Generate(user, adminMfaVerified);
 
         var refreshToken = RefreshTokenSecurity.GenerateToken();
         var refreshTokenHash = RefreshTokenSecurity.HashToken(refreshToken);
@@ -75,5 +95,27 @@ public class LoginUserCommandHandler(IUserAuthReadRepository userReadRepository,
             RefreshToken = refreshToken,
             RefreshTokenExpiresAtUtc = refreshExpiry
         };
+    }
+
+    private async Task<bool> ValidateAdminMfaAsync(User user, LoginUserCommand request, DateTime now, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(user.AdminMfaSecret) &&
+            !string.IsNullOrWhiteSpace(request.Request.MfaCode))
+        {
+            return AdminMfaSecurity.ValidateTotpCode(user.AdminMfaSecret, request.Request.MfaCode, now);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Request.BackupCode))
+        {
+            var codeHash = AdminMfaSecurity.HashBackupCode(request.Request.BackupCode);
+            if (string.IsNullOrWhiteSpace(codeHash))
+            {
+                return false;
+            }
+
+            return await adminMfaRepository.ConsumeBackupCodeAsync(user.Id, codeHash, now, ct);
+        }
+
+        return false;
     }
 }

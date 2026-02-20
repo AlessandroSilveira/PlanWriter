@@ -53,7 +53,7 @@ public class ChangePasswordCommandHandlerTests
             .ReturnsAsync(2);
 
         _tokenGeneratorMock
-            .Setup(t => t.Generate(user))
+            .Setup(t => t.Generate(user, It.IsAny<bool>()))
             .Returns(token);
 
         var handler = CreateHandler();
@@ -79,7 +79,7 @@ public class ChangePasswordCommandHandlerTests
         );
 
         _tokenGeneratorMock.Verify(
-            t => t.Generate(user),
+            t => t.Generate(user, It.IsAny<bool>()),
             Times.Once
         );
 
@@ -153,7 +153,7 @@ public class ChangePasswordCommandHandlerTests
             .ReturnsAsync(1);
 
         _tokenGeneratorMock
-            .Setup(t => t.Generate(It.Is<User>(u => u.IsAdmin && !u.MustChangePassword)))
+            .Setup(t => t.Generate(It.Is<User>(u => u.IsAdmin && !u.MustChangePassword), It.IsAny<bool>()))
             .Returns(token);
 
         var handler = CreateHandler();
@@ -167,7 +167,7 @@ public class ChangePasswordCommandHandlerTests
         user.MustChangePassword.Should().BeFalse();
 
         _tokenGeneratorMock.Verify(
-            t => t.Generate(It.Is<User>(u => u.IsAdmin && !u.MustChangePassword)),
+            t => t.Generate(It.Is<User>(u => u.IsAdmin && !u.MustChangePassword), It.IsAny<bool>()),
             Times.Once
         );
 

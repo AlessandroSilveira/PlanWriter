@@ -35,7 +35,7 @@ public class JwtTokenGeneratorTests
         user.MakeAdmin();
         user.ChangePassword("hash");
 
-        var token = sut.Generate(user);
+        var token = sut.Generate(user, adminMfaVerified: true);
 
         var parsed = new JwtSecurityTokenHandler().ReadJwtToken(token);
 
@@ -43,6 +43,7 @@ public class JwtTokenGeneratorTests
         parsed.Claims.Select(c => c.Value).Should().Contain("user@test.com");
         parsed.Claims.Select(c => c.Value).Should().Contain("Alice");
         parsed.Claims.First(c => c.Type == "isAdmin").Value.Should().Be("true");
+        parsed.Claims.First(c => c.Type == "adminMfaVerified").Value.Should().Be("true");
         parsed.Claims.First(c => c.Type == "mustChangePassword").Value.Should().Be("false");
         parsed.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Jti);
         parsed.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Iat);
@@ -69,7 +70,7 @@ public class JwtTokenGeneratorTests
                 RefreshTokenDays = 7
             }));
 
-        var act = () => sut.Generate(new User { Id = Guid.NewGuid(), Email = "user@test.com", FirstName = "Alice" });
+        var act = () => sut.Generate(new User { Id = Guid.NewGuid(), Email = "user@test.com", FirstName = "Alice" }, adminMfaVerified: false);
 
         act.Should().Throw<ArgumentException>();
     }
