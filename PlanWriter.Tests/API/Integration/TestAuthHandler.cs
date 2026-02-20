@@ -14,6 +14,9 @@ public sealed class TestAuthHandler(
 {
     public const string SchemeName = "TestAuth";
     public const string UserIdHeader = "X-Test-UserId";
+    public const string IsAdminHeader = "X-Test-IsAdmin";
+    public const string MustChangePasswordHeader = "X-Test-MustChangePassword";
+    public const string AdminMfaVerifiedHeader = "X-Test-AdminMfaVerified";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -27,11 +30,22 @@ public sealed class TestAuthHandler(
             return Task.FromResult(AuthenticateResult.Fail("Invalid test user id."));
         }
 
+        var isAdmin = Request.Headers.TryGetValue(IsAdminHeader, out var isAdminValues) &&
+                      bool.TryParse(isAdminValues[0], out var parsedIsAdmin) &&
+                      parsedIsAdmin;
+        var mustChangePassword = Request.Headers.TryGetValue(MustChangePasswordHeader, out var mustChangeValues) &&
+                                 bool.TryParse(mustChangeValues[0], out var parsedMustChange) &&
+                                 parsedMustChange;
+        var adminMfaVerified = Request.Headers.TryGetValue(AdminMfaVerifiedHeader, out var adminMfaValues) &&
+                               bool.TryParse(adminMfaValues[0], out var parsedAdminMfa) &&
+                               parsedAdminMfa;
+
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-            new Claim("isAdmin", "false"),
-            new Claim("mustChangePassword", "false")
+            new Claim("isAdmin", isAdmin.ToString().ToLowerInvariant()),
+            new Claim("mustChangePassword", mustChangePassword.ToString().ToLowerInvariant()),
+            new Claim("adminMfaVerified", adminMfaVerified.ToString().ToLowerInvariant())
         };
 
         var identity = new ClaimsIdentity(claims, SchemeName);

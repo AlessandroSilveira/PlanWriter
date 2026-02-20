@@ -20,6 +20,10 @@ namespace PlanWriter.Domain.Entities
 
         public bool IsAdmin { get; private set; }
         public bool MustChangePassword { get; private set; }
+        public bool AdminMfaEnabled { get; private set; }
+        public string? AdminMfaSecret { get; private set; }
+        public string? AdminMfaPendingSecret { get; private set; }
+        public DateTime? AdminMfaPendingGeneratedAtUtc { get; private set; }
 
         public void MakeAdmin()
         {
@@ -32,6 +36,10 @@ namespace PlanWriter.Domain.Entities
         {
             IsAdmin = false;
             MustChangePassword = false;
+            AdminMfaEnabled = false;
+            AdminMfaSecret = null;
+            AdminMfaPendingSecret = null;
+            AdminMfaPendingGeneratedAtUtc = null;
         }
 
         public void ChangePassword(string newHash)
@@ -41,6 +49,30 @@ namespace PlanWriter.Domain.Entities
            
             if (IsAdmin)
                 MustChangePassword = false;
+        }
+
+        public void SetAdminMfaPending(string secret, DateTime generatedAtUtc)
+        {
+            if (!IsAdmin)
+            {
+                throw new InvalidOperationException("Only admins can configure MFA.");
+            }
+
+            AdminMfaPendingSecret = secret;
+            AdminMfaPendingGeneratedAtUtc = generatedAtUtc;
+        }
+
+        public void EnableAdminMfa(string secret)
+        {
+            if (!IsAdmin)
+            {
+                throw new InvalidOperationException("Only admins can enable MFA.");
+            }
+
+            AdminMfaEnabled = true;
+            AdminMfaSecret = secret;
+            AdminMfaPendingSecret = null;
+            AdminMfaPendingGeneratedAtUtc = null;
         }
         
         

@@ -14,7 +14,7 @@ public class JwtTokenGenerator(
     IOptions<JwtOptions> jwtOptions,
     IOptions<AuthTokenOptions> tokenOptions) : IJwtTokenGenerator
 {
-    public string Generate(User user)
+    public string Generate(User user, bool adminMfaVerified = false)
     {
         var options = jwtOptions.Value;
         var now = DateTime.UtcNow;
@@ -31,6 +31,7 @@ public class JwtTokenGenerator(
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Name, user.FirstName),
             new("isAdmin", user.IsAdmin.ToString().ToLowerInvariant()),
+            new("adminMfaVerified", (!user.IsAdmin || adminMfaVerified).ToString().ToLowerInvariant()),
             new("mustChangePassword", user.MustChangePassword.ToString().ToLowerInvariant()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             new(JwtRegisteredClaimNames.Iat, nowEpoch.ToString(), ClaimValueTypes.Integer64),

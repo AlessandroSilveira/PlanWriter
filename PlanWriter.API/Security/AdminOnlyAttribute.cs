@@ -17,8 +17,10 @@ namespace PlanWriter.API.Security
 
             var isAdminClaim =
                 context.HttpContext.User.FindFirst("isAdmin")?.Value;
+            var adminMfaVerifiedClaim =
+                context.HttpContext.User.FindFirst("adminMfaVerified")?.Value;
 
-            if (isAdminClaim != "true")
+            if (isAdminClaim != "true" || adminMfaVerifiedClaim != "true")
             {
                 context.Result = new ForbidResult();
             }

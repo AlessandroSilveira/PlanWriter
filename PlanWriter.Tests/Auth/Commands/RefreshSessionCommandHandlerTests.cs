@@ -80,7 +80,7 @@ public class RefreshSessionCommandHandlerTests
             .ReturnsAsync(true);
 
         _jwtTokenGenerator
-            .Setup(g => g.Generate(user))
+            .Setup(g => g.Generate(user, It.IsAny<bool>()))
             .Returns("access-token");
 
         var handler = CreateHandler();

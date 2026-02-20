@@ -228,6 +228,7 @@ builder.Services.AddScoped<IUserRegistrationReadRepository, UserRegistrationRead
 builder.Services.AddScoped<IUserRegistrationRepository, UserRegistrationRepository>();
 builder.Services.AddScoped<IAuthAuditRepository, AuthAuditRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IAdminMfaRepository, AdminMfaRepository>();
 builder.Services.AddScoped<ICertificateReadRepository, CertificateReadRepository>();
 builder.Services.AddScoped<IDailyWordLogReadRepository, DailyWordLogReadRepository>();
 builder.Services.AddScoped<IProjectEventsReadRepository, ProjectEventsReadRepository>();

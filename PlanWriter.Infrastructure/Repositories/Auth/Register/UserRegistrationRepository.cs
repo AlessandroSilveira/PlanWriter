@@ -24,7 +24,11 @@ public class UserRegistrationRepository(IDbExecutor db) : IUserRegistrationRepos
                 MustChangePassword,
                 IsProfilePublic,
                 Slug,
-                DisplayName
+                DisplayName,
+                AdminMfaEnabled,
+                AdminMfaSecret,
+                AdminMfaPendingSecret,
+                AdminMfaPendingGeneratedAtUtc
             )
             VALUES
             (
@@ -38,7 +42,11 @@ public class UserRegistrationRepository(IDbExecutor db) : IUserRegistrationRepos
                 @MustChangePassword,
                 @IsProfilePublic,
                 @Slug,
-                @DisplayName
+                @DisplayName,
+                @AdminMfaEnabled,
+                @AdminMfaSecret,
+                @AdminMfaPendingSecret,
+                @AdminMfaPendingGeneratedAtUtc
             );
         ";
 
@@ -56,7 +64,11 @@ public class UserRegistrationRepository(IDbExecutor db) : IUserRegistrationRepos
                 user.MustChangePassword,
                 user.IsProfilePublic,
                 user.Slug,
-                user.DisplayName
+                user.DisplayName,
+                user.AdminMfaEnabled,
+                user.AdminMfaSecret,
+                user.AdminMfaPendingSecret,
+                user.AdminMfaPendingGeneratedAtUtc
             },
             ct
         );

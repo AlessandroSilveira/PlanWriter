@@ -25,7 +25,11 @@ public sealed class UserRepository(IDbExecutor db) : IUserRepository
                 Slug,
                 DisplayName,
                 IsAdmin,
-                MustChangePassword
+                MustChangePassword,
+                AdminMfaEnabled,
+                AdminMfaSecret,
+                AdminMfaPendingSecret,
+                AdminMfaPendingGeneratedAtUtc
             )
             VALUES
             (
@@ -41,7 +45,11 @@ public sealed class UserRepository(IDbExecutor db) : IUserRepository
                 @Slug,
                 @DisplayName,
                 @IsAdmin,
-                @MustChangePassword
+                @MustChangePassword,
+                @AdminMfaEnabled,
+                @AdminMfaSecret,
+                @AdminMfaPendingSecret,
+                @AdminMfaPendingGeneratedAtUtc
             );
         ";
 
@@ -64,7 +72,11 @@ public sealed class UserRepository(IDbExecutor db) : IUserRepository
                 Slug = @Slug,
                 DisplayName = @DisplayName,
                 IsAdmin = @IsAdmin,
-                MustChangePassword = @MustChangePassword
+                MustChangePassword = @MustChangePassword,
+                AdminMfaEnabled = @AdminMfaEnabled,
+                AdminMfaSecret = @AdminMfaSecret,
+                AdminMfaPendingSecret = @AdminMfaPendingSecret,
+                AdminMfaPendingGeneratedAtUtc = @AdminMfaPendingGeneratedAtUtc
             WHERE Id = @Id;
         ";
 

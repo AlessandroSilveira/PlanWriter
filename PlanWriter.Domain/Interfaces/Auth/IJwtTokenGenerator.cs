@@ -4,5 +4,5 @@ namespace PlanWriter.Domain.Interfaces.Auth;
 
 public interface IJwtTokenGenerator
 {
-    string Generate(User user);
+    string Generate(User user, bool adminMfaVerified = false);
 }

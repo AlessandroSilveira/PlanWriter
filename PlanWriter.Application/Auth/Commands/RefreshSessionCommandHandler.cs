@@ -120,7 +120,8 @@ public sealed class RefreshSessionCommandHandler(
             now,
             ct);
 
-        var accessToken = jwtTokenGenerator.Generate(user);
+        var adminMfaVerified = !user.IsAdmin || user.AdminMfaEnabled;
+        var accessToken = jwtTokenGenerator.Generate(user, adminMfaVerified);
         return new AuthTokensDto
         {
             AccessToken = accessToken,
