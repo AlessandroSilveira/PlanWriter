@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Auth.Dtos.Commands;
+using PlanWriter.Application.Security;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth.Regsitration;
 
@@ -23,6 +24,13 @@ public class RegisterUserCommandHandler(IUserRegistrationReadRepository readRepo
             logger.LogWarning("Register failed: email {Email} already exists", email);
 
             throw new InvalidOperationException($"Register failed: email {email} already exists");
+        }
+
+        var passwordValidationError = PasswordPolicy.Validate(request.Request.Password);
+        if (passwordValidationError is not null)
+        {
+            logger.LogWarning("Register failed: weak password for {Email}. Reason: {ValidationError}", email, passwordValidationError);
+            throw new InvalidOperationException(passwordValidationError);
         }
 
         var user = MapRequestToUser(request, email);

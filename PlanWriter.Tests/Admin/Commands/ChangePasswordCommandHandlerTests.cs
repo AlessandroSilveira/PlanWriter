@@ -26,7 +26,7 @@ public class ChangePasswordCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        var newPassword = "NewStrongPassword!";
+        var newPassword = "NewStrongPassword1!";
         var hashed = "hashed-password";
         var token = "fake-jwt";
 
@@ -78,7 +78,7 @@ public class ChangePasswordCommandHandlerTests
 
 
     [Fact]
-    public async Task Handle_ShouldThrow_WhenPasswordIsTooShort()
+    public async Task Handle_ShouldThrow_WhenPasswordIsWeak()
     {
         var handler = CreateHandler();
         var command = BuildCommand(Guid.NewGuid(), "123");
@@ -88,7 +88,7 @@ public class ChangePasswordCommandHandlerTests
 
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
-            .WithMessage("Password must have at least 6 characters.");
+            .WithMessage("A senha deve ter pelo menos 12 caracteres.");
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class ChangePasswordCommandHandlerTests
             .ReturnsAsync((User?)null);
 
         var handler = CreateHandler();
-        var command = BuildCommand(userId, "Password123!");
+        var command = BuildCommand(userId, "ValidPassword#2026");
 
         Func<Task> act = async () =>
             await handler.Handle(command, CancellationToken.None);
@@ -116,7 +116,7 @@ public class ChangePasswordCommandHandlerTests
     {
         // Arrange
         var userId = Guid.NewGuid();
-        const string newPassword = "NewStrongPassword!";
+        const string newPassword = "NewStrongPassword1!";
         const string hashed = "hashed-password";
         const string token = "admin-jwt";
 

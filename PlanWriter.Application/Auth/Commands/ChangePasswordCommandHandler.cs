@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.Auth.Dtos.Commands;
+using PlanWriter.Application.Security;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Auth;
@@ -20,11 +21,12 @@ public class ChangePasswordCommandHandler(IUserReadRepository userReadRepository
     {
         var newPassword = request.Request.NewPassword;
 
-        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+        var passwordValidationError = PasswordPolicy.Validate(newPassword);
+        if (passwordValidationError is not null)
         {
-            logger.LogWarning("Change password failed: password must have at least 6 characters");
+            logger.LogWarning("Change password failed: {ValidationError}", passwordValidationError);
 
-            throw new InvalidOperationException("Password must have at least 6 characters.");
+            throw new InvalidOperationException(passwordValidationError);
         }
 
         var user = await userReadRepository.GetByIdAsync(request.UserId, ct);
