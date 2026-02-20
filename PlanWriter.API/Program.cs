@@ -75,6 +75,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
 builder.Services.Configure<AuthTokenOptions>(builder.Configuration.GetSection("AuthTokens"));
+builder.Services.Configure<AuthAuditOptions>(builder.Configuration.GetSection("AuthAudit"));
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -206,8 +207,10 @@ builder.Services.AddScoped<IAdminEventReadRepository, AdminEventReadRepository>(
 builder.Services.AddScoped<IUserReadRepository, UserReadRepository>();
 builder.Services.AddScoped<IUserPasswordRepository, UserPasswordRepository>();
 builder.Services.AddScoped<IUserAuthReadRepository, UserAuthReadRepository>();
+builder.Services.AddScoped<IAuthAuditReadRepository, AuthAuditReadRepository>();
 builder.Services.AddScoped<IUserRegistrationReadRepository, UserRegistrationReadRepository>();
 builder.Services.AddScoped<IUserRegistrationRepository, UserRegistrationRepository>();
+builder.Services.AddScoped<IAuthAuditRepository, AuthAuditRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ICertificateReadRepository, CertificateReadRepository>();
 builder.Services.AddScoped<IDailyWordLogReadRepository, DailyWordLogReadRepository>();
@@ -277,6 +280,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseCors(myAllowSpecificOrigins);
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<MustChangePasswordMiddleware>();

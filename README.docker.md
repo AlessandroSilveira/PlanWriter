@@ -19,6 +19,8 @@ Variáveis principais:
 - `PROXY_PORT` (padrão `80`)
 - `AUTH_TOKENS_ACCESS_TOKEN_MINUTES` (padrão `15`)
 - `AUTH_TOKENS_REFRESH_TOKEN_DAYS` (padrão `7`)
+- `AUTH_AUDIT_RETENTION_DAYS` (padrão `180`)
+- `AUTH_AUDIT_MAX_READ_LIMIT` (padrão `500`)
 - `AUTH_BOOTSTRAP_ENABLED` (padrão `false`)
 - `AUTH_BOOTSTRAP_ADMIN_EMAIL`
 - `AUTH_BOOTSTRAP_ADMIN_PASSWORD` (somente senha forte, minimo 12 com maiuscula/minuscula/numero/simbolo)
@@ -90,3 +92,6 @@ Guia da esteira:
 
 Documentacao do Word War (regras, endpoints e fluxo):
 - `docs/wordwar.md`
+
+Documentacao da trilha de auditoria de autenticacao:
+- `docs/auth-audit.md`
