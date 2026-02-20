@@ -10,6 +10,7 @@ using PlanWriter.API.Security;
 using PlanWriter.Application.Auth.Dtos.Commands;
 using PlanWriter.Application.DTO;
 using PlanWriter.Domain.Dtos.Auth;
+using PlanWriter.Domain.Interfaces.Repositories.Auth;
 using Xunit;
 
 namespace PlanWriter.Tests.API.Controllers;
@@ -18,6 +19,7 @@ public class AuthControllerLockoutTests
 {
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<ILoginLockoutService> _lockoutService = new();
+    private readonly Mock<IAuthAuditRepository> _authAuditRepository = new();
     private readonly Mock<ILogger<AuthController>> _logger = new();
     private readonly TimeProvider _timeProvider = new FixedTimeProvider(
         new DateTimeOffset(2026, 2, 20, 19, 0, 0, TimeSpan.Zero));
@@ -41,6 +43,18 @@ public class AuthControllerLockoutTests
 
         var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
         objectResult.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+        _authAuditRepository.Verify(
+            r => r.CreateAsync(
+                null,
+                "Lockout",
+                "Blocked",
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                "PreCheckLocked",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -131,13 +145,39 @@ public class AuthControllerLockoutTests
         _lockoutService.Verify(
             s => s.RegisterSuccess("user@planwriter.com", "10.0.0.1"),
             Times.Once);
+        _authAuditRepository.Verify(
+            r => r.CreateAsync(
+                It.IsAny<Guid?>(),
+                "Login",
+                "Success",
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                null,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     private AuthController CreateController(string ipAddress)
     {
+        _authAuditRepository
+            .Setup(r => r.CreateAsync(
+                It.IsAny<Guid?>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         var controller = new AuthController(
             _mediator.Object,
             _lockoutService.Object,
+            _authAuditRepository.Object,
             _timeProvider,
             _logger.Object)
         {
