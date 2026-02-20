@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -71,6 +72,40 @@ builder.Services
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("auth-login", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: $"auth-login:{ip}",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            });
+    });
+
+    options.AddPolicy("auth-register", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: $"auth-register:{ip}",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            });
+    });
+});
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
@@ -160,6 +195,8 @@ builder.Services.AddScoped<IDailyWordLogReadRepository, DailyWordLogReadReposito
 builder.Services.AddScoped<IProjectEventsReadRepository, ProjectEventsReadRepository>();
 builder.Services.AddScoped<IWinnerEligibilityService, WinnerEligibilityService>();
 builder.Services.AddScoped<IEventProgressCalculator, EventProgressCalculator>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ILoginLockoutService, InMemoryLoginLockoutService>();
 
 builder.Services.AddScoped<IWordWarParticipantReadRepository, WordWarParticipantReadRepository>();
 builder.Services.AddScoped<IWordWarRepository, WordWarRepository>();
@@ -221,6 +258,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseCors(myAllowSpecificOrigins);
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<MustChangePasswordMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
