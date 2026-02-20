@@ -11,13 +11,13 @@ cp .env.docker.example .env
 ```
 
 Variáveis principais:
-- `MSSQL_SA_PASSWORD`
+- `MSSQL_SA_PASSWORD` (obrigatório, sem default inseguro)
 - `STAGING_API_PORT` (padrão `5003`)
 - `STAGING_FRONTEND_PORT` (padrão `5175`)
 - `PROD_API_PORT` (padrão `5001`)
 - `PROD_FRONTEND_PORT` (padrão `5173`)
 - `PROXY_PORT` (padrão `80`)
-- `JWT_KEY` (obrigatório em produção, minimo 32 chars)
+- `JWT_KEY` (obrigatório em todos os ambientes, minimo 32 chars)
 - `JWT_ISSUER` (padrão `PlanWriterApi`)
 - `JWT_AUDIENCE` (padrão `PlanWriterClient`)
 - `JWT_CURRENT_KID` (padrão `v1`)
@@ -29,6 +29,10 @@ Variáveis principais:
 - `AUTH_BOOTSTRAP_ENABLED` (padrão `false`)
 - `AUTH_BOOTSTRAP_ADMIN_EMAIL`
 - `AUTH_BOOTSTRAP_ADMIN_PASSWORD` (somente senha forte, minimo 12 com maiuscula/minuscula/numero/simbolo)
+
+Observacoes de seguranca:
+- `docker-compose*.yml` agora falha cedo se `MSSQL_SA_PASSWORD` ou `JWT_KEY` nao estiverem definidos.
+- Nao deixe placeholders (`CHANGE_ME_*`) em staging/production; a API bloqueia startup quando encontra placeholder/default inseguro.
 
 ## 2) Subir os dois ambientes + proxy local
 

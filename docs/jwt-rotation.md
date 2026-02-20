@@ -20,6 +20,7 @@ Permitir rotação de chave JWT sem derrubar sessões ativas imediatamente, usan
 5. Após a janela de expiração dos tokens antigos, remover a chave antiga de `Jwt:PreviousKeys`.
 
 ## Observações
-- Em produção, a API bloqueia startup se `Jwt:Key` for fraca/default.
+- Em ambientes nao-test (`Development`, `Staging`, `Production`), a API bloqueia startup se `Jwt:Key` estiver fraca/default/placeholder.
+- `JWT_KEY` deve vir por secret de ambiente (nao usar fallback hardcoded em compose).
 - O emissor sempre assina com a chave ativa (`Jwt:CurrentKid`).
 - O validador aceita tokens assinados com a chave ativa ou com chaves anteriores configuradas.

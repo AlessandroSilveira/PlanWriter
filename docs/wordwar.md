@@ -193,7 +193,7 @@ Ver schema real de participantes no SQL Server:
 
 ```bash
 docker exec -it planwriter-stg-sqlserver \
-  /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Str0ng!Senha2024' -d PlanWriterDb \
+  /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d PlanWriterDb \
   -Q "SELECT c.name, t.name AS type_name, c.is_nullable FROM sys.columns c JOIN sys.types t ON t.user_type_id=c.user_type_id WHERE c.object_id=OBJECT_ID('dbo.EventWordWarParticipants') ORDER BY c.column_id;"
 ```
 
