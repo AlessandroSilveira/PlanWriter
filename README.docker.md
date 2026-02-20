@@ -24,6 +24,8 @@ Variáveis principais:
 - `JWT_CLOCK_SKEW_SECONDS` (padrão `30`)
 - `AUTH_TOKENS_ACCESS_TOKEN_MINUTES` (padrão `15`)
 - `AUTH_TOKENS_REFRESH_TOKEN_DAYS` (padrão `7`)
+- `AUTH_AUDIT_RETENTION_DAYS` (padrão `180`)
+- `AUTH_AUDIT_MAX_READ_LIMIT` (padrão `500`)
 - `AUTH_BOOTSTRAP_ENABLED` (padrão `false`)
 - `AUTH_BOOTSTRAP_ADMIN_EMAIL`
 - `AUTH_BOOTSTRAP_ADMIN_PASSWORD` (somente senha forte, minimo 12 com maiuscula/minuscula/numero/simbolo)
@@ -98,3 +100,6 @@ Documentacao do Word War (regras, endpoints e fluxo):
 
 Documentacao de JWT e rotacao de chave:
 - `docs/jwt-rotation.md`
+
+Documentacao da trilha de auditoria de autenticacao:
+- `docs/auth-audit.md`
