@@ -16,6 +16,7 @@ using PlanWriter.Application.Common.WinnerEligibility;
 using PlanWriter.Application.Interfaces;
 using PlanWriter.Application.Services;
 using PlanWriter.Application.Validators;
+using PlanWriter.Domain.Configurations;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Helpers;
 using PlanWriter.Domain.Interfaces.Auth;
@@ -30,6 +31,7 @@ using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.ReadModels.WordWars;
 using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.Repositories.Auth;
 using PlanWriter.Domain.Interfaces.Repositories.DailyWordLogWrite;
 using PlanWriter.Domain.Interfaces.Repositories.Events.Admin;
 using PlanWriter.Domain.Interfaces.Repositories.WordWars;
@@ -72,6 +74,7 @@ builder.Services
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
+builder.Services.Configure<AuthTokenOptions>(builder.Configuration.GetSection("AuthTokens"));
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -100,6 +103,21 @@ builder.Services.AddRateLimiter(options =>
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            });
+    });
+
+    options.AddPolicy("auth-refresh", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: $"auth-refresh:{ip}",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst
@@ -190,6 +208,7 @@ builder.Services.AddScoped<IUserPasswordRepository, UserPasswordRepository>();
 builder.Services.AddScoped<IUserAuthReadRepository, UserAuthReadRepository>();
 builder.Services.AddScoped<IUserRegistrationReadRepository, UserRegistrationReadRepository>();
 builder.Services.AddScoped<IUserRegistrationRepository, UserRegistrationRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ICertificateReadRepository, CertificateReadRepository>();
 builder.Services.AddScoped<IDailyWordLogReadRepository, DailyWordLogReadRepository>();
 builder.Services.AddScoped<IProjectEventsReadRepository, ProjectEventsReadRepository>();

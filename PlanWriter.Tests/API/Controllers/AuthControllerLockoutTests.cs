@@ -9,6 +9,7 @@ using PlanWriter.API.Controllers;
 using PlanWriter.API.Security;
 using PlanWriter.Application.Auth.Dtos.Commands;
 using PlanWriter.Application.DTO;
+using PlanWriter.Domain.Dtos.Auth;
 using Xunit;
 
 namespace PlanWriter.Tests.API.Controllers;
@@ -57,7 +58,7 @@ public class AuthControllerLockoutTests
 
         _mediator
             .Setup(m => m.Send(It.IsAny<LoginUserCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string?)null);
+            .ReturnsAsync((AuthTokensDto?)null);
 
         _lockoutService
             .Setup(s => s.RegisterFailure("user@planwriter.com", "10.0.0.1", It.IsAny<DateTime>()))
@@ -85,7 +86,7 @@ public class AuthControllerLockoutTests
 
         _mediator
             .Setup(m => m.Send(It.IsAny<LoginUserCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string?)null);
+            .ReturnsAsync((AuthTokensDto?)null);
 
         _lockoutService
             .Setup(s => s.RegisterFailure("user@planwriter.com", "10.0.0.1", It.IsAny<DateTime>()))
@@ -114,7 +115,13 @@ public class AuthControllerLockoutTests
 
         _mediator
             .Setup(m => m.Send(It.IsAny<LoginUserCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("jwt-token");
+            .ReturnsAsync(new AuthTokensDto
+            {
+                AccessToken = "jwt-token",
+                RefreshToken = "refresh-token",
+                AccessTokenExpiresInSeconds = 900,
+                RefreshTokenExpiresAtUtc = DateTime.UtcNow.AddDays(7)
+            });
 
         var controller = CreateController("10.0.0.1");
 

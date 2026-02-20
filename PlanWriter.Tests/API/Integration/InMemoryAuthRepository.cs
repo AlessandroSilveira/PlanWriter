@@ -1,5 +1,6 @@
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth.Regsitration;
+using PlanWriter.Domain.Interfaces.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
@@ -9,6 +10,7 @@ namespace PlanWriter.Tests.API.Integration;
 public sealed class InMemoryAuthRepository :
     IUserReadRepository,
     IUserRepository,
+    IUserAuthReadRepository,
     IUserRegistrationReadRepository,
     IUserRegistrationRepository,
     IUserPasswordRepository

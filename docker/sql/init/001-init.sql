@@ -60,6 +60,72 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.RefreshTokenSessions', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.RefreshTokenSessions
+    (
+        Id UNIQUEIDENTIFIER NOT NULL,
+        UserId UNIQUEIDENTIFIER NOT NULL,
+        FamilyId UNIQUEIDENTIFIER NOT NULL,
+        ParentTokenId UNIQUEIDENTIFIER NULL,
+        ReplacedByTokenId UNIQUEIDENTIFIER NULL,
+        TokenHash CHAR(64) NOT NULL,
+        Device NVARCHAR(250) NULL,
+        CreatedByIp NVARCHAR(64) NULL,
+        CreatedAtUtc DATETIME2 NOT NULL
+            CONSTRAINT DF_RefreshTokenSessions_CreatedAtUtc DEFAULT (SYSUTCDATETIME()),
+        ExpiresAtUtc DATETIME2 NOT NULL,
+        LastUsedAtUtc DATETIME2 NULL,
+        RevokedAtUtc DATETIME2 NULL,
+        RevokedReason NVARCHAR(200) NULL,
+        CONSTRAINT PK_RefreshTokenSessions PRIMARY KEY (Id),
+        CONSTRAINT FK_RefreshTokenSessions_Users_UserId FOREIGN KEY (UserId)
+            REFERENCES dbo.Users (Id)
+            ON DELETE CASCADE,
+        CONSTRAINT FK_RefreshTokenSessions_RefreshTokenSessions_ParentTokenId FOREIGN KEY (ParentTokenId)
+            REFERENCES dbo.RefreshTokenSessions (Id),
+        CONSTRAINT FK_RefreshTokenSessions_RefreshTokenSessions_ReplacedByTokenId FOREIGN KEY (ReplacedByTokenId)
+            REFERENCES dbo.RefreshTokenSessions (Id)
+    );
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'UX_RefreshTokenSessions_TokenHash'
+      AND object_id = OBJECT_ID(N'dbo.RefreshTokenSessions')
+)
+BEGIN
+    CREATE UNIQUE INDEX UX_RefreshTokenSessions_TokenHash
+        ON dbo.RefreshTokenSessions (TokenHash);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_RefreshTokenSessions_UserId_ExpiresAtUtc'
+      AND object_id = OBJECT_ID(N'dbo.RefreshTokenSessions')
+)
+BEGIN
+    CREATE INDEX IX_RefreshTokenSessions_UserId_ExpiresAtUtc
+        ON dbo.RefreshTokenSessions (UserId, ExpiresAtUtc DESC);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_RefreshTokenSessions_FamilyId'
+      AND object_id = OBJECT_ID(N'dbo.RefreshTokenSessions')
+)
+BEGIN
+    CREATE INDEX IX_RefreshTokenSessions_FamilyId
+        ON dbo.RefreshTokenSessions (FamilyId);
+END
+GO
+
 IF OBJECT_ID(N'dbo.Events', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Events
