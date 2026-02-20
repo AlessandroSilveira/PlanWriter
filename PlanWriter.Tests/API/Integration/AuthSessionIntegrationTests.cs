@@ -1,5 +1,8 @@
+using System;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -115,6 +118,104 @@ public sealed class AuthSessionIntegrationTests(AuthApiWebApplicationFactory fac
     }
 
     [Fact]
+    public async Task LogoutAll_ShouldRevokeAllUserSessions()
+    {
+        factory.Store.Reset();
+        factory.TokenStore.Reset();
+        factory.AuditStore.Reset();
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "writer3@planwriter.com",
+            FirstName = "Writer",
+            LastName = "Three",
+            DateOfBirth = new DateTime(1992, 1, 1)
+        };
+        user.ChangePassword(new PasswordHasher<User>().HashPassword(user, "StrongPassword#2026"));
+        factory.Store.Seed(user);
+
+        using var publicClient = CreateClient();
+
+        var login1 = await publicClient.PostAsJsonAsync("/api/auth/login", new LoginUserDto
+        {
+            Email = user.Email,
+            Password = "StrongPassword#2026"
+        });
+        login1.StatusCode.Should().Be(HttpStatusCode.OK);
+        var tokens1 = await login1.Content.ReadFromJsonAsync<AuthTokensDto>();
+        tokens1.Should().NotBeNull();
+
+        var login2 = await publicClient.PostAsJsonAsync("/api/auth/login", new LoginUserDto
+        {
+            Email = user.Email,
+            Password = "StrongPassword#2026"
+        });
+        login2.StatusCode.Should().Be(HttpStatusCode.OK);
+        var tokens2 = await login2.Content.ReadFromJsonAsync<AuthTokensDto>();
+        tokens2.Should().NotBeNull();
+
+        using var authenticatedClient = CreateClient(user.Id);
+        var logoutAllResponse = await authenticatedClient.PostAsync("/api/auth/logout-all", null);
+        logoutAllResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var refresh1 = await publicClient.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenDto
+        {
+            RefreshToken = tokens1!.RefreshToken
+        });
+        refresh1.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var refresh2 = await publicClient.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenDto
+        {
+            RefreshToken = tokens2!.RefreshToken
+        });
+        refresh2.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task ChangePassword_ShouldRevokeAllRefreshSessions()
+    {
+        factory.Store.Reset();
+        factory.TokenStore.Reset();
+        factory.AuditStore.Reset();
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "writer4@planwriter.com",
+            FirstName = "Writer",
+            LastName = "Four",
+            DateOfBirth = new DateTime(1993, 1, 1)
+        };
+        user.ChangePassword(new PasswordHasher<User>().HashPassword(user, "StrongPassword#2026"));
+        factory.Store.Seed(user);
+
+        using var publicClient = CreateClient();
+
+        var loginResponse = await publicClient.PostAsJsonAsync("/api/auth/login", new LoginUserDto
+        {
+            Email = user.Email,
+            Password = "StrongPassword#2026"
+        });
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var tokens = await loginResponse.Content.ReadFromJsonAsync<AuthTokensDto>();
+        tokens.Should().NotBeNull();
+
+        using var authenticatedClient = CreateClient(user.Id);
+        var changePasswordResponse = await authenticatedClient.PostAsJsonAsync(
+            "/api/auth/change-password",
+            new ChangePasswordDto { NewPassword = "StrongPassword#2027" });
+        changePasswordResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var refreshAfterPasswordChange = await publicClient.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenDto
+        {
+            RefreshToken = tokens!.RefreshToken
+        });
+
+        refreshAfterPasswordChange.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task Login_ShouldPersistAuditWithCorrelationId()
     {
         factory.Store.Reset();
@@ -159,11 +260,18 @@ public sealed class AuthSessionIntegrationTests(AuthApiWebApplicationFactory fac
         logs[0].UserAgent.Should().Contain("PlanWriterTests/1.0");
     }
 
-    private HttpClient CreateClient()
+    private HttpClient CreateClient(Guid? authenticatedUserId = null)
     {
-        return factory.CreateClient(new WebApplicationFactoryClientOptions
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = new Uri("https://localhost")
         });
+
+        if (authenticatedUserId.HasValue)
+        {
+            client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, authenticatedUserId.Value.ToString());
+        }
+
+        return client;
     }
 }

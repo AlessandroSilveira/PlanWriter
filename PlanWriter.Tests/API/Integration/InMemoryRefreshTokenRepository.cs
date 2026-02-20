@@ -82,6 +82,22 @@ public sealed class InMemoryRefreshTokenRepository : IRefreshTokenRepository
         }
     }
 
+    public Task<int> RevokeAllByUserAsync(Guid userId, DateTime revokedAtUtc, string reason, CancellationToken ct)
+    {
+        lock (_lock)
+        {
+            var affected = 0;
+            foreach (var session in _sessions.Values.Where(x => x.UserId == userId && !x.RevokedAtUtc.HasValue))
+            {
+                session.RevokedAtUtc = revokedAtUtc;
+                session.RevokedReason = reason;
+                affected++;
+            }
+
+            return Task.FromResult(affected);
+        }
+    }
+
     public Task<bool> UpdateLastUsedAsync(Guid tokenId, DateTime lastUsedAtUtc, CancellationToken ct)
     {
         lock (_lock)
