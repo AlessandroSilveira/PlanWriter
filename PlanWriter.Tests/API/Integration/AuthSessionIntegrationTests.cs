@@ -1,5 +1,8 @@
+using System;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -18,6 +21,7 @@ public sealed class AuthSessionIntegrationTests(AuthApiWebApplicationFactory fac
     {
         factory.Store.Reset();
         factory.TokenStore.Reset();
+        factory.AuditStore.Reset();
 
         var user = new User
         {
@@ -73,6 +77,7 @@ public sealed class AuthSessionIntegrationTests(AuthApiWebApplicationFactory fac
     {
         factory.Store.Reset();
         factory.TokenStore.Reset();
+        factory.AuditStore.Reset();
 
         var user = new User
         {
@@ -117,6 +122,7 @@ public sealed class AuthSessionIntegrationTests(AuthApiWebApplicationFactory fac
     {
         factory.Store.Reset();
         factory.TokenStore.Reset();
+        factory.AuditStore.Reset();
 
         var user = new User
         {
@@ -171,6 +177,7 @@ public sealed class AuthSessionIntegrationTests(AuthApiWebApplicationFactory fac
     {
         factory.Store.Reset();
         factory.TokenStore.Reset();
+        factory.AuditStore.Reset();
 
         var user = new User
         {
@@ -206,6 +213,51 @@ public sealed class AuthSessionIntegrationTests(AuthApiWebApplicationFactory fac
         });
 
         refreshAfterPasswordChange.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Login_ShouldPersistAuditWithCorrelationId()
+    {
+        factory.Store.Reset();
+        factory.TokenStore.Reset();
+        factory.AuditStore.Reset();
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "writer-audit@planwriter.com",
+            FirstName = "Writer",
+            LastName = "Audit",
+            DateOfBirth = new DateTime(1994, 1, 1)
+        };
+        user.ChangePassword(new PasswordHasher<User>().HashPassword(user, "StrongPassword#2026"));
+        factory.Store.Seed(user);
+
+        using var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Correlation-Id", "corr-auth-001");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PlanWriterTests/1.0");
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginUserDto
+        {
+            Email = user.Email,
+            Password = "StrongPassword#2026"
+        });
+
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var logs = await factory.AuditStore.GetAsync(
+            null,
+            null,
+            null,
+            "Login",
+            "Success",
+            10,
+            CancellationToken.None);
+
+        logs.Should().ContainSingle();
+        logs[0].CorrelationId.Should().Be("corr-auth-001");
+        logs[0].TraceId.Should().NotBeNullOrWhiteSpace();
+        logs[0].UserAgent.Should().Contain("PlanWriterTests/1.0");
     }
 
     private HttpClient CreateClient(Guid? authenticatedUserId = null)

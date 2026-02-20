@@ -126,6 +126,53 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.AuthAuditLogs', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.AuthAuditLogs
+    (
+        Id UNIQUEIDENTIFIER NOT NULL,
+        UserId UNIQUEIDENTIFIER NULL,
+        EventType NVARCHAR(50) NOT NULL,
+        Result NVARCHAR(30) NOT NULL,
+        IpAddress NVARCHAR(64) NULL,
+        UserAgent NVARCHAR(300) NULL,
+        TraceId NVARCHAR(100) NULL,
+        CorrelationId NVARCHAR(100) NULL,
+        Details NVARCHAR(300) NULL,
+        CreatedAtUtc DATETIME2 NOT NULL
+            CONSTRAINT DF_AuthAuditLogs_CreatedAtUtc DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT PK_AuthAuditLogs PRIMARY KEY (Id),
+        CONSTRAINT FK_AuthAuditLogs_Users_UserId FOREIGN KEY (UserId)
+            REFERENCES dbo.Users (Id)
+            ON DELETE SET NULL
+    );
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_AuthAuditLogs_CreatedAtUtc'
+      AND object_id = OBJECT_ID(N'dbo.AuthAuditLogs')
+)
+BEGIN
+    CREATE INDEX IX_AuthAuditLogs_CreatedAtUtc
+        ON dbo.AuthAuditLogs (CreatedAtUtc DESC);
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_AuthAuditLogs_UserId_CreatedAtUtc'
+      AND object_id = OBJECT_ID(N'dbo.AuthAuditLogs')
+)
+BEGIN
+    CREATE INDEX IX_AuthAuditLogs_UserId_CreatedAtUtc
+        ON dbo.AuthAuditLogs (UserId, CreatedAtUtc DESC);
+END
+GO
+
 IF OBJECT_ID(N'dbo.Events', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Events

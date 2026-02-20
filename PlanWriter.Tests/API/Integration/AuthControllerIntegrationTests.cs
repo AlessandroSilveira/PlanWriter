@@ -20,6 +20,7 @@ public sealed class AuthControllerIntegrationTests(AuthApiWebApplicationFactory 
     public async Task Register_WithWeakPassword_ShouldReturnBadRequest()
     {
         factory.Store.Reset();
+        factory.AuditStore.Reset();
         using var client = CreateClient();
 
         var response = await client.PostAsJsonAsync("/api/auth/register", BuildRegisterDto("123456"));
@@ -36,6 +37,7 @@ public sealed class AuthControllerIntegrationTests(AuthApiWebApplicationFactory 
     public async Task Register_WithCommonPassword_ShouldReturnBadRequest()
     {
         factory.Store.Reset();
+        factory.AuditStore.Reset();
         using var client = CreateClient();
 
         var response = await client.PostAsJsonAsync("/api/auth/register", BuildRegisterDto("Password123!"));
@@ -52,6 +54,7 @@ public sealed class AuthControllerIntegrationTests(AuthApiWebApplicationFactory 
     public async Task Register_WithStrongPassword_ShouldCreateUser()
     {
         factory.Store.Reset();
+        factory.AuditStore.Reset();
         using var client = CreateClient();
 
         var response = await client.PostAsJsonAsync("/api/auth/register", BuildRegisterDto("StrongPassword#2026"));
@@ -64,6 +67,7 @@ public sealed class AuthControllerIntegrationTests(AuthApiWebApplicationFactory 
     public async Task ChangePassword_WithWeakPassword_ShouldReturnBadRequest()
     {
         factory.Store.Reset();
+        factory.AuditStore.Reset();
 
         var userId = Guid.NewGuid();
         factory.Store.Seed(new User
@@ -92,6 +96,7 @@ public sealed class AuthControllerIntegrationTests(AuthApiWebApplicationFactory 
     public async Task ChangePassword_WithStrongPassword_ShouldUpdatePassword()
     {
         factory.Store.Reset();
+        factory.AuditStore.Reset();
 
         var userId = Guid.NewGuid();
         factory.Store.Seed(new User
