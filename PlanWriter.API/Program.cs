@@ -75,6 +75,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserDtoValidator>();
 builder.Services.Configure<AuthTokenOptions>(builder.Configuration.GetSection("AuthTokens"));
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -125,9 +126,12 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
+var jwtOptions = builder.Configuration
+    .GetSection("Jwt")
+    .Get<JwtOptions>() ?? new JwtOptions();
+JwtSecurityConfiguration.ValidateForStartup(jwtOptions, builder.Environment.IsProduction());
+var signingKeys = JwtSecurityConfiguration.BuildSigningKeys(jwtOptions);
+var clockSkew = TimeSpan.FromSeconds(jwtOptions.ClockSkewSeconds);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -141,10 +145,21 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
+        RequireExpirationTime = true,
+        RequireSignedTokens = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtKey!))
+        ValidIssuer = jwtOptions.Issuer,
+        ValidAudience = jwtOptions.Audience,
+        ClockSkew = clockSkew,
+        IssuerSigningKeyResolver = (_, _, kid, _) =>
+        {
+            if (!string.IsNullOrWhiteSpace(kid) && signingKeys.TryGetValue(kid, out var signingKey))
+            {
+                return [signingKey];
+            }
+
+            return signingKeys.Values;
+        }
     };
 });
 builder.Services.AddApplication();

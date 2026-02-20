@@ -17,6 +17,11 @@ Variáveis principais:
 - `PROD_API_PORT` (padrão `5001`)
 - `PROD_FRONTEND_PORT` (padrão `5173`)
 - `PROXY_PORT` (padrão `80`)
+- `JWT_KEY` (obrigatório em produção, minimo 32 chars)
+- `JWT_ISSUER` (padrão `PlanWriterApi`)
+- `JWT_AUDIENCE` (padrão `PlanWriterClient`)
+- `JWT_CURRENT_KID` (padrão `v1`)
+- `JWT_CLOCK_SKEW_SECONDS` (padrão `30`)
 - `AUTH_TOKENS_ACCESS_TOKEN_MINUTES` (padrão `15`)
 - `AUTH_TOKENS_REFRESH_TOKEN_DAYS` (padrão `7`)
 - `AUTH_BOOTSTRAP_ENABLED` (padrão `false`)
@@ -90,3 +95,6 @@ Guia da esteira:
 
 Documentacao do Word War (regras, endpoints e fluxo):
 - `docs/wordwar.md`
+
+Documentacao de JWT e rotacao de chave:
+- `docs/jwt-rotation.md`
