@@ -78,6 +78,8 @@ jobs:
       DEPLOY_REF_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_ref || '' }}
       DEFAULT_REF: ${{ github.ref_name }}
       TARGET_ENV: staging
+      MSSQL_SA_PASSWORD_SECRET: ${{ secrets.MSSQL_SA_PASSWORD }}
+      JWT_KEY_SECRET: ${{ secrets.JWT_KEY }}
 
     steps:
       - name: Validate deploy root
@@ -91,6 +93,13 @@ jobs:
       - name: Update repositories and deploy
         run: |
           set -euo pipefail
+
+          if [ -n "${MSSQL_SA_PASSWORD_SECRET:-}" ]; then
+            export MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD_SECRET"
+          fi
+          if [ -n "${JWT_KEY_SECRET:-}" ]; then
+            export JWT_KEY="$JWT_KEY_SECRET"
+          fi
 
           BACKEND_DIR="$DEPLOY_ROOT/PlanWriter"
           FRONTEND_DIR="$DEPLOY_ROOT/PlanWriter-Frontend"
@@ -158,6 +167,8 @@ jobs:
       DEPLOY_REF_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_ref || '' }}
       DEFAULT_REF: ${{ github.ref_name }}
       TARGET_ENV: production
+      MSSQL_SA_PASSWORD_SECRET: ${{ secrets.MSSQL_SA_PASSWORD }}
+      JWT_KEY_SECRET: ${{ secrets.JWT_KEY }}
 
     steps:
       - name: Validate deploy root
@@ -171,6 +182,13 @@ jobs:
       - name: Update repositories and deploy
         run: |
           set -euo pipefail
+
+          if [ -n "${MSSQL_SA_PASSWORD_SECRET:-}" ]; then
+            export MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD_SECRET"
+          fi
+          if [ -n "${JWT_KEY_SECRET:-}" ]; then
+            export JWT_KEY="$JWT_KEY_SECRET"
+          fi
 
           BACKEND_DIR="$DEPLOY_ROOT/PlanWriter"
           FRONTEND_DIR="$DEPLOY_ROOT/PlanWriter-Frontend"
@@ -235,6 +253,8 @@ jobs:
       DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
       ROLLBACK_REF_INPUT: ${{ github.event.inputs.rollback_ref }}
       TARGET_ENV: ${{ github.event.inputs.target }}
+      MSSQL_SA_PASSWORD_SECRET: ${{ secrets.MSSQL_SA_PASSWORD }}
+      JWT_KEY_SECRET: ${{ secrets.JWT_KEY }}
 
     steps:
       - name: Validate rollback inputs
@@ -254,6 +274,13 @@ jobs:
       - name: Rollback repositories and redeploy
         run: |
           set -euo pipefail
+
+          if [ -n "${MSSQL_SA_PASSWORD_SECRET:-}" ]; then
+            export MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD_SECRET"
+          fi
+          if [ -n "${JWT_KEY_SECRET:-}" ]; then
+            export JWT_KEY="$JWT_KEY_SECRET"
+          fi
 
           BACKEND_DIR="$DEPLOY_ROOT/PlanWriter"
           FRONTEND_DIR="$DEPLOY_ROOT/PlanWriter-Frontend"

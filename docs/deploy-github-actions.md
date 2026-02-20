@@ -26,6 +26,8 @@ Crie no GitHub:
 Em cada ambiente, configure:
 
 - Secret `DEPLOY_ROOT`
+- Secret `MSSQL_SA_PASSWORD`
+- Secret `JWT_KEY`
 
 Exemplo:
 
@@ -34,6 +36,7 @@ Exemplo:
 ```
 
 Se quiser separar infraestrutura, use caminhos diferentes por ambiente.
+Para staging e production, use valores diferentes de `MSSQL_SA_PASSWORD` e `JWT_KEY`.
 
 ## Como o deploy sobe containers separados
 
