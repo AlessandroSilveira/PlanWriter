@@ -1,6 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using PlanWriter.Domain.Configurations;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Infrastructure.Auth;
 using Xunit;
@@ -21,7 +23,13 @@ public class JwtTokenGeneratorTests
             })
             .Build();
 
-        var sut = new JwtTokenGenerator(config);
+        var sut = new JwtTokenGenerator(
+            config,
+            Options.Create(new AuthTokenOptions
+            {
+                AccessTokenMinutes = 15,
+                RefreshTokenDays = 7
+            }));
         var user = new User
         {
             Id = Guid.NewGuid(),
@@ -48,7 +56,13 @@ public class JwtTokenGeneratorTests
     public void Generate_ShouldThrow_WhenKeyIsMissing()
     {
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
-        var sut = new JwtTokenGenerator(config);
+        var sut = new JwtTokenGenerator(
+            config,
+            Options.Create(new AuthTokenOptions
+            {
+                AccessTokenMinutes = 15,
+                RefreshTokenDays = 7
+            }));
 
         var act = () => sut.Generate(new User { Id = Guid.NewGuid(), Email = "user@test.com", FirstName = "Alice" });
 

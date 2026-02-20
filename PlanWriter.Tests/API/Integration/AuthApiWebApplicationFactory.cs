@@ -9,6 +9,7 @@ using PlanWriter.Domain.Interfaces.Auth.Regsitration;
 using PlanWriter.Domain.Interfaces.ReadModels.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Users;
 using PlanWriter.Domain.Interfaces.Repositories;
+using PlanWriter.Domain.Interfaces.Repositories.Auth;
 
 namespace PlanWriter.Tests.API.Integration;
 
@@ -25,6 +26,8 @@ public sealed class AuthApiWebApplicationFactory : WebApplicationFactory<Program
             services.RemoveAll<IUserRegistrationReadRepository>();
             services.RemoveAll<IUserRegistrationRepository>();
             services.RemoveAll<IUserPasswordRepository>();
+            services.RemoveAll<IUserAuthReadRepository>();
+            services.RemoveAll<IRefreshTokenRepository>();
             services.RemoveAll<IJwtTokenGenerator>();
 
             services.AddSingleton<InMemoryAuthRepository>();
@@ -33,6 +36,10 @@ public sealed class AuthApiWebApplicationFactory : WebApplicationFactory<Program
             services.AddSingleton<IUserRegistrationReadRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
             services.AddSingleton<IUserRegistrationRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
             services.AddSingleton<IUserPasswordRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
+            services.AddSingleton<IUserAuthReadRepository>(sp => sp.GetRequiredService<InMemoryAuthRepository>());
+
+            services.AddSingleton<InMemoryRefreshTokenRepository>();
+            services.AddSingleton<IRefreshTokenRepository>(sp => sp.GetRequiredService<InMemoryRefreshTokenRepository>());
             services.AddSingleton<IJwtTokenGenerator, FakeJwtTokenGenerator>();
 
             services
@@ -46,4 +53,5 @@ public sealed class AuthApiWebApplicationFactory : WebApplicationFactory<Program
     }
 
     public InMemoryAuthRepository Store => Services.GetRequiredService<InMemoryAuthRepository>();
+    public InMemoryRefreshTokenRepository TokenStore => Services.GetRequiredService<InMemoryRefreshTokenRepository>();
 }

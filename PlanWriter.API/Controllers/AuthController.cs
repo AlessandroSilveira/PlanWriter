@@ -39,6 +39,7 @@ public class AuthController(
     {
         var email = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var device = Request.Headers.UserAgent.ToString();
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         var preCheck = loginLockoutService.Check(email, ipAddress, now);
@@ -53,8 +54,8 @@ public class AuthController(
             return StatusCode(StatusCodes.Status403Forbidden, GenericAuthError);
         }
 
-        var token = await mediator.Send(new LoginUserCommand(request));
-        if (string.IsNullOrEmpty(token))
+        var tokens = await mediator.Send(new LoginUserCommand(request, ipAddress, device));
+        if (tokens is null)
         {
             var failState = loginLockoutService.RegisterFailure(email, ipAddress, now);
             if (failState.IsLocked)
@@ -70,12 +71,36 @@ public class AuthController(
                 return StatusCode(StatusCodes.Status403Forbidden, GenericAuthError);
             }
 
-            return Unauthorized("Invalid email or password.");
+            return Unauthorized(GenericAuthError);
         }
 
         loginLockoutService.RegisterSuccess(email, ipAddress);
         
-        return Ok(new { AccessToken = token });
+        return Ok(tokens);
+    }
+
+    [EnableRateLimiting("auth-refresh")]
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var device = Request.Headers.UserAgent.ToString();
+
+        var tokens = await mediator.Send(new RefreshSessionCommand(dto, ipAddress, device));
+        if (tokens is null)
+        {
+            return Unauthorized(GenericAuthError);
+        }
+
+        return Ok(tokens);
+    }
+
+    [EnableRateLimiting("auth-refresh")]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenDto dto)
+    {
+        await mediator.Send(new LogoutSessionCommand(dto));
+        return Ok(new { message = "Sessão encerrada com sucesso." });
     }
     
     [Authorize]

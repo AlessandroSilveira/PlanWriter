@@ -4,17 +4,22 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using PlanWriter.Domain.Configurations;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth;
 
 namespace PlanWriter.Infrastructure.Auth;
 
-public class JwtTokenGenerator(IConfiguration configuration) : IJwtTokenGenerator
+public class JwtTokenGenerator(
+    IConfiguration configuration,
+    IOptions<AuthTokenOptions> tokenOptions) : IJwtTokenGenerator
 {
     public string Generate(User user)
     {
         var key = Encoding.ASCII.GetBytes(configuration["Jwt:Key"]!);
+        var accessTokenMinutes = Math.Max(1, tokenOptions.Value.AccessTokenMinutes);
 
         var claims = new List<Claim>
         {
@@ -28,7 +33,7 @@ public class JwtTokenGenerator(IConfiguration configuration) : IJwtTokenGenerato
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddHours(1),
+            Expires = DateTime.UtcNow.AddMinutes(accessTokenMinutes),
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(key),
                 SecurityAlgorithms.HmacSha256Signature
