@@ -105,4 +105,30 @@ public class RefreshTokenRepositoryTests
         affected.Should().Be(3);
         capturedParam!.GetProp<Guid>("FamilyId").Should().Be(familyId);
     }
+
+    [Fact]
+    public async Task RevokeAllByUserAsync_ShouldExecuteUpdate()
+    {
+        object? capturedParam = null;
+
+        var db = new StubDbExecutor
+        {
+            ExecuteAsyncHandler = (_, param, _) =>
+            {
+                capturedParam = param;
+                return Task.FromResult(4);
+            }
+        };
+
+        var sut = new RefreshTokenRepository(db);
+        var userId = Guid.NewGuid();
+        var affected = await sut.RevokeAllByUserAsync(
+            userId,
+            DateTime.UtcNow,
+            "reason",
+            CancellationToken.None);
+
+        affected.Should().Be(4);
+        capturedParam!.GetProp<Guid>("UserId").Should().Be(userId);
+    }
 }

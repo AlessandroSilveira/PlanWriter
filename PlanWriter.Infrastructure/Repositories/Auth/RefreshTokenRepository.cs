@@ -137,6 +137,24 @@ public sealed class RefreshTokenRepository(IDbExecutor db) : IRefreshTokenReposi
         }, ct);
     }
 
+    public Task<int> RevokeAllByUserAsync(Guid userId, DateTime revokedAtUtc, string reason, CancellationToken ct)
+    {
+        const string sql = @"
+            UPDATE RefreshTokenSessions
+            SET RevokedAtUtc = @RevokedAtUtc,
+                RevokedReason = @Reason
+            WHERE UserId = @UserId
+              AND RevokedAtUtc IS NULL;
+        ";
+
+        return db.ExecuteAsync(sql, new
+        {
+            UserId = userId,
+            RevokedAtUtc = revokedAtUtc,
+            Reason = reason
+        }, ct);
+    }
+
     public async Task<bool> UpdateLastUsedAsync(Guid tokenId, DateTime lastUsedAtUtc, CancellationToken ct)
     {
         const string sql = @"

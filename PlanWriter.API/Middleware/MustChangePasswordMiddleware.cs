@@ -20,6 +20,7 @@ namespace PlanWriter.API.Middleware
                 path.StartsWith("/api/auth/change-password") ||
                 path.StartsWith("/api/auth/refresh") ||
                 path.StartsWith("/api/auth/logout") ||
+                path.StartsWith("/api/auth/logout-all") ||
                 path.StartsWith("/swagger") ||
                 path.StartsWith("/health")
             )

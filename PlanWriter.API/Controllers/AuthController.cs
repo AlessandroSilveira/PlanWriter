@@ -102,6 +102,28 @@ public class AuthController(
         await mediator.Send(new LogoutSessionCommand(dto));
         return Ok(new { message = "Sessão encerrada com sucesso." });
     }
+
+    [Authorize]
+    [EnableRateLimiting("auth-refresh")]
+    [HttpPost("logout-all")]
+    public async Task<IActionResult> LogoutAll()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var device = Request.Headers.UserAgent.ToString();
+        var revokedSessions = await mediator.Send(new LogoutAllSessionsCommand(userId, ipAddress, device));
+
+        return Ok(new
+        {
+            message = "Todas as sessões foram encerradas com sucesso.",
+            revokedSessions
+        });
+    }
     
     [Authorize]
     [HttpPost("change-password")]

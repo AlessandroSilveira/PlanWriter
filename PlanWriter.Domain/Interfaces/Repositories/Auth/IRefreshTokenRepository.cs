@@ -12,5 +12,6 @@ public interface IRefreshTokenRepository
     Task<bool> MarkRotatedAsync(Guid tokenId, Guid replacedByTokenId, DateTime revokedAtUtc, CancellationToken ct);
     Task<bool> RevokeAsync(Guid tokenId, DateTime revokedAtUtc, string reason, CancellationToken ct);
     Task<int> RevokeFamilyAsync(Guid familyId, DateTime revokedAtUtc, string reason, CancellationToken ct);
+    Task<int> RevokeAllByUserAsync(Guid userId, DateTime revokedAtUtc, string reason, CancellationToken ct);
     Task<bool> UpdateLastUsedAsync(Guid tokenId, DateTime lastUsedAtUtc, CancellationToken ct);
 }

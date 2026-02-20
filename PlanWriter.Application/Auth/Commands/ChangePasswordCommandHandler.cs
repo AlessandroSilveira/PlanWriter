@@ -9,12 +9,14 @@ using PlanWriter.Application.Security;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Interfaces.Auth;
 using PlanWriter.Domain.Interfaces.ReadModels.Auth;
+using PlanWriter.Domain.Interfaces.Repositories.Auth;
 using IUserReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Users.IUserReadRepository;
 
 namespace PlanWriter.Application.Auth.Commands;
 
 public class ChangePasswordCommandHandler(IUserReadRepository userReadRepository, IUserPasswordRepository passwordRepository,
-    IPasswordHasher<User> passwordHasher, IJwtTokenGenerator tokenGenerator, ILogger<ChangePasswordCommandHandler> logger)
+    IPasswordHasher<User> passwordHasher, IJwtTokenGenerator tokenGenerator, IRefreshTokenRepository refreshTokenRepository,
+    TimeProvider timeProvider, ILogger<ChangePasswordCommandHandler> logger)
     : IRequestHandler<ChangePasswordCommand, string>
 {
     public async Task<string> Handle(ChangePasswordCommand request, CancellationToken ct)
@@ -42,8 +44,17 @@ public class ChangePasswordCommandHandler(IUserReadRepository userReadRepository
         user.ChangePassword(newHash);
 
         await passwordRepository.UpdatePasswordAsync(user.Id, user.PasswordHash, ct);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var revokedSessions = await refreshTokenRepository.RevokeAllByUserAsync(
+            user.Id,
+            now,
+            "PasswordChanged",
+            ct);
 
-        logger.LogInformation("Password changed for user {UserId}", user.Id);
+        logger.LogInformation(
+            "Password changed for user {UserId}. RevokedSessions={RevokedSessions}",
+            user.Id,
+            revokedSessions);
         
         return tokenGenerator.Generate(user);
     }
