@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using FluentAssertions;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using PlanWriter.Domain.Configurations;
 using PlanWriter.Domain.Entities;
@@ -14,17 +13,14 @@ public class JwtTokenGeneratorTests
     [Fact]
     public void Generate_ShouldCreateTokenWithExpectedClaims()
     {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Jwt:Key"] = "this-is-a-very-long-test-key-1234567890",
-                ["Jwt:Audience"] = "planwriter-aud",
-                ["Jwt:Issuer"] = "planwriter-iss"
-            })
-            .Build();
-
         var sut = new JwtTokenGenerator(
-            config,
+            Options.Create(new JwtOptions
+            {
+                Key = "this-is-a-very-long-test-key-1234567890",
+                Audience = "planwriter-aud",
+                Issuer = "planwriter-iss",
+                CurrentKid = "k1"
+            }),
             Options.Create(new AuthTokenOptions
             {
                 AccessTokenMinutes = 15,
@@ -48,6 +44,10 @@ public class JwtTokenGeneratorTests
         parsed.Claims.Select(c => c.Value).Should().Contain("Alice");
         parsed.Claims.First(c => c.Type == "isAdmin").Value.Should().Be("true");
         parsed.Claims.First(c => c.Type == "mustChangePassword").Value.Should().Be("false");
+        parsed.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Jti);
+        parsed.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Iat);
+        parsed.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Nbf);
+        parsed.Header.Kid.Should().Be("k1");
         parsed.Issuer.Should().Be("planwriter-iss");
         parsed.Audiences.Should().Contain("planwriter-aud");
     }
@@ -55,9 +55,14 @@ public class JwtTokenGeneratorTests
     [Fact]
     public void Generate_ShouldThrow_WhenKeyIsMissing()
     {
-        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
         var sut = new JwtTokenGenerator(
-            config,
+            Options.Create(new JwtOptions
+            {
+                Key = string.Empty,
+                Audience = "planwriter-aud",
+                Issuer = "planwriter-iss",
+                CurrentKid = "k1"
+            }),
             Options.Create(new AuthTokenOptions
             {
                 AccessTokenMinutes = 15,
@@ -66,6 +71,6 @@ public class JwtTokenGeneratorTests
 
         var act = () => sut.Generate(new User { Id = Guid.NewGuid(), Email = "user@test.com", FirstName = "Alice" });
 
-        act.Should().Throw<ArgumentNullException>();
+        act.Should().Throw<ArgumentException>();
     }
 }
