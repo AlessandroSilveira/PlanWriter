@@ -24,9 +24,11 @@ public class GetProjectProgressHistoryQueryHandler(ILogger<GetProjectProgressHis
             .Select(r => new ProgressHistoryDto
             {
                 Date = r.Date,
-                WordsWritten = r.WordsWritten
+                WordsWritten = r.WordsWritten,
+                CreatedAt = r.CreatedAt
             })
             .OrderBy(x => x.Date)
+            .ThenBy(x => x.CreatedAt ?? x.Date)
             .ToList();
 
         logger.LogInformation("Found {Count} progress entries for project {ProjectId} and user {UserId}", result.Count, request.ProjectId, request.UserId);

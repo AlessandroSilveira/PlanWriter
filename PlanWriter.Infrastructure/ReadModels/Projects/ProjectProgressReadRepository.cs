@@ -20,12 +20,13 @@ public class ProjectProgressReadRepository(IDbExecutor db) : IProjectProgressRea
         const string sql = """
             SELECT
                 pp.[Date]       AS [Date],
-                pp.WordsWritten AS WordsWritten
+                pp.WordsWritten AS WordsWritten,
+                pp.CreatedAt    AS CreatedAt
             FROM ProjectProgresses pp
             INNER JOIN Projects p ON p.Id = pp.ProjectId
             WHERE pp.ProjectId = @ProjectId
               AND p.UserId = @UserId
-            ORDER BY pp.[Date] ASC;
+            ORDER BY pp.[Date] ASC, pp.CreatedAt ASC;
         """;
 
         return db.QueryAsync<ProgressHistoryRow>(sql, new { ProjectId = projectId, UserId = userId }, ct);
@@ -41,7 +42,8 @@ public class ProjectProgressReadRepository(IDbExecutor db) : IProjectProgressRea
         const string sql = """
             SELECT
                 CAST(pp.[Date] AS date) AS [Date],
-                SUM(pp.WordsWritten)    AS WordsWritten
+                SUM(pp.WordsWritten)    AS WordsWritten,
+                CAST(NULL AS DATETIME2) AS CreatedAt
             FROM ProjectProgresses pp
             INNER JOIN Projects p ON p.Id = pp.ProjectId
             WHERE p.UserId = @UserId
