@@ -6,4 +6,5 @@ public class ProgressHistoryDto
 {
     public DateTime Date { get; set; }
     public int WordsWritten { get; set; }
+    public DateTime? CreatedAt { get; set; }
 }
