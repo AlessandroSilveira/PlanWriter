@@ -1,0 +1,20 @@
+name: Release Branch Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  release-branch-gate:
+    name: Release Branch Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate source branch pattern
+        run: |
+          echo "Base branch: ${{ github.base_ref }}"
+          echo "Head branch: ${{ github.head_ref }}"
+          if [[ "${{ github.head_ref }}" != release/* ]]; then
+            echo "PRs targeting main must come from a release/* branch." >&2
+            exit 1
+          fi
