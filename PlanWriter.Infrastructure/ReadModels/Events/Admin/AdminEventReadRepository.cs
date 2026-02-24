@@ -30,10 +30,12 @@ public class AdminEventReadRepository(IDbExecutor db) : IAdminEventReadRepositor
                 Id,
                 Name,
                 Slug,
-                CASE [Type]
-                    WHEN 0 THEN 'Nanowrimo'
-                    WHEN 1 THEN 'Desafio'
-                    WHEN 2 THEN 'Oficial'
+                CASE
+                    WHEN TRY_CONVERT(INT, [Type]) = 0 THEN 'Nanowrimo'
+                    WHEN TRY_CONVERT(INT, [Type]) = 1 THEN 'Desafio'
+                    WHEN TRY_CONVERT(INT, [Type]) = 2 THEN 'Oficial'
+                    WHEN NULLIF(LTRIM(RTRIM(CONVERT(NVARCHAR(50), [Type]))), '') IS NOT NULL
+                        THEN CONVERT(NVARCHAR(50), [Type])
                     ELSE 'Nanowrimo'
                 END AS Type,
                 StartsAtUtc,
@@ -56,10 +58,12 @@ public class AdminEventReadRepository(IDbExecutor db) : IAdminEventReadRepositor
                 Id,
                 Name,
                 Slug,
-                CASE [Type]
-                    WHEN 0 THEN 'Nanowrimo'
-                    WHEN 1 THEN 'Desafio'
-                    WHEN 2 THEN 'Oficial'
+                CASE
+                    WHEN TRY_CONVERT(INT, [Type]) = 0 THEN 'Nanowrimo'
+                    WHEN TRY_CONVERT(INT, [Type]) = 1 THEN 'Desafio'
+                    WHEN TRY_CONVERT(INT, [Type]) = 2 THEN 'Oficial'
+                    WHEN NULLIF(LTRIM(RTRIM(CONVERT(NVARCHAR(50), [Type]))), '') IS NOT NULL
+                        THEN CONVERT(NVARCHAR(50), [Type])
                     ELSE 'Nanowrimo'
                 END AS Type,
                 StartsAtUtc,
