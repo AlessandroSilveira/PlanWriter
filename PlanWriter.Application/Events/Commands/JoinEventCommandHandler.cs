@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using PlanWriter.Application.Common.Exceptions;
 using PlanWriter.Application.Events.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
@@ -30,6 +31,12 @@ public class JoinEventCommandHandler(
        
         var ev = await eventReadRepository.GetEventByIdAsync(request.Req.EventId, ct)
                  ?? throw new KeyNotFoundException("Evento não encontrado.");
+
+        var now = DateTime.UtcNow;
+        if (!ev.IsActive || now < ev.StartsAtUtc || now > ev.EndsAtUtc)
+        {
+            throw new BusinessRuleException("O evento não está disponível para novas participações.");
+        }
 
         var project = await projectReadRepository.GetProjectByIdAsync(request.Req.ProjectId, request.UserId, ct)
                       ?? throw new KeyNotFoundException("Projeto não encontrado.");

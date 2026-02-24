@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PlanWriter.Application.Common.Exceptions;
 using PlanWriter.Application.Events.Commands;
 using PlanWriter.Application.Events.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Events;
@@ -294,6 +295,39 @@ public class JoinEventCommandHandlerTests
         await act.Should()
             .ThrowAsync<KeyNotFoundException>()
             .WithMessage("Projeto não encontrado.");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldThrowBusinessRule_WhenEventIsOutsideActiveWindow()
+    {
+        var eventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        _eventReadRepositoryMock
+            .Setup(r => r.GetEventByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EventDto(
+                eventId,
+                "Evento Encerrado",
+                "evento-encerrado",
+                "Nanowrimo",
+                DateTime.UtcNow.AddDays(-20),
+                DateTime.UtcNow.AddDays(-1),
+                50000,
+                true
+            ));
+
+        var handler = CreateHandler();
+        var command = CreateCommand(projectId, eventId, null);
+
+        Func<Task> act = async () => await handler.Handle(command, CancellationToken.None);
+
+        await act.Should()
+            .ThrowAsync<BusinessRuleException>()
+            .WithMessage("O evento não está disponível para novas participações.");
+
+        _projectReadRepositoryMock.Verify(
+            r => r.GetProjectByIdAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     /* ===================== HELPERS ===================== */
