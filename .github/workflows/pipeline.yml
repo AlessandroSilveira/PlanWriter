@@ -4,9 +4,11 @@ on:
   pull_request:
     branches:
       - main
+      - staging
   push:
     branches:
       - main
+      - staging
   workflow_dispatch:
     inputs:
       target:
@@ -71,7 +73,7 @@ jobs:
       - deploy
     needs:
       - test
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy' && github.event.inputs.target == 'staging')
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/staging') || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy' && github.event.inputs.target == 'staging')
     environment: staging
     env:
       DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}

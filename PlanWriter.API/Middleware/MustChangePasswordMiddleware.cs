@@ -29,7 +29,7 @@ namespace PlanWriter.API.Middleware
                 return;
             }
 
-            // 🔒 SÓ APLICA PARA USUÁRIO AUTENTICADO
+            //teste
             if (context.User.Identity?.IsAuthenticated == true)
             {
                 var isAdmin = context.User.FindFirst("isAdmin")?.Value == "true";
@@ -44,7 +44,6 @@ namespace PlanWriter.API.Middleware
                     return;
                 }
             }
-
 
             await _next(context);
         }
