@@ -45,7 +45,6 @@ namespace PlanWriter.API.Middleware
                 }
             }
 
-
             await _next(context);
         }
     }
