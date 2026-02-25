@@ -29,7 +29,7 @@ namespace PlanWriter.API.Middleware
                 return;
             }
 
-            
+            //teste
             if (context.User.Identity?.IsAuthenticated == true)
             {
                 var isAdmin = context.User.FindFirst("isAdmin")?.Value == "true";
