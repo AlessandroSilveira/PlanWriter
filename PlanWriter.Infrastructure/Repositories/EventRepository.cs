@@ -209,6 +209,9 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 pe.ProjectId,
                 pe.EventId,
                 e.Name AS EventName,
+                e.StartsAtUtc,
+                e.EndsAtUtc,
+                e.IsActive AS EventIsActive,
                 p.Title AS ProjectTitle,
                 COALESCE(
                     SUM(
@@ -222,7 +225,11 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                     0
                 ) AS TotalWrittenInEvent,
                 pe.TargetWords AS TargetWords,
-                e.DefaultTargetWords AS EventDefaultTargetWords
+                e.DefaultTargetWords AS EventDefaultTargetWords,
+                pe.FinalWordCount AS FinalWordCountSnapshot,
+                pe.ValidatedWords AS ValidatedWordsSnapshot,
+                pe.ValidatedAtUtc,
+                pe.Won AS PersistedWon
             FROM ProjectEvents pe
             INNER JOIN Events e ON e.Id = pe.EventId
             INNER JOIN Projects p ON p.Id = pe.ProjectId
@@ -232,9 +239,16 @@ public class EventRepository(IDbExecutor db) : IEventRepository
                 pe.ProjectId,
                 pe.EventId,
                 e.Name,
+                e.StartsAtUtc,
+                e.EndsAtUtc,
+                e.IsActive,
                 p.Title,
                 pe.TargetWords,
-                e.DefaultTargetWords;
+                e.DefaultTargetWords,
+                pe.FinalWordCount,
+                pe.ValidatedWords,
+                pe.ValidatedAtUtc,
+                pe.Won;
         ";
 
         var rows = await db.QueryAsync<MyEventDto>(sql, new { UserId = userId });

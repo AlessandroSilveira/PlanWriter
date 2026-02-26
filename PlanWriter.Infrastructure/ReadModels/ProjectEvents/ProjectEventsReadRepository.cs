@@ -127,6 +127,41 @@ public sealed class ProjectEventsReadRepository(IDbExecutor db) : IProjectEvents
         return row is null ? null : Map(row);
     }
 
+    public async Task<IReadOnlyList<ProjectEvent>> GetByEventIdAsync(Guid eventId, CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT
+                pe.Id,
+                pe.ProjectId,
+                pe.EventId,
+                pe.TargetWords,
+                pe.Won,
+                pe.ValidatedAtUtc,
+                pe.FinalWordCount,
+                pe.ValidatedWords,
+                pe.ValidationSource,
+
+                e.Name              AS EventName,
+                e.Slug              AS EventSlug,
+                e.[Type]            AS EventType,
+                e.StartsAtUtc,
+                e.EndsAtUtc,
+                e.DefaultTargetWords,
+                e.IsActive
+            FROM ProjectEvents pe
+            INNER JOIN Events e ON e.Id = pe.EventId
+            WHERE pe.EventId = @EventId;
+        ";
+
+        var rows = await db.QueryAsync<ProjectEventWithEventRow>(
+            sql,
+            new { EventId = eventId },
+            ct: ct
+        );
+
+        return rows.Select(Map).ToList();
+    }
+
     public async Task<IReadOnlyList<ProjectEvent>> GetByUserIdAsync(Guid userId, CancellationToken ct)
     {
         const string sql = @"

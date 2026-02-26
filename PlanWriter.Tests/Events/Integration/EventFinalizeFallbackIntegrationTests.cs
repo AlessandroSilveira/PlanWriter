@@ -342,6 +342,20 @@ public class EventFinalizeFallbackIntegrationTests
             return Task.FromResult(projectEvent);
         }
 
+        public Task<IReadOnlyList<ProjectEvent>> GetByEventIdAsync(Guid eventId, CancellationToken ct)
+        {
+            var result = store.ProjectEvents.Values
+                .Where(pe => pe.EventId == eventId)
+                .ToList();
+
+            foreach (var projectEvent in result)
+            {
+                AttachEvent(projectEvent);
+            }
+
+            return Task.FromResult((IReadOnlyList<ProjectEvent>)result);
+        }
+
         public Task<IReadOnlyList<ProjectEvent>> GetByUserIdAsync(Guid userId, CancellationToken ct)
         {
             var result = store.ProjectEvents.Values
