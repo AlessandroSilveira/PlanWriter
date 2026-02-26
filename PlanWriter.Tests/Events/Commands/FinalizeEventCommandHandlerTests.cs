@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PlanWriter.Application.Common.Exceptions;
 using PlanWriter.Application.Events.Commands;
 using PlanWriter.Application.Events.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Events;
@@ -347,5 +348,152 @@ public class FinalizeEventCommandHandlerTests
         await act.Should()
             .ThrowAsync<KeyNotFoundException>()
             .WithMessage("Evento não encontrado.");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldThrowBusinessRule_WhenEventIsStillRunning()
+    {
+        var projectEventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+
+        var ev = new Event
+        {
+            Id = eventId,
+            Name = "Evento em andamento",
+            StartsAtUtc = DateTime.UtcNow.AddHours(-1),
+            EndsAtUtc = DateTime.UtcNow.AddHours(2)
+        };
+
+        var projectEvent = new ProjectEvent
+        {
+            Id = projectEventId,
+            ProjectId = projectId,
+            EventId = eventId,
+            Event = ev
+        };
+
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(projectEvent);
+
+        var handler = CreateHandler();
+
+        Func<Task> act = async () =>
+            await handler.Handle(new FinalizeEventCommand(new FinalizeRequest(projectEventId)), CancellationToken.None);
+
+        await act.Should()
+            .ThrowAsync<BusinessRuleException>()
+            .WithMessage("O evento ainda está em andamento*");
+
+        _projectProgressRepoMock.Verify(r => r.GetByProjectAndDateRangeAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<DateTime>(),
+            It.IsAny<DateTime>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _projectEventsRepoMock.Verify(r => r.UpdateProjectEvent(It.IsAny<ProjectEvent>(), It.IsAny<CancellationToken>()), Times.Never);
+        _badgeRepoMock.Verify(r => r.SaveAsync(It.IsAny<List<Badge>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldAllowFinalization_WhenEventWasClosedManuallyBeforeEndDate()
+    {
+        var projectEventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+
+        var ev = new Event
+        {
+            Id = eventId,
+            Name = "Evento encerrado manualmente",
+            StartsAtUtc = DateTime.UtcNow.AddDays(-1),
+            EndsAtUtc = DateTime.UtcNow.AddDays(5),
+            IsActive = false
+        };
+
+        var projectEvent = new ProjectEvent
+        {
+            Id = projectEventId,
+            ProjectId = projectId,
+            EventId = eventId,
+            TargetWords = 100,
+            Event = ev
+        };
+
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(projectEvent);
+
+        _projectProgressRepoMock
+            .Setup(r => r.GetByProjectAndDateRangeAsync(projectId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new ProjectProgress { ProjectId = projectId, WordsWritten = 120 } });
+
+        _projectEventsRepoMock
+            .Setup(r => r.UpdateProjectEvent(projectEvent, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _badgeRepoMock
+            .Setup(r => r.SaveAsync(It.IsAny<List<Badge>>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new FinalizeEventCommand(new FinalizeRequest(projectEventId)), CancellationToken.None);
+
+        result.Won.Should().BeTrue();
+        result.FinalWordCount.Should().Be(120);
+
+        _projectEventsRepoMock.Verify(r => r.UpdateProjectEvent(projectEvent, It.IsAny<CancellationToken>()), Times.Once);
+        _badgeRepoMock.Verify(r => r.SaveAsync(It.IsAny<List<Badge>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnPersistedSnapshot_WhenAlreadyFinalized()
+    {
+        var projectEventId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+        var validatedAt = DateTime.UtcNow.AddDays(-1);
+
+        var ev = new Event
+        {
+            Id = eventId,
+            Name = "Evento encerrado",
+            StartsAtUtc = DateTime.UtcNow.AddDays(-10),
+            EndsAtUtc = DateTime.UtcNow.AddDays(-2)
+        };
+
+        var projectEvent = new ProjectEvent
+        {
+            Id = projectEventId,
+            ProjectId = projectId,
+            EventId = eventId,
+            Event = ev,
+            TargetWords = 1000,
+            FinalWordCount = 1200,
+            ValidatedWords = 1200,
+            ValidatedAtUtc = validatedAt,
+            Won = true
+        };
+
+        _projectEventsReadRepoMock
+            .Setup(r => r.GetByIdWithEventAsync(projectEventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(projectEvent);
+
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(new FinalizeEventCommand(new FinalizeRequest(projectEventId)), CancellationToken.None);
+
+        result.Should().BeSameAs(projectEvent);
+        result.FinalWordCount.Should().Be(1200);
+        result.ValidatedAtUtc.Should().Be(validatedAt);
+        result.Won.Should().BeTrue();
+
+        _projectProgressRepoMock.Verify(r => r.GetByProjectAndDateRangeAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<DateTime>(),
+            It.IsAny<DateTime>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _projectEventsRepoMock.Verify(r => r.UpdateProjectEvent(It.IsAny<ProjectEvent>(), It.IsAny<CancellationToken>()), Times.Never);
+        _badgeRepoMock.Verify(r => r.SaveAsync(It.IsAny<List<Badge>>()), Times.Never);
     }
 }
