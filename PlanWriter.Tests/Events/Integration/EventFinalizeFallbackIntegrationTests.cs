@@ -77,6 +77,10 @@ public class EventFinalizeFallbackIntegrationTests
 
         joined.TargetWords.Should().Be(42000);
 
+        // Simula encerramento administrativo antes da data final para validar fallback de meta
+        // sem violar a regra de negócio (finalização só após encerramento efetivo).
+        store.Events[eventId].IsActive = false;
+
         var finalizeHandler = new FinalizeEventCommandHandler(
             projectEventsRepository,
             eventRepository,
@@ -154,6 +158,10 @@ public class EventFinalizeFallbackIntegrationTests
             CancellationToken.None);
 
         joined.TargetWords.Should().Be(50000);
+
+        // Simula encerramento administrativo antes da data final para validar fallback de meta
+        // sem violar a regra de negócio (finalização só após encerramento efetivo).
+        store.Events[eventId].IsActive = false;
 
         var finalizeHandler = new FinalizeEventCommandHandler(
             projectEventsRepository,
