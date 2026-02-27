@@ -96,7 +96,101 @@ public class GetMyEventsQueryHandlerTests
         result.Should().BeEmpty();
     }
 
-    
+    [Fact]
+    public async Task Handle_ShouldAnnotateEffectiveStatus_ForLifecycleScenarios()
+    {
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        var events = new List<MyEventDto>
+        {
+            new()
+            {
+                EventId = Guid.NewGuid(),
+                EventIsActive = true,
+                StartsAtUtc = now.AddHours(-1),
+                EndsAtUtc = now.AddHours(1),
+                TargetWords = 100,
+                TotalWrittenInEvent = 10
+            },
+            new()
+            {
+                EventId = Guid.NewGuid(),
+                EventIsActive = true,
+                StartsAtUtc = now.AddHours(1),
+                EndsAtUtc = now.AddHours(2),
+                TargetWords = 100,
+                TotalWrittenInEvent = 0
+            },
+            new()
+            {
+                EventId = Guid.NewGuid(),
+                EventIsActive = true,
+                StartsAtUtc = now.AddHours(-2),
+                EndsAtUtc = now.AddHours(-1),
+                TargetWords = 100,
+                TotalWrittenInEvent = 50
+            },
+            new()
+            {
+                EventId = Guid.NewGuid(),
+                EventIsActive = false,
+                StartsAtUtc = now.AddHours(-1),
+                EndsAtUtc = now.AddHours(1),
+                TargetWords = 100,
+                TotalWrittenInEvent = 20
+            }
+        };
+
+        _eventRepositoryMock
+            .Setup(r => r.GetEventByUserId(userId))
+            .ReturnsAsync(events);
+
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(new GetMyEventsQuery(userId), CancellationToken.None);
+
+        result.Select(r => r.EffectiveStatus).Should().ContainInOrder("active", "scheduled", "closed", "disabled");
+        result[0].IsEffectivelyActive.Should().BeTrue();
+        result[1].IsEffectivelyActive.Should().BeFalse();
+        result[2].IsEffectivelyActive.Should().BeFalse();
+        result[3].IsEffectivelyActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldPreferPersistedFinalSnapshot_ForClosedValidatedEvents()
+    {
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        var closedValidatedEvent = new MyEventDto
+        {
+            EventId = Guid.NewGuid(),
+            EventIsActive = true,
+            StartsAtUtc = now.AddDays(-10),
+            EndsAtUtc = now.AddDays(-1),
+            TargetWords = 1000,
+            TotalWrittenInEvent = 1500, // live sum can drift after closure
+            FinalWordCountSnapshot = 900,
+            ValidatedWordsSnapshot = 850,
+            PersistedWon = false,
+            ValidatedAtUtc = now.AddHours(-2)
+        };
+
+        _eventRepositoryMock
+            .Setup(r => r.GetEventByUserId(userId))
+            .ReturnsAsync(new List<MyEventDto> { closedValidatedEvent });
+
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(new GetMyEventsQuery(userId), CancellationToken.None);
+
+        result.Should().HaveCount(1);
+        result[0].EffectiveStatus.Should().Be("closed");
+        result[0].TotalWrittenInEvent.Should().Be(850); // prefers ValidatedWords snapshot
+        result[0].Percent.Should().Be(85);
+        result[0].Won.Should().BeFalse(); // persisted winner result must win over recalculation
+    }
 
     private GetMyEventsQueryHandler CreateHandler()
     {

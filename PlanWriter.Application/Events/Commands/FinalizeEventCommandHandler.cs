@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using PlanWriter.Application.Common.Exceptions;
 using PlanWriter.Application.Events.Dtos.Commands;
 using PlanWriter.Domain.Entities;
 using PlanWriter.Domain.Events;
@@ -40,6 +41,18 @@ public class FinalizeEventCommandHandler(
             ?? throw new KeyNotFoundException("Evento não encontrado.");
 
         logger.LogInformation("Event {EventId} ({EventName}) loaded for finalization", eventEntity.Id, eventEntity.Name);
+
+        EnsureEventFinalizationWindow(eventEntity, DateTime.UtcNow);
+
+        if (HasStableFinalSnapshot(projectEvent))
+        {
+            logger.LogInformation(
+                "ProjectEvent {ProjectEventId} already finalized at {ValidatedAtUtc}; returning persisted snapshot",
+                projectEvent.Id,
+                projectEvent.ValidatedAtUtc);
+
+            return projectEvent;
+        }
 
         // 3️⃣ Resolve a meta de palavras
         var targetWordCount = projectEvent.TargetWords
@@ -85,6 +98,16 @@ public class FinalizeEventCommandHandler(
     }
 
     /* ===================== PRIVATE METHODS ===================== */
+
+    private static void EnsureEventFinalizationWindow(Event eventEntity, DateTime nowUtc)
+    {
+        // Allow finalization after natural event end OR when the event was manually closed (IsActive = false).
+        if (eventEntity.IsActive && nowUtc < eventEntity.EndsAtUtc)
+            throw new BusinessRuleException("O evento ainda está em andamento. A finalização só pode ser feita após o encerramento.");
+    }
+
+    private static bool HasStableFinalSnapshot(ProjectEvent projectEvent)
+        => projectEvent.ValidatedAtUtc.HasValue && projectEvent.FinalWordCount.HasValue;
 
     private static Badge CreateEventBadge(ProjectEvent projectEvent, Event eventEntity, int totalWordsWritten, int targetWords)
     {

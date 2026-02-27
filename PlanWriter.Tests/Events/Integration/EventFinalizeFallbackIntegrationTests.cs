@@ -77,6 +77,10 @@ public class EventFinalizeFallbackIntegrationTests
 
         joined.TargetWords.Should().Be(42000);
 
+        // Simula encerramento administrativo antes da data final para validar fallback de meta
+        // sem violar a regra de negócio (finalização só após encerramento efetivo).
+        store.Events[eventId].IsActive = false;
+
         var finalizeHandler = new FinalizeEventCommandHandler(
             projectEventsRepository,
             eventRepository,
@@ -154,6 +158,10 @@ public class EventFinalizeFallbackIntegrationTests
             CancellationToken.None);
 
         joined.TargetWords.Should().Be(50000);
+
+        // Simula encerramento administrativo antes da data final para validar fallback de meta
+        // sem violar a regra de negócio (finalização só após encerramento efetivo).
+        store.Events[eventId].IsActive = false;
 
         var finalizeHandler = new FinalizeEventCommandHandler(
             projectEventsRepository,
@@ -340,6 +348,20 @@ public class EventFinalizeFallbackIntegrationTests
             var projectEvent = store.ProjectEvents.TryGetValue(projectEventId, out var pe) ? pe : null;
             AttachEvent(projectEvent);
             return Task.FromResult(projectEvent);
+        }
+
+        public Task<IReadOnlyList<ProjectEvent>> GetByEventIdAsync(Guid eventId, CancellationToken ct)
+        {
+            var result = store.ProjectEvents.Values
+                .Where(pe => pe.EventId == eventId)
+                .ToList();
+
+            foreach (var projectEvent in result)
+            {
+                AttachEvent(projectEvent);
+            }
+
+            return Task.FromResult((IReadOnlyList<ProjectEvent>)result);
         }
 
         public Task<IReadOnlyList<ProjectEvent>> GetByUserIdAsync(Guid userId, CancellationToken ct)

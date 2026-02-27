@@ -4,9 +4,11 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.AdminEvents.Commands;
 using PlanWriter.Application.AdminEvents.Dtos.Commands;
+using PlanWriter.Application.Events.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
+using PlanWriter.Domain.Interfaces.ReadModels.ProjectEvents;
 using PlanWriter.Domain.Interfaces.Repositories.Events.Admin;
 using PlanWriter.Domain.Requests;
 using Xunit;
@@ -17,6 +19,8 @@ public class UpdateAdminEventCommandHandlerTests
 {
     private readonly Mock<IAdminEventRepository> _repositoryMock = new();
     private readonly Mock<IAdminEventReadRepository> _repositoryReadMock = new();
+    private readonly Mock<IProjectEventsReadRepository> _projectEventsReadRepositoryMock = new();
+    private readonly Mock<IMediator> _mediatorMock = new();
     private readonly Mock<ILogger<UpdateAdminEventCommandHandler>> _loggerMock = new();
 
     [Fact]
@@ -172,6 +176,62 @@ public class UpdateAdminEventCommandHandlerTests
             .WithMessage("Error updating event");
     }
 
+    [Fact]
+    public async Task Handle_ShouldFinalizeParticipations_WhenEventBecomesClosed()
+    {
+        var eventId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        var existingEvent = new EventDto(
+            eventId,
+            "Evento Ativo",
+            "evento-ativo",
+            EventType.Nanowrimo.ToString(),
+            now.AddDays(-1),
+            now.AddDays(5),
+            50000,
+            true);
+
+        var command = BuildCommand(
+            eventId,
+            name: "Evento Encerrado",
+            isActive: false);
+
+        var participations = new List<ProjectEvent>
+        {
+            new() { Id = Guid.NewGuid(), EventId = eventId, ProjectId = Guid.NewGuid() },
+            new() { Id = Guid.NewGuid(), EventId = eventId, ProjectId = Guid.NewGuid() }
+        };
+
+        _repositoryReadMock
+            .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingEvent);
+
+        _repositoryMock
+            .Setup(r => r.UpdateAsync(eventId, It.IsAny<EventDto>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _projectEventsReadRepositoryMock
+            .Setup(r => r.GetByEventIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(participations);
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<FinalizeEventCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProjectEvent());
+
+        var handler = CreateHandler();
+
+        await handler.Handle(command, CancellationToken.None);
+
+        _projectEventsReadRepositoryMock.Verify(
+            r => r.GetByEventIdAsync(eventId, It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _mediatorMock.Verify(
+            m => m.Send(It.IsAny<FinalizeEventCommand>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
     /* ===================== HELPERS ===================== */
 
     private UpdateAdminEventCommandHandler CreateHandler()
@@ -179,6 +239,8 @@ public class UpdateAdminEventCommandHandlerTests
         return new UpdateAdminEventCommandHandler(
             _repositoryReadMock.Object,
             _repositoryMock.Object,
+            _projectEventsReadRepositoryMock.Object,
+            _mediatorMock.Object,
             _loggerMock.Object
         );
     }
