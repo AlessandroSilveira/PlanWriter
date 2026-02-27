@@ -44,6 +44,15 @@ public class EventsController(IUserService userService, IMediator mediator) : Co
         var response = await mediator.Send(new GetEventProgressQuery(eventId, projectId));
         return Ok(response);
     }
+
+    [Authorize]
+    [HttpGet("{eventId:guid}/projects/{projectId:guid}/participant-status")]
+    public async Task<ActionResult<EventParticipantStatusDto>> GetParticipantStatus(Guid eventId, Guid projectId)
+    {
+        var userId = userService.GetUserId(User);
+        var response = await mediator.Send(new GetEventParticipantStatusQuery(userId, eventId, projectId));
+        return Ok(response);
+    }
     
     [Authorize]
     [HttpPost("finalize")]
