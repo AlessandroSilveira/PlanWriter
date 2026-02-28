@@ -310,7 +310,7 @@ app.UseAuthentication();
 app.UseMiddleware<MustChangePasswordMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthorization();
-app.MapHealthChecks("/health", new HealthCheckOptions
+var healthCheckOptions = new HealthCheckOptions
 {
     ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse,
     ResultStatusCodes =
@@ -319,7 +319,9 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         [HealthStatus.Degraded] = StatusCodes.Status503ServiceUnavailable,
         [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
     }
-});
+};
+app.MapHealthChecks("/health", healthCheckOptions);
+app.MapHealthChecks("/api/health", healthCheckOptions);
 app.MapControllers();
 app.Run();
 
