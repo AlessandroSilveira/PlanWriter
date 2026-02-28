@@ -3,10 +3,13 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PlanWriter.API.Health;
 using PlanWriter.API.Common.Middleware;
 using PlanWriter.API.Middleware;
 using PlanWriter.API.Security;
@@ -167,6 +170,10 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddApplication();
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHealthChecks()
+    .AddCheck<SqlServerConnectionHealthCheck>(
+        "sqlserver",
+        failureStatus: HealthStatus.Unhealthy);
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "PlanWriter API", Version = "v1" });
@@ -303,6 +310,18 @@ app.UseAuthentication();
 app.UseMiddleware<MustChangePasswordMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthorization();
+var healthCheckOptions = new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse,
+    ResultStatusCodes =
+    {
+        [HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [HealthStatus.Degraded] = StatusCodes.Status503ServiceUnavailable,
+        [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+    }
+};
+app.MapHealthChecks("/health", healthCheckOptions);
+app.MapHealthChecks("/api/health", healthCheckOptions);
 app.MapControllers();
 app.Run();
 
