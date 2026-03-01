@@ -2,6 +2,7 @@ using System.Reflection;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using PlanWriter.Application.Common.Behaviors;
+using PlanWriter.Application.Common.Events;
 
 
 namespace PlanWriter.Application;
@@ -21,6 +22,8 @@ public static class DependencyInjection
             typeof(IPipelineBehavior<,>),
             typeof(LoggingBehavior<,>)
         );
+
+        services.AddScoped<IEventLifecycleService, EventLifecycleService>();
 
         return services;
     }

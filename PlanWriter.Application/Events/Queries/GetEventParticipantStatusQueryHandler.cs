@@ -24,7 +24,8 @@ public sealed class GetEventParticipantStatusQueryHandler(
     IProjectEventsReadRepository projectEventsReadRepository,
     IProjectProgressReadRepository projectProgressReadRepository,
     IEventProgressCalculator eventProgressCalculator,
-    IWinnerEligibilityService winnerEligibilityService)
+    IWinnerEligibilityService winnerEligibilityService,
+    IEventLifecycleService eventLifecycleService)
     : IRequestHandler<GetEventParticipantStatusQuery, EventParticipantStatusDto>
 {
     private const string EventStatusScheduled = "scheduled";
@@ -34,6 +35,8 @@ public sealed class GetEventParticipantStatusQueryHandler(
 
     public async Task<EventParticipantStatusDto> Handle(GetEventParticipantStatusQuery request, CancellationToken cancellationToken)
     {
+        await eventLifecycleService.SyncEventIfExpiredAsync(request.EventId, cancellationToken);
+
         var nowUtc = DateTime.UtcNow;
 
         var eventEntity = await eventReadRepository.GetEventByIdAsync(request.EventId, cancellationToken)
