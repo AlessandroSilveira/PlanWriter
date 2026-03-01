@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.AdminEvents.Dtos.Queries;
 using PlanWriter.Application.AdminEvents.Queries;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using Xunit;
@@ -32,11 +33,12 @@ public class GetAdminEventByIdQueryHandlerTests
 
         var repositoryReadMock = new Mock<IAdminEventReadRepository>();
         var loggerMock = new Mock<ILogger<GetEventByIdQueryHandler>>();
+        var lifecycleMock = new Mock<IEventLifecycleService>();
         repositoryReadMock
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(domainEvent);
 
-        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
+        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, lifecycleMock.Object, loggerMock.Object);
         var query = new GetAdminEventByIdQuery(eventId);
 
         // Act
@@ -71,11 +73,12 @@ public class GetAdminEventByIdQueryHandlerTests
 
         var repositoryReadMock = new Mock<IAdminEventReadRepository>();
         var loggerMock = new Mock<ILogger<GetEventByIdQueryHandler>>();
+        var lifecycleMock = new Mock<IEventLifecycleService>();
         repositoryReadMock
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((EventDto?)null);
 
-        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
+        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, lifecycleMock.Object, loggerMock.Object);
         var query = new GetAdminEventByIdQuery(eventId);
 
         // Act
@@ -95,11 +98,12 @@ public class GetAdminEventByIdQueryHandlerTests
 
         var repositoryReadMock = new Mock<IAdminEventReadRepository>();
         var loggerMock = new Mock<ILogger<GetEventByIdQueryHandler>>();
+        var lifecycleMock = new Mock<IEventLifecycleService>();
         repositoryReadMock
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("DB error"));
 
-        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, loggerMock.Object);
+        var handler = new GetEventByIdQueryHandler(repositoryReadMock.Object, lifecycleMock.Object, loggerMock.Object);
         var query = new GetAdminEventByIdQuery(eventId);
 
         // Act

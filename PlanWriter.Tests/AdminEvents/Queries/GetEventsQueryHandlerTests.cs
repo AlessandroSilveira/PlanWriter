@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using PlanWriter.Application.AdminEvents.Dtos.Queries;
 using PlanWriter.Application.AdminEvents.Queries;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 using PlanWriter.Domain.Interfaces.Repositories.Events.Admin;
@@ -19,6 +20,7 @@ public class GetEventsQueryHandlerTests
         var repositoryMock = new Mock<IAdminEventRepository>();
         var repositoryReadMock = new Mock<IAdminEventReadRepository>();
         var loggerMock = new Mock<ILogger<GetAdminEventQueryHandler>>();
+        var lifecycleMock = new Mock<IEventLifecycleService>();
 
         repositoryReadMock
             .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -26,6 +28,7 @@ public class GetEventsQueryHandlerTests
 
         var handler = new GetAdminEventQueryHandler(
             repositoryReadMock.Object,
+            lifecycleMock.Object,
             loggerMock.Object
         );
 
@@ -76,6 +79,7 @@ public class GetEventsQueryHandlerTests
 
         var repositoryMock = new Mock<IAdminEventReadRepository>();
         var loggerMock = new Mock<ILogger<GetAdminEventQueryHandler>>();
+        var lifecycleMock = new Mock<IEventLifecycleService>();
 
         repositoryMock
             .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -83,6 +87,7 @@ public class GetEventsQueryHandlerTests
 
         var handler = new GetAdminEventQueryHandler(
             repositoryMock.Object,
+            lifecycleMock.Object,
             loggerMock.Object
         );
 
@@ -108,6 +113,7 @@ public class GetEventsQueryHandlerTests
         // Arrange
         var repositoryMock = new Mock<IAdminEventReadRepository>();
         var loggerMock = new Mock<ILogger<GetAdminEventQueryHandler>>();
+        var lifecycleMock = new Mock<IEventLifecycleService>();
 
         repositoryMock
             .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -115,6 +121,7 @@ public class GetEventsQueryHandlerTests
 
         var handler = new GetAdminEventQueryHandler(
             repositoryMock.Object,
+            lifecycleMock.Object,
             loggerMock.Object
         );
 

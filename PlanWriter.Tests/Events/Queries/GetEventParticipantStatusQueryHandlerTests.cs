@@ -23,6 +23,7 @@ public class GetEventParticipantStatusQueryHandlerTests
     private readonly Mock<IProjectReadRepository> _projectReadRepositoryMock = new();
     private readonly Mock<IProjectEventsReadRepository> _projectEventsReadRepositoryMock = new();
     private readonly Mock<IProjectProgressReadRepository> _projectProgressReadRepositoryMock = new();
+    private readonly Mock<IEventLifecycleService> _eventLifecycleServiceMock = new();
     private readonly IEventProgressCalculator _eventProgressCalculator = new EventProgressCalculator();
     private readonly IWinnerEligibilityService _winnerEligibilityService = new WinnerEligibilityService();
 
@@ -260,6 +261,7 @@ public class GetEventParticipantStatusQueryHandlerTests
             _projectEventsReadRepositoryMock.Object,
             _projectProgressReadRepositoryMock.Object,
             _eventProgressCalculator,
-            _winnerEligibilityService);
+            _winnerEligibilityService,
+            _eventLifecycleServiceMock.Object);
     }
 }

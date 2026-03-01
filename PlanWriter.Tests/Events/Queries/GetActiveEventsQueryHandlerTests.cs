@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Domain.Dtos.Events;
 using Xunit;
@@ -13,6 +14,7 @@ public class GetActiveEventsQueryHandlerTests
 {
     private readonly Mock<IEventReadRepository> _eventRepositoryMock = new();
     private readonly Mock<ILogger<GetActiveEventsQueryHandler>> _loggerMock = new();
+    private readonly Mock<IEventLifecycleService> _eventLifecycleServiceMock = new();
 
     [Fact]
     public async Task Handle_ShouldReturnActiveEvents_WhenEventsExist()
@@ -85,6 +87,6 @@ public class GetActiveEventsQueryHandlerTests
 
     private GetActiveEventsQueryHandler CreateHandler()
     {
-        return new GetActiveEventsQueryHandler(_eventRepositoryMock.Object, _loggerMock.Object);
+        return new GetActiveEventsQueryHandler(_eventRepositoryMock.Object, _eventLifecycleServiceMock.Object, _loggerMock.Object);
     }
 }
