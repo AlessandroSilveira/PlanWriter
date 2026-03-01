@@ -4,18 +4,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Events.Dtos.Queries;
 using PlanWriter.Domain.Dtos.Events;
 using IEventReadRepository = PlanWriter.Domain.Interfaces.ReadModels.Events.IEventReadRepository;
 
 namespace PlanWriter.Application.AdminEvents.Queries;
 
-public class GetActiveEventsQueryHandler(IEventReadRepository eventReadRepository, ILogger<GetActiveEventsQueryHandler> logger)
+public class GetActiveEventsQueryHandler(IEventReadRepository eventReadRepository, IEventLifecycleService eventLifecycleService, ILogger<GetActiveEventsQueryHandler> logger)
     : IRequestHandler<GetActiveEventsQuery, IReadOnlyList<EventDto>>
 {
     public async Task<IReadOnlyList<EventDto>> Handle(GetActiveEventsQuery request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Getting active events");
+
+        await eventLifecycleService.SyncExpiredEventsAsync(cancellationToken);
 
         var events = await eventReadRepository
             .GetActiveAsync(cancellationToken);

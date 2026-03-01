@@ -3,15 +3,18 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PlanWriter.Application.AdminEvents.Dtos.Queries;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Domain.Dtos.Events;
 using PlanWriter.Domain.Interfaces.ReadModels.Events.Admin;
 
 namespace PlanWriter.Application.AdminEvents.Queries;
 
-public class GetEventByIdQueryHandler(IAdminEventReadRepository adminEventReadRepository, ILogger<GetEventByIdQueryHandler> logger) : IRequestHandler<GetAdminEventByIdQuery, EventDto?>
+public class GetEventByIdQueryHandler(IAdminEventReadRepository adminEventReadRepository, IEventLifecycleService eventLifecycleService, ILogger<GetEventByIdQueryHandler> logger) : IRequestHandler<GetAdminEventByIdQuery, EventDto?>
 {
     public async Task<EventDto?> Handle(GetAdminEventByIdQuery request, CancellationToken cancellationToken)
     {
+        await eventLifecycleService.SyncEventIfExpiredAsync(request.EventId, cancellationToken);
+
         var ev = await adminEventReadRepository.GetByIdAsync(request.EventId, cancellationToken);
         
         if (ev is null)

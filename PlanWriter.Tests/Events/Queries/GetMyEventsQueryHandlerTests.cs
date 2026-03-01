@@ -14,6 +14,7 @@ public class GetMyEventsQueryHandlerTests
 {
     private readonly Mock<IEventRepository> _eventRepositoryMock = new();
     private readonly Mock<ILogger<GetMyEventsQueryHandler>> _loggerMock = new();
+    private readonly Mock<IEventLifecycleService> _eventLifecycleServiceMock = new();
     private readonly IEventProgressCalculator _eventProgressCalculator = new EventProgressCalculator();
 
     [Fact]
@@ -197,6 +198,7 @@ public class GetMyEventsQueryHandlerTests
         return new GetMyEventsQueryHandler(
             _eventRepositoryMock.Object,
             _eventProgressCalculator,
+            _eventLifecycleServiceMock.Object,
             _loggerMock.Object);
     }
 }
