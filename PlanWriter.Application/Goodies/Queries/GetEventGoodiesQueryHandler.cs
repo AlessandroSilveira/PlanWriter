@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Common.Exceptions;
 using PlanWriter.Application.Common.WinnerEligibility;
 using PlanWriter.Application.Goodies.Dtos.Queries;
@@ -23,11 +24,14 @@ public sealed class GetEventGoodiesQueryHandler(
     IProjectEventsReadRepository projectEventsReadRepository,
     IProjectProgressReadRepository projectProgressReadRepository,
     IBadgeReadRepository badgeReadRepository,
-    IWinnerEligibilityService winnerEligibilityService)
+    IWinnerEligibilityService winnerEligibilityService,
+    IEventLifecycleService eventLifecycleService)
     : IRequestHandler<GetEventGoodiesQuery, EventGoodiesDto>
 {
     public async Task<EventGoodiesDto> Handle(GetEventGoodiesQuery request, CancellationToken cancellationToken)
     {
+        await eventLifecycleService.SyncEventIfExpiredAsync(request.EventId, cancellationToken);
+
         var eventEntity = await eventReadRepository.GetEventByIdAsync(request.EventId, cancellationToken)
                           ?? throw new NotFoundException("Evento não encontrado.");
 

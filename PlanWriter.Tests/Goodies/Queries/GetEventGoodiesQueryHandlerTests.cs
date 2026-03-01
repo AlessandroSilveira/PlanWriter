@@ -2,6 +2,7 @@ using System;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PlanWriter.Application.Common.Events;
 using PlanWriter.Application.Common.Exceptions;
 using PlanWriter.Application.Common.WinnerEligibility;
 using PlanWriter.Application.Goodies.Dtos.Queries;
@@ -26,6 +27,7 @@ public class GetEventGoodiesQueryHandlerTests
     private readonly Mock<IProjectProgressReadRepository> _projectProgressReadRepositoryMock = new();
     private readonly Mock<IBadgeReadRepository> _badgeReadRepositoryMock = new();
     private readonly Mock<IWinnerEligibilityService> _winnerEligibilityServiceMock = new();
+    private readonly Mock<IEventLifecycleService> _eventLifecycleServiceMock = new();
 
     [Fact]
     public async Task Handle_ShouldThrowNotFound_WhenEventDoesNotExist()
@@ -250,6 +252,7 @@ public class GetEventGoodiesQueryHandlerTests
             _projectEventsReadRepositoryMock.Object,
             _projectProgressReadRepositoryMock.Object,
             _badgeReadRepositoryMock.Object,
-            _winnerEligibilityServiceMock.Object);
+            _winnerEligibilityServiceMock.Object,
+            _eventLifecycleServiceMock.Object);
     }
 }

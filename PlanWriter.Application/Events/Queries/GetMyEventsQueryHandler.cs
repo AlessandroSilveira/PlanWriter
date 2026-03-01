@@ -14,6 +14,7 @@ namespace PlanWriter.Application.Events.Queries;
 public class GetMyEventsQueryHandler(
     IEventRepository eventRepository,
     IEventProgressCalculator eventProgressCalculator,
+    IEventLifecycleService eventLifecycleService,
     ILogger<GetMyEventsQueryHandler> logger)
     : IRequestHandler<GetMyEventsQuery, List<MyEventDto>>
 {
@@ -25,6 +26,8 @@ public class GetMyEventsQueryHandler(
     public async Task<List<MyEventDto>> Handle(GetMyEventsQuery request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Getting events for user {UserId}", request.UserId);
+
+        await eventLifecycleService.SyncExpiredEventsAsync(cancellationToken);
 
         var eventsForUser = await eventRepository.GetEventByUserId(request.UserId);
 
