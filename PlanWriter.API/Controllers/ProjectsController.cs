@@ -122,6 +122,23 @@ namespace PlanWriter.API.Controllers
             var response = await mediator.Send(new GetProjectProgressHistoryQuery(projectId, UserId));
             return Ok(response);
         }
+
+        [HttpGet("{projectId:guid}/draft")]
+        [ProducesResponseType(typeof(ProjectDraftDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> GetDraft(Guid projectId, CancellationToken ct)
+        {
+            var draft = await mediator.Send(new GetProjectDraftQuery(projectId, UserId), ct);
+            return draft is null ? NoContent() : Ok(draft);
+        }
+
+        [HttpPut("{projectId:guid}/draft")]
+        [ProducesResponseType(typeof(ProjectDraftDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> SaveDraft(Guid projectId, [FromBody] SaveProjectDraftDto dto, CancellationToken ct)
+        {
+            var response = await mediator.Send(new SaveProjectDraftCommand(projectId, UserId, dto), ct);
+            return Ok(response);
+        }
         
         [HttpPost("progress/sprint")]
         public async Task<IActionResult> CreateFromSprint(CreateSprintProgressDto dto)
