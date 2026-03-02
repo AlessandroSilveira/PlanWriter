@@ -642,6 +642,38 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID(N'dbo.ProjectDrafts', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ProjectDrafts
+    (
+        ProjectId UNIQUEIDENTIFIER NOT NULL,
+        UserId UNIQUEIDENTIFIER NOT NULL,
+        HtmlContent NVARCHAR(MAX) NOT NULL,
+        CreatedAtUtc DATETIME2 NOT NULL CONSTRAINT DF_ProjectDrafts_CreatedAtUtc DEFAULT (SYSUTCDATETIME()),
+        UpdatedAtUtc DATETIME2 NOT NULL CONSTRAINT DF_ProjectDrafts_UpdatedAtUtc DEFAULT (SYSUTCDATETIME()),
+        CONSTRAINT PK_ProjectDrafts PRIMARY KEY (ProjectId),
+        CONSTRAINT FK_ProjectDrafts_Projects_ProjectId FOREIGN KEY (ProjectId)
+            REFERENCES dbo.Projects (Id)
+            ON DELETE CASCADE,
+        CONSTRAINT FK_ProjectDrafts_Users_UserId FOREIGN KEY (UserId)
+            REFERENCES dbo.Users (Id)
+            ON DELETE NO ACTION
+    );
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_ProjectDrafts_UserId'
+      AND object_id = OBJECT_ID(N'dbo.ProjectDrafts')
+)
+BEGIN
+    CREATE INDEX IX_ProjectDrafts_UserId
+        ON dbo.ProjectDrafts (UserId);
+END
+GO
+
 IF OBJECT_ID(N'dbo.ProjectEvents', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ProjectEvents
