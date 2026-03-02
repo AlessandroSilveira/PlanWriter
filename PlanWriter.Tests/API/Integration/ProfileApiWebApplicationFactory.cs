@@ -22,6 +22,8 @@ public sealed class ProfileApiWebApplicationFactory : WebApplicationFactory<Prog
             services.RemoveAll<IUserRepository>();
             services.RemoveAll<IProjectRepository>();
             services.RemoveAll<IProjectReadRepository>();
+            services.RemoveAll<IProjectDraftRepository>();
+            services.RemoveAll<IProjectDraftReadRepository>();
 
             services.AddSingleton<InMemoryProfileStore>();
 
@@ -32,6 +34,10 @@ public sealed class ProfileApiWebApplicationFactory : WebApplicationFactory<Prog
             services.AddSingleton<InMemoryProjectRepository>();
             services.AddSingleton<IProjectRepository>(sp => sp.GetRequiredService<InMemoryProjectRepository>());
             services.AddSingleton<IProjectReadRepository>(sp => sp.GetRequiredService<InMemoryProjectRepository>());
+
+            services.AddSingleton<InMemoryProjectDraftRepository>();
+            services.AddSingleton<IProjectDraftRepository>(sp => sp.GetRequiredService<InMemoryProjectDraftRepository>());
+            services.AddSingleton<IProjectDraftReadRepository>(sp => sp.GetRequiredService<InMemoryProjectDraftRepository>());
 
             services
                 .AddAuthentication(options =>
@@ -44,4 +50,5 @@ public sealed class ProfileApiWebApplicationFactory : WebApplicationFactory<Prog
     }
 
     public InMemoryProfileStore Store => Services.GetRequiredService<InMemoryProfileStore>();
+    public InMemoryProjectDraftRepository ProjectDrafts => Services.GetRequiredService<InMemoryProjectDraftRepository>();
 }
