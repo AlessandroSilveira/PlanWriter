@@ -7,5 +7,11 @@ namespace PlanWriter.Domain.Interfaces.Repositories;
 
 public interface IProjectDraftRepository
 {
-    Task<ProjectDraftDto> UpsertAsync(Guid projectId, Guid userId, string htmlContent, DateTime updatedAtUtc, CancellationToken ct);
+    Task<ProjectDraftDto> UpsertAsync(
+        Guid projectId,
+        Guid userId,
+        string htmlContent,
+        DateTime updatedAtUtc,
+        DateTime? lastKnownUpdatedAtUtc,
+        CancellationToken ct);
 }

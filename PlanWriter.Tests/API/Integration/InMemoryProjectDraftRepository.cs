@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using PlanWriter.Domain.Dtos.Projects;
+using PlanWriter.Domain.Exceptions;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 
@@ -28,8 +29,26 @@ public sealed class InMemoryProjectDraftRepository : IProjectDraftRepository, IP
         });
     }
 
-    public Task<ProjectDraftDto> UpsertAsync(Guid projectId, Guid userId, string htmlContent, DateTime updatedAtUtc, CancellationToken ct)
+    public Task<ProjectDraftDto> UpsertAsync(
+        Guid projectId,
+        Guid userId,
+        string htmlContent,
+        DateTime updatedAtUtc,
+        DateTime? lastKnownUpdatedAtUtc,
+        CancellationToken ct)
     {
+        if (_drafts.TryGetValue(projectId, out var existingDraft) && existingDraft.UserId == userId)
+        {
+            if (lastKnownUpdatedAtUtc.HasValue && existingDraft.UpdatedAtUtc != lastKnownUpdatedAtUtc.Value)
+                throw new ProjectDraftConflictException(new ProjectDraftDto
+                {
+                    ProjectId = existingDraft.ProjectId,
+                    HtmlContent = existingDraft.HtmlContent,
+                    CreatedAtUtc = existingDraft.CreatedAtUtc,
+                    UpdatedAtUtc = existingDraft.UpdatedAtUtc
+                });
+        }
+
         var stored = _drafts.AddOrUpdate(
             projectId,
             _ => new StoredDraft(projectId, userId, htmlContent, updatedAtUtc, updatedAtUtc),

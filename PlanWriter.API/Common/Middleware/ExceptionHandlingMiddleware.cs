@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using PlanWriter.Application.Common.Exceptions;
+using PlanWriter.Domain.Exceptions;
 
 namespace PlanWriter.API.Common.Middleware;
 
@@ -38,6 +39,15 @@ public class ExceptionHandlingMiddleware
                 context,
                 HttpStatusCode.NotFound,
                 ex.Message
+            );
+        }
+        catch (ProjectDraftConflictException ex)
+        {
+            await WriteProblemAsync(
+                context,
+                HttpStatusCode.Conflict,
+                ex.Message,
+                ("currentDraft", ex.CurrentDraft)
             );
         }
         catch (InvalidOperationException ex)
@@ -79,7 +89,8 @@ public class ExceptionHandlingMiddleware
     private static async Task WriteProblemAsync(
         HttpContext context,
         HttpStatusCode statusCode,
-        string message)
+        string message,
+        params (string Key, object? Value)[] extensions)
     {
         context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = (int)statusCode;
@@ -90,6 +101,11 @@ public class ExceptionHandlingMiddleware
             Title = message,
             Instance = context.Request.Path
         };
+
+        foreach (var (key, value) in extensions)
+        {
+            problem.Extensions[key] = value;
+        }
 
         await context.Response.WriteAsync(
             JsonSerializer.Serialize(problem)

@@ -134,6 +134,7 @@ namespace PlanWriter.API.Controllers
 
         [HttpPut("{projectId:guid}/draft")]
         [ProducesResponseType(typeof(ProjectDraftDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<IActionResult> SaveDraft(Guid projectId, [FromBody] SaveProjectDraftDto dto, CancellationToken ct)
         {
             var response = await mediator.Send(new SaveProjectDraftCommand(projectId, UserId, dto), ct);
