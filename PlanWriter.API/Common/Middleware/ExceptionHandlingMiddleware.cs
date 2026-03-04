@@ -8,6 +8,7 @@ namespace PlanWriter.API.Common.Middleware;
 
 public class ExceptionHandlingMiddleware
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
@@ -108,7 +109,7 @@ public class ExceptionHandlingMiddleware
         }
 
         await context.Response.WriteAsync(
-            JsonSerializer.Serialize(problem)
+            JsonSerializer.Serialize(problem, JsonOptions)
         );
     }
 }
