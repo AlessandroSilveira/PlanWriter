@@ -7,6 +7,7 @@ using PlanWriter.Application.Projects.Commands;
 using PlanWriter.Application.Projects.Dtos.Commands;
 using PlanWriter.Domain.Dtos.Projects;
 using PlanWriter.Domain.Entities;
+using PlanWriter.Domain.Exceptions;
 using PlanWriter.Domain.Interfaces.ReadModels.Projects;
 using PlanWriter.Domain.Interfaces.Repositories;
 using Xunit;
@@ -37,7 +38,7 @@ public class SaveProjectDraftCommandHandlerTests
             .ReturnsAsync(new Project { Id = projectId, UserId = userId });
 
         _projectDraftRepositoryMock
-            .Setup(r => r.UpsertAsync(projectId, userId, draft.HtmlContent, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.UpsertAsync(projectId, userId, draft.HtmlContent, It.IsAny<DateTime>(), draft.LastKnownUpdatedAtUtc, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ProjectDraftDto
             {
                 ProjectId = projectId,
@@ -52,7 +53,7 @@ public class SaveProjectDraftCommandHandlerTests
         result.HtmlContent.Should().Be("<p>Texto rico</p>");
 
         _projectDraftRepositoryMock.Verify(
-            r => r.UpsertAsync(projectId, userId, draft.HtmlContent, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
+            r => r.UpsertAsync(projectId, userId, draft.HtmlContent, It.IsAny<DateTime>(), draft.LastKnownUpdatedAtUtc, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -72,5 +73,38 @@ public class SaveProjectDraftCommandHandlerTests
 
         await act.Should().ThrowAsync<NotFoundException>().WithMessage("Project not found.");
         _projectDraftRepositoryMock.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldPropagateConflict_WhenDraftVersionIsStale()
+    {
+        var projectId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var staleVersion = DateTime.UtcNow.AddMinutes(-5);
+        var currentDraft = new ProjectDraftDto
+        {
+            ProjectId = projectId,
+            HtmlContent = "<p>Versão atual</p>",
+            CreatedAtUtc = DateTime.UtcNow.AddMinutes(-10),
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+        var draft = new SaveProjectDraftDto
+        {
+            HtmlContent = "<p>Minha edição</p>",
+            LastKnownUpdatedAtUtc = staleVersion
+        };
+
+        _projectReadRepositoryMock
+            .Setup(r => r.GetUserProjectByIdAsync(projectId, userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Project { Id = projectId, UserId = userId });
+
+        _projectDraftRepositoryMock
+            .Setup(r => r.UpsertAsync(projectId, userId, draft.HtmlContent, It.IsAny<DateTime>(), staleVersion, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ProjectDraftConflictException(currentDraft));
+
+        var act = () => CreateHandler().Handle(new SaveProjectDraftCommand(projectId, userId, draft), CancellationToken.None);
+
+        var exception = await act.Should().ThrowAsync<ProjectDraftConflictException>();
+        exception.Which.CurrentDraft.HtmlContent.Should().Be("<p>Versão atual</p>");
     }
 }
