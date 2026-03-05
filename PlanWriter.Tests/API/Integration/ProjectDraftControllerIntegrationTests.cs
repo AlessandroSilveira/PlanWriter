@@ -92,6 +92,49 @@ public sealed class ProjectDraftControllerIntegrationTests(ProfileApiWebApplicat
     }
 
     [Fact]
+    public async Task SaveDraft_ShouldReturnConflict_WhenLastKnownVersionIsStale()
+    {
+        var userId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        SeedState(userId, projectId);
+        using var client = CreateClient(userId);
+
+        var firstResponse = await client.PutAsJsonAsync(
+            $"/api/projects/{projectId}/draft",
+            new SaveProjectDraftDto { HtmlContent = "<p>Primeira versão</p>" });
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstDraft = await firstResponse.Content.ReadFromJsonAsync<ProjectDraftDto>(JsonOptions);
+        firstDraft.Should().NotBeNull();
+
+        var secondResponse = await client.PutAsJsonAsync(
+            $"/api/projects/{projectId}/draft",
+            new SaveProjectDraftDto
+            {
+                HtmlContent = "<p>Segunda versão</p>",
+                LastKnownUpdatedAtUtc = firstDraft!.UpdatedAtUtc
+            });
+
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var staleResponse = await client.PutAsJsonAsync(
+            $"/api/projects/{projectId}/draft",
+            new SaveProjectDraftDto
+            {
+                HtmlContent = "<p>Versão desatualizada</p>",
+                LastKnownUpdatedAtUtc = firstDraft.UpdatedAtUtc
+            });
+
+        staleResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        using var document = JsonDocument.Parse(await staleResponse.Content.ReadAsStringAsync());
+        document.RootElement.GetProperty("title").GetString().Should().Be("Project draft is out of date.");
+        document.RootElement.TryGetProperty("currentDraft", out var currentDraftElement).Should().BeTrue();
+        currentDraftElement.GetProperty("htmlContent").GetString().Should().Be("<p>Segunda versão</p>");
+    }
+
+    [Fact]
     public async Task SaveDraft_ShouldReturnNotFound_WhenProjectDoesNotBelongToUser()
     {
         var ownerId = Guid.NewGuid();

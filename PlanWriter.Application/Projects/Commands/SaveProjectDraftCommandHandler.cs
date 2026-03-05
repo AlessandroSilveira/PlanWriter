@@ -37,6 +37,7 @@ public class SaveProjectDraftCommandHandler(
             request.UserId,
             request.Draft.HtmlContent ?? string.Empty,
             updatedAtUtc,
+            request.Draft.LastKnownUpdatedAtUtc,
             cancellationToken);
     }
 }
